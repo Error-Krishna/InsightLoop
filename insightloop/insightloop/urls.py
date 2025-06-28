@@ -29,4 +29,5 @@ urlpatterns = [
     # path('api/', include(router.urls)),
     path('', include('landing.urls')),
     path('dashboard/', include('dashboard.urls')),
+    path('insights/', include('insights.urls')),
 ]
