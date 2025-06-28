@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Dashboard – InsightLoop</title>
+  
+  <!-- Styles & Scripts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .theme-toggle {
+      transition: all 0.3s ease;
+    }
+    .theme-toggle:hover {
+      transform: scale(1.1);
+    }
+    .theme-toggle:active {
+      transform: scale(0.95);
+    }
+    .dark .chart-grid {
+      color: #9CA3AF !important;
+    }
+    .dark .chart-axis {
+      color: #9CA3AF !important;
+    }
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+        .export-notification {
+          transition: opacity 0.3s ease;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+  
+  <!-- Header/Navigation -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">IL</div>
+          <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">InsightLoop</span>
+        </div>
+        
+        <!-- Main Navigation (Desktop) -->
+        <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Dashboard</a>
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+          
+          <!-- Workers Dropdown -->
+          <div class="relative group">
+            <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none">Workers</button>
+            <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+            </div>
+          </div>
+          
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+        </div>
+        
+        <!-- Profile & Settings -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
+          <button id="themeToggle" class="theme-toggle p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+            <svg id="lightIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+            </svg>
+            <svg id="darkIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300 hidden" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          </button>
+          
+          <!-- Profile Dropdown -->
+          <div class="relative group hidden md:block">
+            <button class="focus:outline-none">
+              <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">KG</div>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+            </div>
+          </div>
+          
+          <!-- Mobile Menu Button -->
+          <button id="mobileMenuBtn" class="md:hidden focus:outline-none">
+            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      
+      <!-- Workers Submenu -->
+      <div>
+        <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
+        <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+      </div>
+      
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+      
+      <hr class="border-gray-200 dark:border-gray-700">
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+    </div>
+  </nav>
+  
+  <!-- Main Content -->
+  <main>
+    <!-- Business Summary -->
+    <section class="py-10">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-3xl font-semibold">Business Analytics</h2>
+          <div class="flex items-center space-x-2">
+            <div class="text-sm text-gray-500 dark:text-gray-400">Real-time updates</div>
+            <div id="connection-status" class="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg shadow">
+            <div class="flex justify-between">
+              <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
+              <div class="h-5 w-5 text-blue-500" id="revenue-loader">
+                <svg id="revenue-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            </div>
+            <h3 id="total-revenue" class="text-2xl font-bold mt-1">₹0</h3>
+            <p id="revenue-change" class="text-green-600 dark:text-green-400 text-sm mt-1">--</p>
+          </div>
+          <div class="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg shadow">
+            <div class="flex justify-between">
+              <p class="text-sm text-gray-500 dark:text-gray-400">Total Profit</p>
+              <div class="h-5 w-5 text-green-500" id="profit-loader">
+                <svg id="profit-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            </div>
+            <h3 id="total-profit" class="text-2xl font-bold mt-1">₹0</h3>
+            <p id="profit-change" class="text-green-600 dark:text-green-400 text-sm mt-1">--</p>
+          </div>
+          <div class="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg shadow">
+            <div class="flex justify-between">
+              <p class="text-sm text-gray-500 dark:text-gray-400">Active Workers</p>
+              <div class="h-5 w-5 text-yellow-500" id="workers-loader">
+                <svg id="workers-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            </div>
+            <h3 id="active-workers" class="text-2xl font-bold mt-1">0</h3>
+            <p id="workers-change" class="text-red-600 dark:text-red-400 text-sm mt-1">--</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Analytics Charts -->
+    <section class="py-10">
+      <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold">Revenue vs Expenses</h3>
+            <div id="rev-exp-loader" class="h-5 w-5 text-indigo-500">
+              <svg id="rev-exp-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="revExpChart"></canvas>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold">Profit Trends</h3>
+            <div id="profit-trend-loader" class="h-5 w-5 text-purple-500">
+              <svg id="profit-trend-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="profitTrendChart"></canvas>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold">Worker Payments</h3>
+            <div id="worker-pay-loader" class="h-5 w-5 text-green-500">
+              <svg id="worker-pay-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="workerPayChart"></canvas>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold">Top Workers by Payout</h3>
+            <div id="top-workers-loader" class="h-5 w-5 text-pink-500">
+              <svg id="top-workers-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="topWorkersChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Worker Payment Status -->
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold">Worker Payment Status</h3>
+          <div id="worker-table-loader" class="h-5 w-5 text-indigo-500">
+            <svg id="worker-table-spinner" class="loading-spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Worker Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Month</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Amount</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody id="worker-payment-table" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tr>
+                <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                  Loading payment data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Export Button -->
+    <div class="flex space-x-3">
+      <button onclick="exportAnalytics('csv')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        Export Analytics
+      </button>
+      
+      <div class="relative group">
+        <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+          <button onclick="exportAnalytics('csv')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">CSV Format</button>
+          <button onclick="exportAnalytics('json')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">JSON Format</button>
+          <button onclick="exportAnalytics('excel')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Excel Format</button>
+        </div>
+      </div>
+</div>
+  </main>
+  
+  <!-- Footer -->
+  <footer class="bg-gray-100 dark:bg-gray-800 py-6">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      <p class="text-sm text-gray-500 dark:text-gray-400">&copy; 2025 InsightLoop. All rights reserved.</p>
+    </div>
+  </footer>
+  
+  <!-- JavaScript -->
+  <script type="text/javascript">
+    if (typeof currentData === 'undefined') {
+      currentData = {
+        summary: null,
+        revExp: null,
+        profitTrends: null,
+        workers: [],
+        topWorkers: []
+      };
+    }
+
+    function showLoader(id) {
+      document.getElementById(`${id}-spinner`).classList.remove('hidden');
+    }
+
+    function hideLoader(id) {
+      document.getElementById(`${id}-spinner`).classList.add('hidden');
+    }
+
+    async function fetchData() {
+      try {
+        const loaders = [
+          'revenue', 'profit', 'workers',
+          'rev-exp', 'profit-trend', 'worker-pay',
+          'top-workers', 'worker-table'
+        ];
+        loaders.forEach(showLoader);
+
+        const [summary, revExp, profitTrends, workers, topWorkersRes] = await Promise.all([
+          fetch('/dashboard/api/summary/').then(res => res.ok ? res.json() : null).catch(() => null),
+          fetch('/dashboard/api/charts/rev_exp/').then(res => res.ok ? res.json() : null).catch(() => null),
+          fetch('/dashboard/api/charts/profit_trends/').then(res => res.ok ? res.json() : null).catch(() => null),
+          fetch('/dashboard/api/workers/payments/').then(res => res.ok ? res.json() : { workers: [] }).catch(() => ({ workers: [] })),
+          fetch('/dashboard/api/top_workers/').then(res => res.ok ? res.json() : []).catch(() => [])
+        ]);
+
+        // Process top workers response
+        const topWorkers = Array.isArray(topWorkersRes) ? topWorkersRes : 
+                          (topWorkersRes?.data || topWorkersRes?.results || []);
+
+        currentData = {
+          summary: summary || currentData.summary,
+          revExp: revExp || currentData.revExp,
+          profitTrends: profitTrends || currentData.profitTrends,
+          workers: workers?.workers || [],
+          topWorkers: topWorkers
+        };
+
+        console.log("Processed top workers data:", topWorkers);
+        updateDashboard();
+      } catch (error) {
+        console.error('Data fetch error:', error);
+      } finally {
+        [
+          'revenue', 'profit', 'workers',
+          'rev-exp', 'profit-trend', 'worker-pay',
+          'top-workers', 'worker-table'
+        ].forEach(hideLoader);
+      }
+    }
+
+    function updateDashboard() {
+      console.log("Updating dashboard with top workers:", currentData.topWorkers);
+      const summary = currentData.summary;
+      
+      // Update summary cards
+      if (summary) {
+        document.getElementById('total-revenue').textContent = `₹${summary.total_revenue.toLocaleString()}`;
+        const revenueChangeElem = document.getElementById('revenue-change');
+        revenueChangeElem.textContent = `${summary.revenue_change > 0 ? '↑' : '↓'} ${Math.abs(summary.revenue_change)}% from last month`;
+        revenueChangeElem.className = summary.revenue_change > 0
+          ? 'text-green-600 dark:text-green-400 text-sm mt-1'
+          : 'text-red-600 dark:text-red-400 text-sm mt-1';
+
+        document.getElementById('total-profit').textContent = `₹${summary.total_profit.toLocaleString()}`;
+        const profitChangeElem = document.getElementById('profit-change');
+        profitChangeElem.textContent = `${summary.profit_change > 0 ? '↑' : '↓'} ${Math.abs(summary.profit_change)}% from last month`;
+        profitChangeElem.className = summary.profit_change > 0
+          ? 'text-green-600 dark:text-green-400 text-sm mt-1'
+          : 'text-red-600 dark:text-red-400 text-sm mt-1';
+
+        document.getElementById('active-workers').textContent = summary.active_workers;
+        const workersChangeElem = document.getElementById('workers-change');
+        workersChangeElem.textContent = `${summary.workers_change > 0 ? '↑' : '↓'} ${Math.abs(summary.workers_change)}% from last month`;
+        workersChangeElem.className = summary.workers_change > 0
+          ? 'text-green-600 dark:text-green-400 text-sm mt-1'
+          : 'text-red-600 dark:text-red-400 text-sm mt-1';
+      }
+
+      // Update charts
+      if (currentData.revExp) {
+        revExpChart.data.labels = currentData.revExp.labels;
+        revExpChart.data.datasets[0].data = currentData.revExp.revenue;
+        revExpChart.data.datasets[1].data = currentData.revExp.expenses;
+        revExpChart.update();
+      }
+
+      if (currentData.profitTrends) {
+        profitTrendChart.data.labels = currentData.profitTrends.labels;
+        profitTrendChart.data.datasets[0].data = currentData.profitTrends.profit;
+        
+        // Update x-axis title based on interval
+        const xAxis = profitTrendChart.options.scales.x;
+        if (xAxis && xAxis.title) {
+          xAxis.title.text = currentData.profitTrends.interval === 'daily' 
+            ? 'Date' 
+            : currentData.profitTrends.interval === 'weekly' 
+              ? 'Week' 
+              : 'Month';
+        }
+        
+        profitTrendChart.update();
+      }
+
+      if (currentData.workers && currentData.workers.length > 0) {
+        // Update worker payments table
+        const tbody = document.getElementById('worker-payment-table');
+        tbody.innerHTML = '';
+
+        currentData.workers.forEach(worker => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">${worker.name}</td>
+            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">${worker.month}</td>
+            <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">₹${worker.amount.toLocaleString()}</td>
+            <td class="px-6 py-4 text-sm">
+              ${worker.status === 'Paid'
+                ? '<span class="text-green-600 dark:text-green-400">Paid</span>'
+                : worker.status === 'Pending'
+                  ? '<span class="text-yellow-600 dark:text-yellow-400">Pending</span>'
+                  : '<span class="inline-block px-3 py-1 text-xs font-semibold text-red-800 bg-red-100 dark:bg-red-900/30 dark:text-red-300 rounded-full">Not Paid</span>'}
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } else {
+        const tbody = document.getElementById('worker-payment-table');
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+              No payment records found
+            </td>
+          </tr>
+        `;
+      }
+
+      // Update Worker Payments Chart
+      if (currentData.workers && currentData.workers.length > 0) {
+        const workerNames = currentData.workers.map(w => w.name);
+        const paymentAmounts = currentData.workers.map(w => w.amount);
+        
+        workerPayChart.data.labels = workerNames;
+        workerPayChart.data.datasets[0].data = paymentAmounts;
+        workerPayChart.update();
+      }
+
+      // Update Top Workers Chart
+      if (currentData.topWorkers && currentData.topWorkers.length > 0) {
+        // Store workers data globally for tooltips
+        window.topWorkersData = currentData.topWorkers;
+        
+        // Sort workers by payout (descending)
+        const sortedWorkers = [...currentData.topWorkers].sort((a, b) => 
+          b.total_payout - a.total_payout
+        );
+        
+        topWorkersChart.data.labels = sortedWorkers.map(w => w.name);
+        topWorkersChart.data.datasets[0].data = sortedWorkers.map(w => w.total_payout);
+        
+        // Update tooltip callback reference
+        topWorkersChart.options.plugins.tooltip.callbacks.afterBody = function(context) {
+          const worker = sortedWorkers[context[0].dataIndex];
+          return [
+            `Payments: ${worker.payment_count}`,
+            `Latest: ${worker.latest_payment}`
+          ];
+        };
+        
+        topWorkersChart.update();
+      }
+    }
+
+    function exportAnalytics(format = 'csv') {
+        try {
+          // Show loading state on button
+          const btn = document.querySelector('[onclick*="exportAnalytics"]');
+          const originalBtnHTML = btn.innerHTML;
+          btn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Exporting...
+          `;
+          btn.disabled = true;
+          
+          // Create timestamp for filename
+          const now = new Date();
+          const timestamp = now.toISOString().slice(0, 19).replace(/[:T]/g, '-');
+          
+          if (format === 'csv') {
+            exportCSV(timestamp);
+          } else if (format === 'json') {
+            exportJSON(timestamp);
+          } else if (format === 'excel') {
+            exportExcel(timestamp);
+          }
+          
+          // Show success notification
+          showNotification('Export completed successfully!', 'success');
+        } catch (error) {
+          console.error('Export failed:', error);
+          showNotification('Export failed. Please try again.', 'error');
+        } finally {
+          // Restore button after 1s (to allow download to start)
+          setTimeout(() => {
+            const btn = document.querySelector('[onclick*="exportAnalytics"]');
+            if (btn) {
+              btn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                Export Analytics
+              `;
+              btn.disabled = false;
+            }
+          }, 1000);
+        }
+      }
+
+      function exportCSV(timestamp) {
+        // Create CSV content
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Header with timestamp
+        csvContent += "InsightLoop Analytics Export\n";
+        csvContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+        
+        // Business Summary
+        csvContent += "BUSINESS SUMMARY\n";
+        csvContent += "Metric,Value,Change\n";
+        if (currentData.summary) {
+          const s = currentData.summary;
+          csvContent += `Total Revenue,₹${s.total_revenue.toLocaleString()},${s.revenue_change > 0 ? '+' : ''}${s.revenue_change}%\n`;
+          csvContent += `Total Profit,₹${s.total_profit.toLocaleString()},${s.profit_change > 0 ? '+' : ''}${s.profit_change}%\n`;
+          csvContent += `Active Workers,${s.active_workers},${s.workers_change > 0 ? '+' : ''}${s.workers_change}%\n`;
+        } else {
+          csvContent += "No summary data available\n";
+        }
+        csvContent += "\n";
+        
+        // Worker Payments
+        csvContent += "WORKER PAYMENTS\n";
+        csvContent += "Name,Month,Amount,Status\n";
+        if (currentData.workers && currentData.workers.length > 0) {
+          currentData.workers.forEach(worker => {
+            csvContent += `"${worker.name}","${worker.month}",₹${worker.amount.toLocaleString()},"${worker.status}"\n`;
+          });
+        } else {
+          csvContent += "No payment records found\n";
+        }
+        csvContent += "\n";
+        
+        // Top Workers
+        csvContent += "TOP WORKERS BY PAYOUT\n";
+        csvContent += "Rank,Name,Total Payout,Payment Count,Latest Payment\n";
+        if (currentData.topWorkers && currentData.topWorkers.length > 0) {
+          currentData.topWorkers.forEach((worker, index) => {
+            csvContent += `${index + 1},"${worker.name}",₹${worker.total_payout.toLocaleString()},${worker.payment_count},"${worker.latest_payment}"\n`;
+          });
+        } else {
+          csvContent += "No top worker records found\n";
+        }
+        
+        // Create and trigger download
+        const encodedUri = encodeURI(csvContent);
+        triggerDownload(encodedUri, `insightloop-export-${timestamp}.csv`);
+      }
+
+      function exportJSON(timestamp) {
+        // Create JSON structure
+        const exportData = {
+          metadata: {
+            generated: new Date().toISOString(),
+            application: "InsightLoop Dashboard"
+          },
+          summary: currentData.summary || null,
+          workerPayments: currentData.workers || [],
+          topWorkers: currentData.topWorkers || []
+        };
+        
+        // Format JSON
+        const jsonStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        triggerDownload(url, `insightloop-export-${timestamp}.json`);
+      }
+
+      function exportExcel(timestamp) {
+        // Create HTML table for Excel
+        let htmlContent = `
+          <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+          <head>
+            <meta charset="UTF-8">
+            <title>InsightLoop Export</title>
+          </head>
+          <body>
+            <h1>InsightLoop Analytics Export</h1>
+            <p>Generated: ${new Date().toLocaleString()}</p>
+        `;
+        
+        // Business Summary Table
+        if (currentData.summary) {
+          const s = currentData.summary;
+          htmlContent += `
+            <h2>Business Summary</h2>
+            <table border="1">
+              <tr><th>Metric</th><th>Value</th><th>Change</th></tr>
+              <tr><td>Total Revenue</td><td>₹${s.total_revenue.toLocaleString()}</td><td>${s.revenue_change > 0 ? '+' : ''}${s.revenue_change}%</td></tr>
+              <tr><td>Total Profit</td><td>₹${s.total_profit.toLocaleString()}</td><td>${s.profit_change > 0 ? '+' : ''}${s.profit_change}%</td></tr>
+              <tr><td>Active Workers</td><td>${s.active_workers}</td><td>${s.workers_change > 0 ? '+' : ''}${s.workers_change}%</td></tr>
+            </table>
+          `;
+        }
+        
+        // Worker Payments Table
+        if (currentData.workers && currentData.workers.length > 0) {
+          htmlContent += `
+            <h2>Worker Payments</h2>
+            <table border="1">
+              <tr><th>Name</th><th>Month</th><th>Amount</th><th>Status</th></tr>
+          `;
+          
+          currentData.workers.forEach(worker => {
+            htmlContent += `
+              <tr>
+                <td>${worker.name}</td>
+                <td>${worker.month}</td>
+                <td>₹${worker.amount.toLocaleString()}</td>
+                <td>${worker.status}</td>
+              </tr>
+            `;
+          });
+          
+          htmlContent += `</table>`;
+        }
+        
+        // Top Workers Table
+        if (currentData.topWorkers && currentData.topWorkers.length > 0) {
+          htmlContent += `
+            <h2>Top Workers</h2>
+            <table border="1">
+              <tr><th>Rank</th><th>Name</th><th>Total Payout</th><th>Payments</th><th>Latest</th></tr>
+          `;
+          
+          currentData.topWorkers.forEach((worker, index) => {
+            htmlContent += `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${worker.name}</td>
+                <td>₹${worker.total_payout.toLocaleString()}</td>
+                <td>${worker.payment_count}</td>
+                <td>${worker.latest_payment}</td>
+              </tr>
+            `;
+          });
+          
+          htmlContent += `</table>`;
+        }
+        
+        htmlContent += `</body></html>`;
+        
+        const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        
+        triggerDownload(url, `insightloop-export-${timestamp}.xls`);
+      }
+
+      function triggerDownload(url, filename) {
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up object URL
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      }
+
+      function showNotification(message, type = 'success') {
+        // Remove existing notifications
+        document.querySelectorAll('.export-notification').forEach(el => el.remove());
+        
+        const notification = document.createElement('div');
+        notification.className = `export-notification fixed top-4 right-4 px-4 py-2 rounded-md shadow-lg text-white z-50 ${
+          type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-hide after 3s
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+      }
+
+
+    function initWebSocket() {
+      const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const socket = new WebSocket(`${wsScheme}://${window.location.host}/ws/dashboard/`);
+
+      socket.onopen = () => {
+        console.log('WebSocket connected');
+        document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-green-500 animate-pulse';
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        currentData = {
+          summary: data.summary || currentData.summary,
+          revExp: data.revExp || currentData.revExp,
+          profitTrends: data.profitTrends || currentData.profitTrends,
+          workers: data.workers || currentData.workers
+        };
+        updateDashboard();
+      };
+
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-red-500';
+        if (socket.readyState === WebSocket.CLOSED) {
+          // setTimeout(initWebSocket, 3000);
+        }
+      };
+
+      socket.onclose = () => {
+        console.log('WebSocket closed. Reconnecting...');
+        document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-yellow-500';
+        // setTimeout(initWebSocket, 3000);
+      };
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initCharts();          // Initialize charts first
+      fetchData();           // Then fetch data
+      initWebSocket();       // Then connect WebSocket
+      setInterval(fetchData, 30000); // Auto-refresh every 30s
+
+      const themeToggle = document.getElementById('themeToggle');
+      const lightIcon = document.getElementById('lightIcon');
+      const darkIcon = document.getElementById('darkIcon');
+
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const storedTheme = localStorage.getItem('theme');
+      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+
+      setTheme(isDark);
+
+      themeToggle.addEventListener('click', () => {
+        const isNowDark = !document.documentElement.classList.contains('dark');
+        setTheme(isNowDark);
+        initCharts?.();
+      });
+
+      function setTheme(dark) {
+        document.documentElement.classList.toggle('dark', dark);
+        lightIcon.classList.toggle('hidden', dark);
+        darkIcon.classList.toggle('hidden', !dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      }
+    });
+    function initCharts() {
+      // Revenue vs Expenses Chart
+      window.revExpChart = new Chart(
+        document.getElementById('revExpChart').getContext('2d'),
+        {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: 'Revenue',
+                data: [],
+                backgroundColor: '#4F46E5'
+              },
+              {
+                label: 'Expenses',
+                data: [],
+                backgroundColor: '#EF4444'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        }
+      );
+
+      // Profit Trends Chart
+      window.profitTrendChart = new Chart(
+        document.getElementById('profitTrendChart').getContext('2d'),
+        {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: 'Profit',
+                data: [],
+                borderColor: '#10B981',
+                fill: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        }
+      );
+
+      // Worker Payments Chart
+      window.workerPayChart = new Chart(
+        document.getElementById('workerPayChart').getContext('2d'),
+        {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: [{
+              label: 'Payment Amount',
+              data: [],
+              backgroundColor: '#F59E0B'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        }
+      );
+
+      // Top Workers Chart
+      const topWorkersCtx = document.getElementById('topWorkersChart').getContext('2d');
+      window.topWorkersChart = new Chart(topWorkersCtx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Total Payout (₹)',
+            data: [],
+            backgroundColor: '#8B5CF6',
+            borderColor: '#7C3AED',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Amount (₹)'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Workers'
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                afterBody: function(context) {
+                  const worker = window.topWorkersData?.[context[0].dataIndex];
+                  if (worker) {
+                    return [
+                      `Payments: ${worker.payment_count}`,
+                      `Latest: ${worker.latest_payment}`
+                    ];
+                  }
+                  return '';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

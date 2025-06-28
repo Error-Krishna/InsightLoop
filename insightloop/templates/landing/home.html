@@ -1,0 +1,202 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>landing page</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+    </style>
+  </head>
+
+  <body class="bg-white text-gray-900">
+    <!-- Navbar -->
+    <header class="bg-white shadow sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-blue-600">InsightLoop</h1>
+        <nav class="space-x-6 hidden md:block">
+          <a href="{% url 'features' %}" class="text-gray-700 hover:text-blue-600">Features</a>
+          <a href="{% url 'pricing' %}" class="text-gray-700 hover:text-blue-600">Pricing</a>
+          <a href="{% url 'faq' %}" class="text-gray-700 hover:text-blue-600">FAQ</a>
+          <a href="{% url 'contact' %}" class="text-gray-700 hover:text-blue-600">Contact</a>
+          <a href="{% url 'login' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Get Started</a>        </nav>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="py-20 bg-gradient-to-r from-blue-50 to-white">
+      <div class="max-w-6xl mx-auto px-4 text-center" data-aos="fade-up">
+        <h2 class="text-5xl font-bold mb-4">Unlock Business Insights Without Coding</h2>
+        <p class="text-lg text-gray-600 mb-6">
+          InsightLoop turns your sales data into charts, KPIs, and AI-generated insights. No spreadsheets. No SQL. Just answers.
+        </p>
+        <a href="{% url 'login' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">
+          Try InsightLoop Free
+        </a>
+      </div>
+    </section>
+
+    <!-- Image Section -->
+    <section class="py-10 bg-white">
+      <div class="max-w-5xl mx-auto px-4 text-center" data-aos="zoom-in">
+      <img src="{% static 'images/DashboardPreview.png' %}" alt="Dashboard preview" class="rounded-lg shadow-md mx-auto">    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-16 bg-gray-50">
+      <div class="max-w-6xl mx-auto px-4">
+        <h3 class="text-3xl font-semibold text-center mb-12">Key Features</h3>
+        <div class="grid md:grid-cols-3 gap-10">
+          <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition" data-aos="fade-up">
+            <h4 class="text-xl font-semibold mb-2">Manual Sales Entry</h4>
+            <p class="text-gray-600">Easily input products and sales data using a clean, user-friendly form.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition" data-aos="fade-up" data-aos-delay="100">
+            <h4 class="text-xl font-semibold mb-2">CSV Upload</h4>
+            <p class="text-gray-600">Import bulk data instantly and let InsightLoop do the analysis for you.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition" data-aos="fade-up" data-aos-delay="200">
+            <h4 class="text-xl font-semibold mb-2">AI-Driven Insights</h4>
+            <p class="text-gray-600">Ask natural language questions like “Why did sales drop?” and get smart answers.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-16 bg-white">
+      <div class="max-w-6xl mx-auto px-4 text-center">
+        <h3 class="text-3xl font-semibold mb-12">What Our Users Say</h3>
+        <div class="grid md:grid-cols-2 gap-10">
+          <div class="bg-gray-100 p-6 rounded-lg shadow" data-aos="fade-right">
+            <p class="text-gray-600 italic">"InsightLoop saved us hours every week. We now understand our business better than ever."
+            </p>
+            <p class="mt-4 font-semibold">— Priya N., Startup Founder</p>
+          </div>
+          <div class="bg-gray-100 p-6 rounded-lg shadow" data-aos="fade-left">
+            <p class="text-gray-600 italic">"Even without technical skills, I can generate reports and make data-backed decisions quickly."
+            </p>
+            <p class="mt-4 font-semibold">— Arjun M., Small Business Owner</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="py-16 bg-gray-50">
+      <div class="max-w-4xl mx-auto px-4">
+        <h3 class="text-3xl font-semibold text-center mb-12">Frequently Asked Questions</h3>
+        <div class="space-y-4">
+          <details class="bg-white p-4 rounded shadow">
+            <summary class="font-semibold cursor-pointer">Do I need to know coding to use InsightLoop?</summary>
+            <p class="mt-2 text-gray-600">No, InsightLoop is built for non-technical users. Everything is visual and easy to understand.</p>
+          </details>
+          <details class="bg-white p-4 rounded shadow">
+            <summary class="font-semibold cursor-pointer">Can I upload Excel or CSV files?</summary>
+            <p class="mt-2 text-gray-600">Yes! Simply upload your CSV and InsightLoop will analyze the data automatically.</p>
+          </details>
+          <details class="bg-white p-4 rounded shadow">
+            <summary class="font-semibold cursor-pointer">Is there a free trial?</summary>
+            <p class="mt-2 text-gray-600">Absolutely. We offer a 14-day free trial with no credit card required.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-20 bg-gray-50 dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">Simple Pricing for Everyone</h2>
+        <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">Choose a plan that fits your needs. No hidden fees.</p>
+
+        <div class="mt-12 grid gap-8 sm:grid-cols-1 md:grid-cols-3">
+          
+          <!-- Basic Plan -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Starter</h3>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">For small teams or individuals just getting started.</p>
+            <div class="mt-6 text-4xl font-bold text-indigo-600 dark:text-indigo-400">$19<span class="text-base font-medium text-gray-500">/mo</span></div>
+            <ul class="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
+              <li>✔️ Up to 5 team members</li>
+              <li>✔️ Basic analytics</li>
+              <li>✔️ Email support</li>
+            </ul>
+            <button class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-xl transition">Get Started</button>
+          </div>
+
+          <!-- Pro Plan -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 border-2 border-indigo-600 dark:border-indigo-400 transform scale-105">
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Pro</h3>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">Best for growing teams and businesses.</p>
+            <div class="mt-6 text-4xl font-bold text-indigo-600 dark:text-indigo-400">$49<span class="text-base font-medium text-gray-500">/mo</span></div>
+            <ul class="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
+              <li>✔️ Up to 25 team members</li>
+              <li>✔️ Advanced analytics</li>
+              <li>✔️ Priority support</li>
+              <li>✔️ API access</li>
+            </ul>
+            <button class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-xl transition">Upgrade Now</button>
+          </div>
+
+          <!-- Enterprise Plan -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Enterprise</h3>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">Custom solutions for large organizations.</p>
+            <div class="mt-6 text-4xl font-bold text-indigo-600 dark:text-indigo-400">Contact</div>
+            <ul class="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
+              <li>✔️ Unlimited users</li>
+              <li>✔️ Dedicated manager</li>
+              <li>✔️ Full analytics suite</li>
+              <li>✔️ 24/7 support</li>
+            </ul>
+            <button class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-xl transition">Contact Sales</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Form -->
+    <section id="contact" class="py-20 bg-white">
+      <div class="max-w-4xl mx-auto px-4">
+        <h3 class="text-3xl font-semibold text-center mb-8">Get in Touch</h3>
+          <form action="{% url 'contact' %}" method="POST" class="bg-gray-50 p-6 rounded-lg shadow-md space-y-4">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="Your Name" class="w-full border border-gray-300 p-3 rounded" required>
+            <input type="email" name="email" placeholder="Your Email" class="w-full border border-gray-300 p-3 rounded" required>
+            <textarea name="message" placeholder="Your Message" rows="5" class="w-full border border-gray-300 p-3 rounded" required></textarea>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700">
+              Send Message
+            </button>
+          </form>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-20 bg-blue-600 text-white text-center">
+      <h3 class="text-3xl font-semibold mb-4">Start Getting Smarter with Your Sales</h3>
+      <p class="text-lg mb-6">Join thousands of creators and businesses using InsightLoop to simplify analytics.</p>
+      <a href="#" class="bg-white text-blue-600 px-6 py-3 font-semibold rounded-lg hover:bg-gray-100">
+        Get Started – It’s Free
+      </a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-8">
+      <div class="max-w-6xl mx-auto px-4 text-center">
+        <p class="text-sm text-gray-500">&copy; 2025 InsightLoop. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+      AOS.init();
+    </script>
+  </body>
+</html>
