@@ -30,4 +30,5 @@ urlpatterns = [
     path('', include('landing.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('insights/', include('insights.urls')),
+    path('upload/', include('upload.urls')),
 ]

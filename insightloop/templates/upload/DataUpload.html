@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Data – InsightLoop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+  
+  <!-- Header/Navigation -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">IL</div>
+          <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">InsightLoop</span>
+        </div>
+        
+        <!-- Main Navigation (Desktop) -->
+        <div class="hidden md:flex space-x-6 text-sm font-family tracking-normal text-gray-700 dark:text-gray-300 items-center">
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+          <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Upload</a>
+          
+          <!-- Workers Dropdown -->
+          <div class="relative group">
+            <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none">Workers</button>
+            <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/MaterialDistribution.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Worker.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+            </div>
+          </div>
+          
+          <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/Export&AI.html" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+        </div>
+        
+        <!-- Profile & Settings -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
+          <button id="themeToggle" class="theme-toggle p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+            <svg id="lightIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+            </svg>
+            <svg id="darkIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300 hidden" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          </button>
+          
+          <!-- Profile Dropdown -->
+          <div class="relative group hidden md:block">
+            <button class="focus:outline-none">
+              <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">KG</div>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Setting.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Billing.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
+              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/auth/login-signup.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+            </div>
+          </div>
+          
+          <!-- Mobile Menu Button -->
+          <button id="mobileMenuBtn" class="md:hidden focus:outline-none">
+            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Dashboard.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/InsightDetails.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/DataUpload.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      
+      <!-- Workers Submenu -->
+      <div>
+        <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
+        <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/MaterialDistribution.html" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Worker.html" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+      </div>
+      
+      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/Export&AI.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+      
+      <hr class="border-gray-200 dark:border-gray-700">
+      <a href="/users/profile.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
+      <a href="/users/setting.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
+      <a href="/auth/login-signup.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Upload Section -->
+  <div class="max-w-5xl mx-auto py-10 px-4 grid md:grid-cols-2 gap-8">
+    <!-- CSV Upload -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
+      <h2 class="text-xl font-bold mb-4">Upload CSV File</h2>
+      <form action="/upload" method="post" enctype="multipart/form-data" class="space-y-4">
+        <input type="file" name="csvFile" accept=".csv" required
+               class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900 file:text-indigo-700 dark:file:text-indigo-200 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-800"/>
+        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition">Upload & Analyze</button>
+      </form>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">Need a sample? <a href="#" class="text-indigo-600 dark:text-indigo-400 hover:underline">Download sample CSV</a></p>
+    </div>
+
+    <!-- Manual Entry -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
+      <h2 class="text-xl font-bold mb-4">Manual Data Entry</h2>
+      <form action="/manual-entry" method="post" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <input type="text" name="product_name" placeholder="Product Name" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+          <input type="text" name="category" placeholder="Category" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+          <input type="text" name="customer_name" placeholder="Customer Name" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
+          <input type="number" name="quantity" placeholder="Quantity" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+          <input type="number" name="price" placeholder="Price" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+          <input type="number" name="discount" placeholder="Discount (%)" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
+          <input type="date" name="date" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+        </div>
+        <textarea name="notes" rows="3" placeholder="Additional Notes (optional)" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white"></textarea>
+        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">Submit Entry</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // Theme elements
+      const themeToggle = document.getElementById('themeToggle');
+      const lightIcon = document.getElementById('lightIcon');
+      const darkIcon = document.getElementById('darkIcon');
+      
+      // Initial theme setup
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const storedTheme = localStorage.getItem('theme');
+      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+      
+      setTheme(isDark);
+      
+      function setTheme(dark) {
+        document.documentElement.classList.toggle('dark', dark);
+        lightIcon.classList.toggle('hidden', dark);
+        darkIcon.classList.toggle('hidden', !dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      }
+      
+      themeToggle.addEventListener('click', () => {
+        const isNowDark = !document.documentElement.classList.contains('dark');
+        setTheme(isNowDark);
+        updateCharts();
+      });
+  </script>
+</body>
+</html>

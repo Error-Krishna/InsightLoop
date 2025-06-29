@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     'insights.apps.InsightsConfig',
 
     'dashboard',
-    # 'insights',
+    'upload',
 ]
 
 MIDDLEWARE = [
