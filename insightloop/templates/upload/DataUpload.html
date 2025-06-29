@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="en" class="transition-colors duration-300">
 <head>
   <meta charset="UTF-8" />
@@ -11,6 +12,13 @@
       darkMode: 'class',
     };
   </script>
+  <style>
+    .errorlist {
+      color: #ef4444;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
   
@@ -102,32 +110,81 @@
 
   <!-- Upload Section -->
   <div class="max-w-5xl mx-auto py-10 px-4 grid md:grid-cols-2 gap-8">
+    <!-- Success/Error Messages -->
+    {% if messages %}
+      <div class="md:col-span-2">
+        {% for message in messages %}
+          <div class="mb-4 p-4 text-white rounded-md
+                     {% if message.tags == 'success' %} bg-green-500
+                     {% else %} bg-red-500{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <!-- CSV Upload -->
     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
       <h2 class="text-xl font-bold mb-4">Upload CSV File</h2>
-      <form action="/upload" method="post" enctype="multipart/form-data" class="space-y-4">
-        <input type="file" name="csvFile" accept=".csv" required
+      <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="csv">
+        <input type="file" name="csv_file" accept=".csv" required
                class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900 file:text-indigo-700 dark:file:text-indigo-200 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-800"/>
         <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition">Upload & Analyze</button>
       </form>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">Need a sample? <a href="#" class="text-indigo-600 dark:text-indigo-400 hover:underline">Download sample CSV</a></p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
+          Need a sample? 
+          <a href="{% static 'upload/sample_business_data.csv' %}" 
+            download="sample_business_data.csv"
+            class="text-indigo-600 dark:text-indigo-400 hover:underline">
+              Download sample CSV
+          </a>
+      </p>
     </div>
 
     <!-- Manual Entry -->
     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
       <h2 class="text-xl font-bold mb-4">Manual Data Entry</h2>
-      <form action="/manual-entry" method="post" class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <input type="text" name="product_name" placeholder="Product Name" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-          <input type="text" name="category" placeholder="Category" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-          <input type="text" name="customer_name" placeholder="Customer Name" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
-          <input type="number" name="quantity" placeholder="Quantity" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-          <input type="number" name="price" placeholder="Price" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-          <input type="number" name="discount" placeholder="Discount (%)" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
-          <input type="date" name="date" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-        </div>
-        <textarea name="notes" rows="3" placeholder="Additional Notes (optional)" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white"></textarea>
-        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">Submit Entry</button>
+      <form method="post" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="manual">
+          <div class="grid grid-cols-2 gap-4">
+              <div>
+                  <label class="block text-sm font-medium mb-1">Date</label>
+                  <input type="date" name="date" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+              </div>
+              <div>
+                  <label class="block text-sm font-medium mb-1">Product</label>
+                  <input type="text" name="product" placeholder="Product Name" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+              </div>
+              <div>
+                  <label class="block text-sm font-medium mb-1">Category</label>
+                  <input type="text" name="category" placeholder="Category" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
+              </div>
+              <div>
+                  <label class="block text-sm font-medium mb-1">Sales</label>
+                  <input type="number" name="sales" placeholder="Quantity" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+              </div>
+              <div>
+                  <label class="block text-sm font-medium mb-1">Profit</label>
+                  <input type="number" name="profit" placeholder="Amount" step="0.01" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+              </div>
+              <div>
+                  <label class="block text-sm font-medium mb-1">Region</label>
+                  <input type="text" name="region" placeholder="Region" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+              </div>
+              <div>
+                  <label class="block text-sm font-medium mb-1">Customer Type</label>
+                  <select name="customer_type" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+                      <option value="">Select Type</option>
+                      <option value="Retail">Retail</option>
+                      <option value="Wholesale">Wholesale</option>
+                      <option value="Online">Online</option>
+                  </select>
+              </div>
+          </div>
+          <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">Submit Entry</button>
       </form>
     </div>
   </div>
@@ -135,29 +192,35 @@
   <!-- JavaScript -->
   <script>
     // Theme elements
-      const themeToggle = document.getElementById('themeToggle');
-      const lightIcon = document.getElementById('lightIcon');
-      const darkIcon = document.getElementById('darkIcon');
-      
-      // Initial theme setup
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const storedTheme = localStorage.getItem('theme');
-      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
-      
-      setTheme(isDark);
-      
-      function setTheme(dark) {
-        document.documentElement.classList.toggle('dark', dark);
-        lightIcon.classList.toggle('hidden', dark);
-        darkIcon.classList.toggle('hidden', !dark);
-        localStorage.setItem('theme', dark ? 'dark' : 'light');
-      }
-      
-      themeToggle.addEventListener('click', () => {
-        const isNowDark = !document.documentElement.classList.contains('dark');
-        setTheme(isNowDark);
-        updateCharts();
-      });
+    const themeToggle = document.getElementById('themeToggle');
+    const lightIcon = document.getElementById('lightIcon');
+    const darkIcon = document.getElementById('darkIcon');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    
+    // Mobile menu toggle
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // Initial theme setup
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const storedTheme = localStorage.getItem('theme');
+    const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+    
+    setTheme(isDark);
+    
+    function setTheme(dark) {
+      document.documentElement.classList.toggle('dark', dark);
+      lightIcon.classList.toggle('hidden', dark);
+      darkIcon.classList.toggle('hidden', !dark);
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+    
+    themeToggle.addEventListener('click', () => {
+      const isNowDark = !document.documentElement.classList.contains('dark');
+      setTheme(isNowDark);
+    });
   </script>
 </body>
 </html>
