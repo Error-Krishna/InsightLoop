@@ -13,7 +13,20 @@
   </script>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-  
+  <!-- Messages -->
+  {% if messages %}
+    <div class="fixed top-4 right-4 z-50">
+      {% for message in messages %}
+      <div class="px-4 py-2 rounded-md shadow-lg text-white 
+                  {% if message.tags == 'success' %}bg-green-500
+                  {% elif message.tags == 'error' %}bg-red-500
+                  {% else %}bg-blue-500{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <!-- Header/Navigation -->
   <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,21 +39,21 @@
         </div>
         
         <!-- Main Navigation (Desktop) -->
-        <div class="hidden md:flex space-x-6 text-sm font-family tracking-normal text-gray-700 dark:text-gray-300 items-center">
-          <a href="{% url 'dashboard' %}"  class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+        <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
           <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Insights</a>
-          <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/DataUpload.html" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+          <a href="" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
           
           <!-- Workers Dropdown -->
           <div class="relative group">
             <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none">Workers</button>
             <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/MaterialDistribution.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Worker.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
             </div>
           </div>
           
-          <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/Export&AI.html" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
         </div>
         
         <!-- Profile & Settings -->
@@ -61,10 +74,10 @@
               <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">KG</div>
             </button>
             <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Setting.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Billing.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/auth/login-signup.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
             </div>
           </div>
           
@@ -80,56 +93,224 @@
     
     <!-- Mobile Menu -->
     <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Dashboard.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/InsightDetails.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/DataUpload.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="#" class="block text-gray-7 00 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
       
       <!-- Workers Submenu -->
       <div>
         <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
-        <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/MaterialDistribution.html" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
-        <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Worker.html" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+        <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
       </div>
       
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/Export&AI.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
       
       <hr class="border-gray-200 dark:border-gray-700">
-      <a href="/users/profile.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
-      <a href="/users/setting.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
-      <a href="/auth/login-signup.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
     </div>
   </nav>
 
   <!-- Page Content -->
-  <main class="max-w-7xl mx-auto px-6 py-10">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="mb-10">
-      <h2 class="text-3xl font-bold mb-2 text-gray-900 dark:text-white">🧠 Your Past AI Insights</h2>
-      <p class="text-gray-600 dark:text-gray-300">Explore your insights and dig deeper into the data behind them.</p>
+        <h2 class="text-3xl font-bold mb-2 text-gray-900 dark:text-white">🧠 Business Insights</h2>
+        <p class="text-gray-600 dark:text-gray-300">Development Mode - No Authentication</p>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-12 hover:shadow-lg transition-shadow">
-      <h3 class="text-2xl font-semibold mb-4 text-indigo-700 dark:text-indigo-400">📈 Insight: Sales Spike in April</h3>
-      <div class="mb-6">
-        <canvas id="spikeChart" class="w-full max-w-2xl h-48 mx-auto mb-6"></canvas>
-      </div>
-      <p class="mb-6 text-gray-700 dark:text-gray-200 text-lg leading-relaxed">
-        Our AI model found a spike in product sales during April...
-      </p>
-      <textarea class="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-300 dark:bg-gray-900 dark:text-white" rows="4" placeholder="Add your notes here..."></textarea>
-      <button class="mt-4 bg-indigo-600 text-white px-5 py-2 rounded-md hover:bg-indigo-700 transition">📤 Export This Insight</button>
+    <!-- Analysis Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-6">
+        <h3 class="text-2xl font-semibold mb-4 text-indigo-700 dark:text-indigo-400">Generate Insights</h3>
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" name="analyze_data" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-6 rounded-lg flex items-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" />
+                </svg>
+                Analyze Sales Data
+            </button>
+        </form>
     </div>
 
-    <!-- Gallery -->
-    <div>
-      <h4 class="text-xl font-semibold mb-4 dark:text-white">🖼️ Insight Gallery Preview</h4>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="bg-white dark:bg-gray-800 shadow hover:shadow-md rounded-lg p-4 transition">
-          <h5 class="text-lg font-medium text-gray-800 dark:text-white mb-2">🛒 Consumer Behavior - Q1</h5>
-          <p class="text-gray-600 dark:text-gray-300 text-sm">Pattern in consumer choices...</p>
-          <a href="#" class="mt-2 inline-block text-indigo-600 dark:text-indigo-400 text-sm hover:underline">View Detail</a>
+    <!-- Delete All Section -->
+    <div class="bg-red-50 dark:bg-red-900 rounded-xl shadow p-6 mb-12">
+        <h3 class="text-2xl font-semibold mb-4 text-red-700 dark:text-red-400">Manage Insights</h3>
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" name="delete_all" 
+                    class="bg-red-600 hover:bg-red-700 text-white py-2 px-6 rounded-lg flex items-center"
+                    onclick="return confirm('Are you sure you want to delete ALL insights? This cannot be undone.')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                Delete All Insights
+            </button>
+            <p class="mt-3 text-sm text-red-700 dark:text-red-300">
+                Automatically deletes insights older than 30 days
+            </p>
+        </form>
+    </div>
+
+    <!-- Main Insight Section -->
+    {% if main_insight %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-12 transition-all duration-300 hover:shadow-xl">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    📈 {{ main_insight.title }}
+                </h3>
+                <p class="text-gray-600 dark:text-gray-300 text-sm">
+                    {{ main_insight.created_at|date:"F j, Y" }}
+                </p>
+            </div>
+            <div class="flex items-center">
+                <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300 mr-3">
+                    Featured
+                </span>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_insight_id" value="{{ main_insight.id }}">
+                    <button type="submit" 
+                            class="text-red-500 hover:text-red-700"
+                            onclick="return confirm('Delete this insight?')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
-        <!-- Repeat for more cards -->
-      </div>
+      
+        <p class="text-gray-700 dark:text-gray-200 mb-6 leading-relaxed">
+            {{ main_insight.description }}
+        </p>
+      
+        <!-- Chart Container -->
+        <div class="h-80 mb-6">
+            <canvas id="insightChart"></canvas>
+        </div>
+      
+        <!-- Note Form -->
+        <form method="POST" class="mb-6">
+            {% csrf_token %}
+            <input type="hidden" name="insight_id" value="{{ main_insight.id }}">
+            <label class="block text-gray-700 dark:text-gray-300 mb-2 font-medium" for="note">
+                Your Notes
+            </label>
+            <textarea name="note" id="note" 
+                    class="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-300 dark:bg-gray-900 dark:text-white" 
+                    rows="3" placeholder="Add your observations or action items...">{% if main_insight.note %}{{ main_insight.note }}{% endif %}</textarea>
+            <button type="submit" 
+                    class="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-5 rounded-lg transition">
+                Save Notes
+            </button>
+        </form>
+      
+        <!-- Export Button -->
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="export_insight_id" value="{{ main_insight.id }}">
+            <button type="submit" 
+                    class="flex items-center text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                Export as CSV
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-12 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        <h3 class="text-xl font-medium text-gray-500 dark:text-gray-400 mt-4">No Featured Insight</h3>
+        <p class="mt-2 text-gray-400 dark:text-gray-500">
+            Generate your first insight to get started
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Insight Gallery -->
+    <div class="mb-10">
+        <div class="flex justify-between items-center mb-4">
+            <h4 class="text-xl font-semibold dark:text-white">🖼️ Insights Gallery</h4>
+            <span class="bg-gray-200 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-300">
+                {{ insight_gallery|length }} items
+            </span>
+        </div>
+      
+        {% if insight_gallery %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for insight in insight_gallery %}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-5 hover:shadow-lg transition-all duration-300">
+                <div class="flex justify-between items-start mb-3">
+                    <h5 class="text-lg font-semibold text-gray-800 dark:text-white truncate pr-2">
+                        {{ insight.title }}
+                    </h5>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                            {{ insight.created_at|date:"M d" }}
+                        </span>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="delete_insight_id" value="{{ insight.id }}">
+                            <button type="submit" 
+                                    class="text-red-500 hover:text-red-700"
+                                    onclick="return confirm('Delete this insight?')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                    {{ insight.description|truncatewords:20 }}
+                </p>
+                
+                {% if insight.note %}
+                <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <p class="text-xs text-gray-500 dark:text-gray-300 font-medium mb-1">Your Note:</p>
+                    <p class="text-sm text-gray-700 dark:text-gray-200">{{ insight.note|truncatewords:15 }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="flex justify-between items-center mt-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="export_insight_id" value="{{ insight.id }}">
+                        <button type="submit" 
+                                class="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Export
+                        </button>
+                    </form>
+                    
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ insight.data_points|length }} data points
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <h3 class="text-xl font-medium text-gray-500 dark:text-gray-400 mt-4">No Insights Found</h3>
+            <p class="mt-2 text-gray-400 dark:text-gray-500">
+                Click "Analyze Sales Data" to generate your first insights
+            </p>
+        </div>
+        {% endif %}
     </div>
   </main>
 
@@ -141,52 +322,87 @@
     });
 
     // Theme elements
-      const themeToggle = document.getElementById('themeToggle');
-      const lightIcon = document.getElementById('lightIcon');
-      const darkIcon = document.getElementById('darkIcon');
-      
-      // Initial theme setup
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const storedTheme = localStorage.getItem('theme');
-      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
-      
-      setTheme(isDark);
-      
-      function setTheme(dark) {
-        document.documentElement.classList.toggle('dark', dark);
-        lightIcon.classList.toggle('hidden', dark);
-        darkIcon.classList.toggle('hidden', !dark);
-        localStorage.setItem('theme', dark ? 'dark' : 'light');
-      }
-      
-      themeToggle.addEventListener('click', () => {
-        const isNowDark = !document.documentElement.classList.contains('dark');
-        setTheme(isNowDark);
-        updateCharts();
-      });
-      
-
-    // Chart
-    const ctx = document.getElementById('spikeChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [{
-          label: 'Monthly Sales',
-          data: [120, 140, 170, 250, 220, 190],
-          borderColor: '#6366f1',
-          backgroundColor: 'rgba(99, 102, 241, 0.2)',
-          tension: 0.4,
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true }
-        }
-      }
+    const themeToggle = document.getElementById('themeToggle');
+    const lightIcon = document.getElementById('lightIcon');
+    const darkIcon = document.getElementById('darkIcon');
+    
+    // Initial theme setup
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const storedTheme = localStorage.getItem('theme');
+    const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+    
+    setTheme(isDark);
+    
+    function setTheme(dark) {
+      document.documentElement.classList.toggle('dark', dark);
+      lightIcon.classList.toggle('hidden', dark);
+      darkIcon.classList.toggle('hidden', !dark);
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+    
+    themeToggle.addEventListener('click', () => {
+      const isNowDark = !document.documentElement.classList.contains('dark');
+      setTheme(isNowDark);
     });
+
+    // Chart initialization
+    {% if main_insight and main_insight.labels and main_insight.data_points %}
+    try {
+      const ctx = document.getElementById('insightChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: {{ main_insight.labels|safe }},
+          datasets: [{
+            label: 'Data Values',
+            data: {{ main_insight.data_points|safe }},
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            borderWidth: 2,
+            pointBackgroundColor: '#6366f1',
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    } catch (e) {
+      console.error('Error creating chart:', e);
+    }
+    {% endif %}
+
+    // Auto-close messages after 5 seconds
+    setTimeout(() => {
+      const messages = document.querySelector('.fixed.top-4.right-4');
+      if (messages) messages.style.display = 'none';
+    }, 5000);
   </script>
 </body>
 </html>
