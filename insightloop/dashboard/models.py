@@ -9,7 +9,7 @@ class FinancialSummary(Document):
     timestamp = DateTimeField(required=True)
     total_revenue = DecimalField(precision=2, required=True)
     total_profit = DecimalField(precision=2, required=True)
-    active_workers = IntField(required=True)
+    active_workers = IntField(required=True, default=0)  # Set default to 0
     meta = {
         'collection': 'financial_summaries',
         'indexes': [

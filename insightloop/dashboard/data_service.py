@@ -15,7 +15,7 @@ def process_uploaded_data():
         date__gte=month_start,
         date__lte=now
     ).aggregate(
-        total_revenue=sum('revenue'),  # FIXED: Use revenue not sales
+        total_revenue=sum('revenue'),
         total_profit=sum('profit')
     )
     
@@ -25,10 +25,9 @@ def process_uploaded_data():
         defaults={
             'total_revenue': monthly_data['total_revenue'] or 0,
             'total_profit': monthly_data['total_profit'] or 0,
-            'active_workers': 0  # Replace with actual worker count logic
+            'active_workers': 0  # Always 0 for now
         }
     )
-
 def get_summary_data():
     """Get financial summary data without request dependency"""
     # Get latest summary
@@ -65,7 +64,7 @@ def get_summary_data():
     return {
         'total_revenue': float(summary.total_revenue),
         'total_profit': float(summary.total_profit),
-        'active_workers': summary.active_workers,
+        'active_workers': 0,  # Hardcoded to 0
         'revenue_change': calc_change(
             float(prev_month.total_revenue) if prev_month else 0.0,
             float(summary.total_revenue)
@@ -74,23 +73,5 @@ def get_summary_data():
             float(prev_month.total_profit) if prev_month else 0.0,
             float(summary.total_profit)
         ),
-        'workers_change': calc_change(
-            prev_month.active_workers if prev_month else 0,
-            summary.active_workers
-        )
+        'workers_change': 0.0  # Hardcoded to 0
     }
-
-def get_worker_payments(months=1):
-    """Get worker payments from processed data"""
-    start_date = timezone.now() - timedelta(days=30*months)
-    
-    payments = WorkerPayment.objects.filter(
-        payment_date__gte=start_date
-    ).order_by('-payment_date')
-    
-    return [{
-        'name': p.worker.name,
-        'month': p.payment_date.strftime('%B %Y'),
-        'amount': float(p.amount),
-        'status': p.status
-    } for p in payments]

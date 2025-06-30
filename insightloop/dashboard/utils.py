@@ -1,5 +1,5 @@
-from .queries import get_rev_exp_data, get_profit_trends, get_top_workers
-from .data_service import get_summary_data, get_worker_payments
+from .queries import get_rev_exp_data, get_profit_trends
+from .data_service import get_summary_data
 from .encoders import CustomJSONEncoder
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -9,9 +9,7 @@ def get_dashboard_data():
     data = {
         'summary': get_summary_data(),
         'revExp': get_rev_exp_data(),
-        'profitTrends': get_profit_trends(months=6, interval='monthly'),
-        'workers': get_worker_payments(months=1),
-        'topWorkers': get_top_workers(months=3, limit=5)
+        'profitTrends': get_profit_trends(months=6, interval='monthly')
     }
     return json.loads(json.dumps(data, cls=CustomJSONEncoder))
 
