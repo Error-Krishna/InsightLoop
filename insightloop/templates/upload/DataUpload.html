@@ -144,6 +144,7 @@
     </div>
 
     <!-- Manual Entry -->
+    <!-- Manual Entry Form Section -->
     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
       <h2 class="text-xl font-bold mb-4">Manual Data Entry</h2>
       <form method="post" class="space-y-4">
@@ -163,16 +164,16 @@
                   <input type="text" name="category" placeholder="Category" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
               </div>
               <div>
-                  <label class="block text-sm font-medium mb-1">Sales</label>
-                  <input type="number" name="sales" placeholder="Quantity" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+                  <label class="block text-sm font-medium mb-1">Quantity</label>
+                  <input type="number" name="quantity" placeholder="Number of units" min="1" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
               </div>
               <div>
-                  <label class="block text-sm font-medium mb-1">Revenue</label>
-                  <input type="number" name="revenue" placeholder="Amount" step="0.01" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+                  <label class="block text-sm font-medium mb-1">Production Cost (per unit)</label>
+                  <input type="number" name="production_cost" placeholder="Cost to produce one unit" step="0.01" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
               </div>
               <div>
-                  <label class="block text-sm font-medium mb-1">Profit</label>
-                  <input type="number" name="profit" placeholder="Amount" step="0.01" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
+                  <label class="block text-sm font-medium mb-1">Selling Price (per unit)</label>
+                  <input type="number" name="selling_price" placeholder="Price per unit" step="0.01" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
               </div>
               <div>
                   <label class="block text-sm font-medium mb-1">Region</label>

@@ -9,7 +9,6 @@ def get_rev_exp_data(months=6):
     end_date = timezone.now()
     start_date = end_date - timedelta(days=30*months)
     
-    # Get data from BusinessData
     pipeline = [
         {
             "$match": {
@@ -25,8 +24,8 @@ def get_rev_exp_data(months=6):
                     "year": {"$year": "$date"},
                     "month": {"$month": "$date"}
                 },
-                "total_revenue": {"$sum": "$revenue"},
-                "total_expenses": {"$sum": {"$subtract": ["$revenue", "$profit"]}},
+                "total_revenue": {"$sum": {"$multiply": ["$quantity", "$selling_price"]}},
+                "total_expenses": {"$sum": {"$multiply": ["$quantity", "$production_cost"]}},
                 "count": {"$sum": 1}
             }
         },
@@ -89,7 +88,14 @@ def get_profit_trends(months=6, interval='monthly'):
         {
             "$group": {
                 "_id": group_id,
-                "total_profit": {"$sum": "$profit"},
+                "total_profit": {
+                    "$sum": {
+                        "$subtract": [
+                            {"$multiply": ["$quantity", "$selling_price"]},
+                            {"$multiply": ["$quantity", "$production_cost"]}
+                        ]
+                    }
+                },
                 "count": {"$sum": 1}
             }
         },
@@ -109,7 +115,7 @@ def get_profit_trends(months=6, interval='monthly'):
         elif interval == 'weekly':
             labels.append(f"Week {result['_id']['week']}")
         else:  # monthly
-            labels.append(f"{calendar.month_abbr[result['_id']['month']]}")
+            labels.append(f"{calendar.month_abbr[result['_id']['month']]} {result['_id']['year']}")
         
         profits.append(float(result['total_profit']))
     
@@ -118,4 +124,3 @@ def get_profit_trends(months=6, interval='monthly'):
         'profit': profits,
         'interval': interval
     }
-

@@ -1,4 +1,4 @@
-from .models import FinancialSummary, WorkerPayment
+from .models import FinancialSummary
 from upload.models import BusinessData
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -10,24 +10,45 @@ def process_uploaded_data():
     now = timezone.now()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
-    # Aggregate business data for this month
-    monthly_data = BusinessData.objects.filter(
-        date__gte=month_start,
-        date__lte=now
-    ).aggregate(
-        total_revenue=sum('revenue'),
-        total_profit=sum('profit')
-    )
+    # Aggregate business data for this month - UPDATED CALCULATION
+    pipeline = [
+        {"$match": {
+            "date": {
+                "$gte": month_start,
+                "$lte": now
+            }
+        }},
+        {"$group": {
+            "_id": None,
+            "total_revenue": {
+                "$sum": {
+                    "$multiply": ["$quantity", "$selling_price"]
+                }
+            },
+            "total_profit": {
+                "$sum": {
+                    "$subtract": [
+                        {"$multiply": ["$quantity", "$selling_price"]},
+                        {"$multiply": ["$quantity", "$production_cost"]}
+                    ]
+                }
+            }
+        }}
+    ]
+    
+    monthly_data = BusinessData._get_collection().aggregate(pipeline)
+    result = next(monthly_data, None)
     
     # Create or update financial summary
     FinancialSummary.objects.update_or_create(
         timestamp=month_start,
         defaults={
-            'total_revenue': monthly_data['total_revenue'] or 0,
-            'total_profit': monthly_data['total_profit'] or 0,
+            'total_revenue': Decimal(str(result['total_revenue'])) if result else 0,
+            'total_profit': Decimal(str(result['total_profit'])) if result else 0,
             'active_workers': 0  # Always 0 for now
         }
     )
+
 def get_summary_data():
     """Get financial summary data without request dependency"""
     # Get latest summary
