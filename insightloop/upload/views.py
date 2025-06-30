@@ -1,3 +1,5 @@
+
+from django.core.management import call_command
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import BusinessData
@@ -23,7 +25,7 @@ def upload(request):
                 reader = csv.DictReader(io_string)
                 
                 # Validate columns
-                required_columns = {'date', 'product', 'sales', 'profit', 'region', 'customer_type'}
+                required_columns = {'date', 'product', 'sales', 'revenue', 'profit', 'region', 'customer_type'}
                 if not required_columns.issubset(set(reader.fieldnames)):
                     missing = required_columns - set(reader.fieldnames)
                     messages.error(request, f'Missing required columns: {", ".join(missing)}')
@@ -38,6 +40,7 @@ def upload(request):
                             product=row['product'],
                             category=row.get('category', ''),
                             sales=int(row['sales']),
+                            revenue=float(row['revenue']),  # ADD THIS LINE
                             profit=float(row['profit']),
                             region=row['region'],
                             customer_type=row['customer_type']
@@ -60,6 +63,7 @@ def upload(request):
                         product=form.cleaned_data['product'],
                         category=form.cleaned_data['category'],
                         sales=form.cleaned_data['sales'],
+                        revenue=form.cleaned_data['revenue'],  # ADD THIS LINE
                         profit=form.cleaned_data['profit'],
                         region=form.cleaned_data['region'],
                         customer_type=form.cleaned_data['customer_type']
@@ -71,6 +75,14 @@ def upload(request):
                 for field, errors in form.errors.items():
                     for error in errors:
                         messages.error(request, f"{field.capitalize()}: {error}")
+        
+        # AFTER SUCCESSFUL UPLOAD:
+        try:
+            # Process uploaded data
+            call_command('process_uploaded_data')
+            messages.success(request, 'Data processed successfully! Dashboard updated.')
+        except Exception as e:
+            messages.error(request, f'Error processing data: {str(e)}')
         
         return redirect('upload')
     

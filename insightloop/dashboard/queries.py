@@ -1,214 +1,166 @@
-from .models import FinancialSummary
+from decimal import Decimal
+from .models import FinancialSummary, WorkerPayment
 from datetime import datetime, timedelta
-from mongoengine.queryset.visitor import Q
 import calendar
+from upload.models import BusinessData
+from django.utils import timezone
 
-from .models import WorkerPayment, Worker
-from datetime import datetime, timedelta
-from mongoengine.queryset.visitor import Q
-
-def get_top_workers(months=3, limit=5):
-    """
-    Get top workers by total payout in the specified time period
-    
-    Args:
-        months: Number of months to look back (default: 3)
-        limit: Number of top workers to return (default: 5)
-    
-    Returns:
-        [
-            {
-                "name": "Worker Name",
-                "total_payout": 15000.00,
-                "payment_count": 3,
-                "latest_payment": "2023-05-15"
-            },
-            ...
-        ]
-    """
-    end_date = datetime.now()
+def get_rev_exp_data(months=6):
+    end_date = timezone.now()
     start_date = end_date - timedelta(days=30*months)
     
+    # Get data from BusinessData
     pipeline = [
-        # Filter by date and paid status
-        {'$match': {
-            'payment_date': {'$gte': start_date, '$lte': end_date},
-            'status': 'Paid'
-        }},
-        
-        # Group by worker and calculate totals
-        {'$group': {
-            '_id': '$worker',
-            'total_payout': {'$sum': '$amount'},
-            'payment_count': {'$sum': 1},
-            'latest_payment': {'$max': '$payment_date'}
-        }},
-        
-        # Sort by highest payout
-        {'$sort': {'total_payout': -1}},
-        
-        # Limit results
-        {'$limit': limit},
-        
-        # Join with workers collection
-        {'$lookup': {
-            'from': 'workers',
-            'localField': '_id',
-            'foreignField': '_id',
-            'as': 'worker'
-        }},
-        
-        # Unwind the worker array
-        {'$unwind': '$worker'},
-        
-        # Project final structure
-        {'$project': {
-            '_id': 0,
-            'name': '$worker.name',
-            'contact': '$worker.contact',
-            'total_payout': 1,
-            'payment_count': 1,
-            'latest_payment': {
-                '$dateToString': {
-                    'format': '%Y-%m-%d',
-                    'date': '$latest_payment'
+        {
+            "$match": {
+                "date": {
+                    "$gte": start_date,
+                    "$lte": end_date
                 }
             }
-        }}
+        },
+        {
+            "$group": {
+                "_id": {
+                    "year": {"$year": "$date"},
+                    "month": {"$month": "$date"}
+                },
+                "total_revenue": {"$sum": "$revenue"},
+                "total_expenses": {"$sum": {"$subtract": ["$revenue", "$profit"]}},
+                "count": {"$sum": 1}
+            }
+        },
+        {
+            "$sort": {"_id.year": 1, "_id.month": 1}
+        }
     ]
     
-    results = WorkerPayment._get_collection().aggregate(pipeline)
-    workers = list(results)
+    results = list(BusinessData.objects.aggregate(*pipeline))
     
-    # Convert Decimal to float
-    for worker in workers:
-        worker['total_payout'] = float(worker['total_payout'])
-    
-    return workers
-def get_rev_exp_data(months=6):
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=30*months)
-    
-    # Use MongoDB aggregation for date handling
-    pipeline = [
-        {'$match': {'timestamp': {'$gte': start_date, '$lte': end_date}}},
-        {'$addFields': {
-            'month': {'$month': '$timestamp'},
-            'year': {'$year': '$timestamp'}
-        }},
-        {'$group': {
-            '_id': {'year': '$year', 'month': '$month'},
-            'revenue': {'$sum': '$total_revenue'},
-            'expenses': {'$sum': {'$subtract': ['$total_revenue', '$total_profit']}}
-        }},
-        {'$sort': {'_id.year': 1, '_id.month': 1}},
-        {'$project': {
-            '_id': 0,
-            'month': {'$concat': [
-                {'$toString': '$_id.year'},
-                '-',
-                {'$toString': '$_id.month'}
-            ]},
-            'revenue': 1,
-            'expenses': 1
-        }}
-    ]
-    
-    results = FinancialSummary._get_collection().aggregate(pipeline)
     labels = []
     revenue = []
     expenses = []
     
-    for r in results:
-        labels.append(r['month'])
-        revenue.append(float(r['revenue']))
-        expenses.append(float(r['expenses']))
-    
-    # Fill in missing months with 0 values
-    complete_labels = []
-    complete_revenue = []
-    complete_expenses = []
-    
-    current_date = start_date.replace(day=1)
-    while current_date <= end_date:
-        label = f"{current_date.year}-{current_date.month}"
-        complete_labels.append(label)
-        
-        if label in labels:
-            index = labels.index(label)
-            complete_revenue.append(revenue[index])
-            complete_expenses.append(expenses[index])
-        else:
-            complete_revenue.append(0.0)
-            complete_expenses.append(0.0)
-        
-        # Move to next month
-        if current_date.month == 12:
-            current_date = current_date.replace(year=current_date.year+1, month=1)
-        else:
-            current_date = current_date.replace(month=current_date.month+1)
+    for result in results:
+        year = result['_id']['year']
+        month = result['_id']['month']
+        labels.append(f"{calendar.month_abbr[month]} {year}")
+        revenue.append(float(result['total_revenue']))
+        expenses.append(float(result['total_expenses']))
     
     return {
-        'labels': complete_labels,
-        'revenue': complete_revenue,
-        'expenses': complete_expenses
+        'labels': labels,
+        'revenue': revenue,
+        'expenses': expenses
     }
 
 def get_profit_trends(months=6, interval='monthly'):
-    end_date = datetime.now()
+    end_date = timezone.now()
     start_date = end_date - timedelta(days=30*months)
     
-    # Determine grouping interval
-    group_stage = {}
-    if interval == 'monthly':
-        group_stage = {
-            '_id': {
-                'year': {'$year': '$timestamp'},
-                'month': {'$month': '$timestamp'}
-            },
-            'profit': {'$sum': '$total_profit'}
+    # Determine grouping based on interval
+    group_id = {}
+    if interval == 'daily':
+        group_id = {
+            "year": {"$year": "$date"},
+            "month": {"$month": "$date"},
+            "day": {"$dayOfMonth": "$date"}
         }
     elif interval == 'weekly':
-        group_stage = {
-            '_id': {
-                'year': {'$isoWeekYear': '$timestamp'},
-                'week': {'$isoWeek': '$timestamp'}
-            },
-            'profit': {'$sum': '$total_profit'}
+        group_id = {
+            "year": {"$year": "$date"},
+            "week": {"$week": "$date"}
         }
-    else:  # daily
-        group_stage = {
-            '_id': {
-                'year': {'$year': '$timestamp'},
-                'month': {'$month': '$timestamp'},
-                'day': {'$dayOfMonth': '$timestamp'}
-            },
-            'profit': {'$sum': '$total_profit'}
+    else:  # monthly
+        group_id = {
+            "year": {"$year": "$date"},
+            "month": {"$month": "$date"}
         }
     
     pipeline = [
-        {'$match': {'timestamp': {'$gte': start_date, '$lte': end_date}}},
-        {'$group': group_stage},
-        {'$sort': {'_id.year': 1, '_id.month': 1, '_id.day': 1, '_id.week': 1}}
+        {
+            "$match": {
+                "date": {
+                    "$gte": start_date,
+                    "$lte": end_date
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": group_id,
+                "total_profit": {"$sum": "$profit"},
+                "count": {"$sum": 1}
+            }
+        },
+        {
+            "$sort": {"_id.year": 1, "_id.month": 1}
+        }
     ]
     
-    results = FinancialSummary._get_collection().aggregate(pipeline)
+    results = list(BusinessData.objects.aggregate(*pipeline))
+    
     labels = []
     profits = []
     
-    for r in results:
-        if interval == 'monthly':
-            labels.append(f"{r['_id']['year']}-{r['_id']['month']:02d}")
+    for result in results:
+        if interval == 'daily':
+            labels.append(f"{result['_id']['day']}/{result['_id']['month']}")
         elif interval == 'weekly':
-            labels.append(f"Week {r['_id']['week']}, {r['_id']['year']}")
-        else:
-            month_name = calendar.month_abbr[r['_id']['month']]
-            labels.append(f"{r['_id']['day']} {month_name} {r['_id']['year']}")
+            labels.append(f"Week {result['_id']['week']}")
+        else:  # monthly
+            labels.append(f"{calendar.month_abbr[result['_id']['month']]}")
         
-        profits.append(float(r['profit']))
+        profits.append(float(result['total_profit']))
     
     return {
         'labels': labels,
         'profit': profits,
         'interval': interval
     }
+
+def get_top_workers(months=3, limit=5):
+    """Get top workers by total payout in the specified time period"""
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=30*months)
+    
+    # Get all paid payments in the time period
+    payments = WorkerPayment.objects.filter(
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
+        status='Paid'
+    )
+    
+    # Aggregate payments by worker
+    worker_payouts = {}
+    for payment in payments:
+        worker_id = str(payment.worker.id)
+        if worker_id not in worker_payouts:
+            worker_payouts[worker_id] = {
+                'worker': payment.worker,
+                'total_payout': Decimal('0'),
+                'payment_count': 0,
+                'latest_payment': payment.payment_date
+            }
+        
+        worker_payouts[worker_id]['total_payout'] += payment.amount
+        worker_payouts[worker_id]['payment_count'] += 1
+        if payment.payment_date > worker_payouts[worker_id]['latest_payment']:
+            worker_payouts[worker_id]['latest_payment'] = payment.payment_date
+    
+    # Convert to list and sort
+    workers_list = list(worker_payouts.values())
+    workers_list.sort(key=lambda x: x['total_payout'], reverse=True)
+    
+    # Format results
+    formatted_workers = []
+    for worker_data in workers_list[:limit]:
+        formatted_workers.append({
+            'name': worker_data['worker'].name,
+            'contact': worker_data['worker'].contact,
+            'total_payout': float(worker_data['total_payout']),
+            'payment_count': worker_data['payment_count'],
+            'latest_payment': worker_data['latest_payment'].strftime('%Y-%m-%d')
+        })
+    
+    return formatted_workers

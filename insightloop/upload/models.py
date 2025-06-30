@@ -5,6 +5,7 @@ class BusinessData(Document):
     product = fields.StringField(required=True, max_length=100)
     category = fields.StringField(max_length=50)
     sales = fields.IntField(required=True)
+    revenue = fields.FloatField(required=True)  # Only keep one instance of this
     profit = fields.FloatField(required=True)
     region = fields.StringField(max_length=50)
     customer_type = fields.StringField(max_length=20, choices=(

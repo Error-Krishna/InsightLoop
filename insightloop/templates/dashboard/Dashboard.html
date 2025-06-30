@@ -47,18 +47,18 @@
       position: relative;
       height: 300px;
     }
-        .export-notification {
-          transition: opacity 0.3s ease;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
+    .export-notification {
+      transition: opacity 0.3s ease;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
@@ -137,7 +137,7 @@
       <div>
         <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
         <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
-        <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+        <a href="#" class="block ml-4 text-gray-7 00 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
       </div>
       
       <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
@@ -322,7 +322,7 @@
           <button onclick="exportAnalytics('excel')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Excel Format</button>
         </div>
       </div>
-</div>
+    </div>
   </main>
   
   <!-- Footer -->
@@ -334,6 +334,15 @@
   
   <!-- JavaScript -->
   <script type="text/javascript">
+    // Add the currency formatting function
+    function formatCurrency(value) {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+      }).format(value);
+    }
+
     if (typeof currentData === 'undefined') {
       currentData = {
         summary: null,
@@ -398,25 +407,28 @@
       console.log("Updating dashboard with top workers:", currentData.topWorkers);
       const summary = currentData.summary;
       
-      // Update summary cards
+      // Update summary cards with currency formatting
       if (summary) {
-        document.getElementById('total-revenue').textContent = `₹${summary.total_revenue.toLocaleString()}`;
+        document.getElementById('total-revenue').textContent = formatCurrency(summary.total_revenue);
         const revenueChangeElem = document.getElementById('revenue-change');
-        revenueChangeElem.textContent = `${summary.revenue_change > 0 ? '↑' : '↓'} ${Math.abs(summary.revenue_change)}% from last month`;
+        const revChangeText = `${summary.revenue_change > 0 ? '+' : ''}${summary.revenue_change.toFixed(1)}%`;
+        revenueChangeElem.textContent = revChangeText;
         revenueChangeElem.className = summary.revenue_change > 0
           ? 'text-green-600 dark:text-green-400 text-sm mt-1'
           : 'text-red-600 dark:text-red-400 text-sm mt-1';
 
-        document.getElementById('total-profit').textContent = `₹${summary.total_profit.toLocaleString()}`;
+        document.getElementById('total-profit').textContent = formatCurrency(summary.total_profit);
         const profitChangeElem = document.getElementById('profit-change');
-        profitChangeElem.textContent = `${summary.profit_change > 0 ? '↑' : '↓'} ${Math.abs(summary.profit_change)}% from last month`;
+        const profitChangeText = `${summary.profit_change > 0 ? '+' : ''}${summary.profit_change.toFixed(1)}%`;
+        profitChangeElem.textContent = profitChangeText;
         profitChangeElem.className = summary.profit_change > 0
           ? 'text-green-600 dark:text-green-400 text-sm mt-1'
           : 'text-red-600 dark:text-red-400 text-sm mt-1';
 
         document.getElementById('active-workers').textContent = summary.active_workers;
         const workersChangeElem = document.getElementById('workers-change');
-        workersChangeElem.textContent = `${summary.workers_change > 0 ? '↑' : '↓'} ${Math.abs(summary.workers_change)}% from last month`;
+        const workersChangeText = `${summary.workers_change > 0 ? '+' : ''}${summary.workers_change.toFixed(1)}%`;
+        workersChangeElem.textContent = workersChangeText;
         workersChangeElem.className = summary.workers_change > 0
           ? 'text-green-600 dark:text-green-400 text-sm mt-1'
           : 'text-red-600 dark:text-red-400 text-sm mt-1';
@@ -429,7 +441,7 @@
         revExpChart.data.datasets[1].data = currentData.revExp.expenses;
         revExpChart.update();
       }
-
+      
       if (currentData.profitTrends) {
         profitTrendChart.data.labels = currentData.profitTrends.labels;
         profitTrendChart.data.datasets[0].data = currentData.profitTrends.profit;
@@ -744,7 +756,6 @@
         }, 3000);
       }
 
-
     function initWebSocket() {
       const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
       const socket = new WebSocket(`${wsScheme}://${window.location.host}/ws/dashboard/`);
@@ -769,14 +780,14 @@
         console.error('WebSocket error:', error);
         document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-red-500';
         if (socket.readyState === WebSocket.CLOSED) {
-          // setTimeout(initWebSocket, 3000);
+          setTimeout(initWebSocket, 3000);
         }
       };
 
       socket.onclose = () => {
         console.log('WebSocket closed. Reconnecting...');
         document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-yellow-500';
-        // setTimeout(initWebSocket, 3000);
+        setTimeout(initWebSocket, 3000);
       };
     }
 
@@ -799,7 +810,9 @@
       themeToggle.addEventListener('click', () => {
         const isNowDark = !document.documentElement.classList.contains('dark');
         setTheme(isNowDark);
-        initCharts?.();
+        if (typeof initCharts === 'function') {
+          initCharts();
+        }
       });
 
       function setTheme(dark) {
@@ -809,61 +822,94 @@
         localStorage.setItem('theme', dark ? 'dark' : 'light');
       }
     });
+
     function initCharts() {
-      // Revenue vs Expenses Chart
-      window.revExpChart = new Chart(
+    // Revenue vs Expenses Chart
+    window.revExpChart = new Chart(
         document.getElementById('revExpChart').getContext('2d'),
         {
-          type: 'bar',
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: 'Revenue',
-                data: [],
-                backgroundColor: '#4F46E5'
-              },
-              {
-                label: 'Expenses',
-                data: [],
-                backgroundColor: '#EF4444'
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                beginAtZero: true
-              }
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: [],
+                        backgroundColor: '#4F46E5',
+                        borderColor: '#4F46E5',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Expenses',
+                        data: [],
+                        backgroundColor: '#EF4444',
+                        borderColor: '#EF4444',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Amount (₹)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
             }
-          }
         }
-      );
+    );
 
-      // Profit Trends Chart
-      window.profitTrendChart = new Chart(
+    // Profit Trends Chart
+    window.profitTrendChart = new Chart(
         document.getElementById('profitTrendChart').getContext('2d'),
         {
-          type: 'line',
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: 'Profit',
-                data: [],
-                borderColor: '#10B981',
-                fill: false
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false
-          }
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Profit',
+                        data: [],
+                        borderColor: '#10B981',
+                        backgroundColor: '#10B981',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Profit (₹)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                }
+            }
         }
-      );
+    );
 
       // Worker Payments Chart
       window.workerPayChart = new Chart(

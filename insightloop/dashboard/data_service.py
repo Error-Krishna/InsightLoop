@@ -1,8 +1,33 @@
-# dashboard/data_service.py
 from .models import FinancialSummary, WorkerPayment
+from upload.models import BusinessData
 from datetime import datetime, timedelta
 from decimal import Decimal
 from django.utils import timezone
+
+def process_uploaded_data():
+    """Process raw business data into financial summaries"""
+    # Calculate date range for this month
+    now = timezone.now()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # Aggregate business data for this month
+    monthly_data = BusinessData.objects.filter(
+        date__gte=month_start,
+        date__lte=now
+    ).aggregate(
+        total_revenue=sum('revenue'),  # FIXED: Use revenue not sales
+        total_profit=sum('profit')
+    )
+    
+    # Create or update financial summary
+    FinancialSummary.objects.update_or_create(
+        timestamp=month_start,
+        defaults={
+            'total_revenue': monthly_data['total_revenue'] or 0,
+            'total_profit': monthly_data['total_profit'] or 0,
+            'active_workers': 0  # Replace with actual worker count logic
+        }
+    )
 
 def get_summary_data():
     """Get financial summary data without request dependency"""
@@ -56,7 +81,7 @@ def get_summary_data():
     }
 
 def get_worker_payments(months=1):
-    """Get worker payments without request dependency"""
+    """Get worker payments from processed data"""
     start_date = timezone.now() - timedelta(days=30*months)
     
     payments = WorkerPayment.objects.filter(
@@ -66,6 +91,6 @@ def get_worker_payments(months=1):
     return [{
         'name': p.worker.name,
         'month': p.payment_date.strftime('%B %Y'),
-        'amount': float(p.amount),  # Convert Decimal to float
+        'amount': float(p.amount),
         'status': p.status
     } for p in payments]
