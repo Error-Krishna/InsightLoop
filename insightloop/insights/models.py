@@ -17,14 +17,3 @@ class Insight(Document):
             {'fields': ['expires_at'], 'expireAfterSeconds': 0}
         ]
     }
-
-class SalesRecord(Document):
-    date = fields.DateField(required=True, default=datetime.now)
-    amount = fields.FloatField(required=True)
-    product = fields.StringField(required=True, max_length=100)
-    created_at = fields.DateTimeField(auto_now_add=True)
-    
-    meta = {
-        'collection': 'sales_records',
-        'ordering': ['-date']
-    }

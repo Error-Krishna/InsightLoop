@@ -13,19 +13,7 @@
   </script>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-  <!-- Messages -->
-  {% if messages %}
-    <div class="fixed top-4 right-4 z-50">
-      {% for message in messages %}
-      <div class="px-4 py-2 rounded-md shadow-lg text-white 
-                  {% if message.tags == 'success' %}bg-green-500
-                  {% elif message.tags == 'error' %}bg-red-500
-                  {% else %}bg-blue-500{% endif %}">
-        {{ message }}
-      </div>
-      {% endfor %}
-    </div>
-  {% endif %}
+  
 
   <!-- Header/Navigation -->
   <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
@@ -114,12 +102,25 @@
   </nav>
 
   <!-- Page Content -->
+   <!-- Messages -->
+  {% if messages %}
+    <div class="fixed top-4 right-4 z-50">
+      {% for message in messages %}
+      <div class="px-4 py-2 rounded-md shadow-lg text-white 
+                  {% if message.tags == 'success' %}bg-green-500
+                  {% elif message.tags == 'error' %}bg-red-500
+                  {% else %}bg-blue-500{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="mb-10">
         <h2 class="text-3xl font-bold mb-2 text-gray-900 dark:text-white">🧠 Business Insights</h2>
         <p class="text-gray-600 dark:text-gray-300">Development Mode - No Authentication</p>
     </div>
-
+    
     <!-- Analysis Section -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-6">
         <h3 class="text-2xl font-semibold mb-4 text-indigo-700 dark:text-indigo-400">Generate Insights</h3>
@@ -134,7 +135,7 @@
             </button>
         </form>
     </div>
-
+    
     <!-- Delete All Section -->
     <div class="bg-red-50 dark:bg-red-900 rounded-xl shadow p-6 mb-12">
         <h3 class="text-2xl font-semibold mb-4 text-red-700 dark:text-red-400">Manage Insights</h3>
@@ -153,7 +154,7 @@
             </p>
         </form>
     </div>
-
+    
     <!-- Main Insight Section -->
     {% if main_insight %}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-12 transition-all duration-300 hover:shadow-xl">
