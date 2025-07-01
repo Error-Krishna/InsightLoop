@@ -1,29 +1,26 @@
-# views.py - Update with complete implementation
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from .models import Worker, MaterialAssignment, PayRecord
 from datetime import datetime
-from mongoengine.queryset.visitor import Q
+from bson import ObjectId, errors
 import json
-from bson import ObjectId
+import logging
+
+logger = logging.getLogger(__name__)
 
 def pay_distribution(request):
-    """Render the main payment management page"""
     return render(request, 'workers/Worker.html')
 
 def get_workers(request):
-    """Get all workers with their material and payment stats"""
     try:
         workers = Worker.objects.all()
         workers_data = []
         
         for worker in workers:
-            # Get material stats
             assignments = MaterialAssignment.objects.filter(worker=worker)
             total_assigned = sum([a.quantity for a in assignments])
-            total_delivered = sum([sum([b.get('quantity', 0) for b in a.batches]) for a in assignments])
+            total_delivered = sum([a.delivered_quantity for a in assignments])
             
-            # Get pending payments (records that are not fully paid)
             payment_records = PayRecord.objects.filter(worker=worker)
             pending_amount = 0
             for record in payment_records:
@@ -44,13 +41,13 @@ def get_workers(request):
             'workers': workers_data
         })
     except Exception as e:
+        logger.error(f"Error in get_workers: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': str(e)
         }, status=400)
 
 def get_payment_records(request):
-    """Get payment records with filtering option"""
     try:
         filter_type = request.GET.get('filter', 'all')
         
@@ -63,7 +60,6 @@ def get_payment_records(request):
             is_partial = 0 < record.amount_paid < total_amount
             is_paid = record.paid or (record.amount_paid >= total_amount)
             
-            # Apply filters
             if filter_type == 'all' or \
                (filter_type == 'pending' and is_pending) or \
                (filter_type == 'partial' and is_partial) or \
@@ -85,14 +81,13 @@ def get_payment_records(request):
             'records': filtered_records
         })
     except Exception as e:
+        logger.error(f"Error in get_payment_records: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': str(e)
         }, status=400)
-    
 
 def create_payment_record(request):
-    """Create a new payment record"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -117,6 +112,7 @@ def create_payment_record(request):
                 'message': 'Pay record saved successfully'
             })
         except Exception as e:
+            logger.error(f"Error in create_payment_record: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'message': str(e)
@@ -124,10 +120,9 @@ def create_payment_record(request):
     return JsonResponse({
         'success': False,
         'message': 'Invalid request method'
-    }, status=400)
+    }, status=405)
 
 def mark_paid(request, record_id):
-    """Mark a payment record as paid"""
     if request.method == 'POST':
         try:
             record = PayRecord.objects.get(id=ObjectId(record_id))
@@ -142,6 +137,7 @@ def mark_paid(request, record_id):
                 'message': 'Payment marked as paid'
             })
         except Exception as e:
+            logger.error(f"Error in mark_paid: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'message': str(e)
@@ -149,10 +145,9 @@ def mark_paid(request, record_id):
     return JsonResponse({
         'success': False,
         'message': 'Invalid request method'
-    }, status=400)
+    }, status=405)
 
 def delete_payment_record(request, record_id):
-    """Delete a payment record"""
     if request.method == 'DELETE':
         try:
             record = PayRecord.objects.get(id=ObjectId(record_id))
@@ -163,6 +158,7 @@ def delete_payment_record(request, record_id):
                 'message': 'Record deleted successfully'
             })
         except Exception as e:
+            logger.error(f"Error in delete_payment_record: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'message': str(e)
@@ -170,25 +166,22 @@ def delete_payment_record(request, record_id):
     return JsonResponse({
         'success': False,
         'message': 'Invalid request method'
-    }, status=400)
+    }, status=405)
 
 def add_worker(request):
-    """Add a new worker"""
     if request.method == 'POST':
         try:
             data = request.POST
             worker = Worker(
                 name=data.get('name'),
-                age=int(data.get('age')),
+                age=int(data.get('age')) if data.get('age') else None,
                 address=data.get('address'),
                 phone=data.get('phone'),
-                joining_date=datetime.strptime(data.get('joining_date'), '%Y-%m-%d')
+                joining_date=datetime.strptime(data.get('joining_date'), '%Y-%m-%d') if data.get('joining_date') else datetime.now()
             )
             
             if 'image' in request.FILES:
-                # In production, upload to cloud storage and save URL
                 worker.image_url = f"/media/workers/{request.FILES['image'].name}"
-                # You'll need to configure Django to handle file uploads
             
             worker.save()
             return JsonResponse({
@@ -197,6 +190,7 @@ def add_worker(request):
                 'worker_id': str(worker.id)
             })
         except Exception as e:
+            logger.error(f"Error in add_worker: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'message': str(e)
@@ -204,69 +198,175 @@ def add_worker(request):
     return JsonResponse({
         'success': False,
         'message': 'Invalid request method'
-    }, status=400)
+    }, status=405)
 
 def get_worker_stats(request, worker_id):
-    """Get stats for a specific worker"""
     try:
+        if not ObjectId.is_valid(worker_id):
+            return JsonResponse({'success': False, 'message': 'Invalid worker ID'}, status=400)
+        
         worker = Worker.objects.get(id=ObjectId(worker_id))
         
-        # Calculate material stats
         assignments = MaterialAssignment.objects.filter(worker=worker)
         total_assigned = sum([a.quantity for a in assignments])
-        total_delivered = sum([sum([b.get('quantity', 0) for b in a.batches]) for a in assignments])
-        
-        # Calculate pending payments
-        pending_payments = PayRecord.objects.filter(worker=worker, paid=False)
-        pending_amount = sum([p.units_produced * p.rate_per_unit for p in pending_payments])
+        total_delivered = sum([a.delivered_quantity for a in assignments])
         
         return JsonResponse({
             'success': True,
             'assigned': total_assigned,
             'delivered': total_delivered,
-            'balance': total_assigned - total_delivered,
-            'pending_amount': pending_amount
+            'balance': total_assigned - total_delivered
         })
+    except Worker.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Worker not found'}, status=404)
     except Exception as e:
+        logger.error(f"Error in get_worker_stats: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': str(e)
         }, status=400)
-    
 
 def material_distribution(request):
     if request.method == 'POST':
         try:
             data = request.POST
-            worker = Worker.objects.get(id=data.get('worker_id'))
+            worker_id = data.get('worker_id')
             
+            if not worker_id:
+                return JsonResponse({'success': False, 'message': 'Worker is required'}, status=400)
+                
+            worker = Worker.objects.get(id=ObjectId(worker_id))
+            
+            batches_data = data.get('batches', '[]')
+            try:
+                batches = json.loads(batches_data) if batches_data else []
+            except json.JSONDecodeError as e:
+                return JsonResponse({'success': False, 'message': f'Invalid batches data: {str(e)}'}, status=400)
+            
+            # Create the assignment
             assignment = MaterialAssignment(
                 worker=worker,
                 material_name=data.get('material_name'),
                 quantity=int(data.get('quantity')),
                 price_per_unit=float(data.get('price_per_unit')),
                 assignment_date=datetime.strptime(data.get('assignment_date'), '%Y-%m-%d'),
-                notes=data.get('notes', '')
+                notes=data.get('notes', ''),
+                batches=batches
             )
-            
-            # Process batches if any
-            batches = json.loads(request.POST.get('batches', '[]'))
-            assignment.batches = batches
             assignment.save()
             
             return JsonResponse({'success': True, 'message': 'Material assigned successfully'})
+        except Worker.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Worker not found'}, status=404)
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+            logger.error(f"Error in material_distribution (POST): {str(e)}")
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
     
-    workers = Worker.objects.all()
-    assignments = MaterialAssignment.objects.all()
+    # GET request: fetch workers and assignments
+    workers = Worker.objects.all().only('id', 'name', 'image_url')
+    assignments = MaterialAssignment.objects.all().order_by('-assignment_date')
+
+    # Pre-fetch workers to avoid N+1 queries
+    worker_ids = [ass.worker.id for ass in assignments]
+    worker_map = {}
+    if worker_ids:
+        workers_list = Worker.objects.filter(id__in=worker_ids).only('id', 'name')
+        worker_map = {str(worker.id): worker for worker in workers_list}
+    
+    # Attach workers to assignments
+    for assignment in assignments:
+        assignment.cached_worker = worker_map.get(str(assignment.worker.id))
+
     return render(request, 'workers/MaterialDistribution.html', {
         'workers': workers,
         'assignments': assignments
     })
 
+def add_batch_to_assignment(request, assignment_id):
+    if request.method == 'POST':
+        try:
+            # Validate assignment_id
+            if not ObjectId.is_valid(assignment_id):
+                return JsonResponse({'success': False, 'message': 'Invalid assignment ID'}, status=400)
+                
+            data = json.loads(request.body)
+            assignment = MaterialAssignment.objects.get(id=ObjectId(assignment_id))
+            
+            # Validate batch quantity
+            balance = assignment.balance_quantity
+            new_quantity = int(data.get('quantity'))
+            
+            if new_quantity <= 0:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Quantity must be positive'
+                }, status=400)
+                
+            if new_quantity > balance:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Cannot add batch: quantity exceeds balance ({balance} units available)'
+                }, status=400)
+            
+            # Validate batch date
+            batch_date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
+            if batch_date > datetime.now().date():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Batch date cannot be in the future'
+                }, status=400)
+            
+            new_batch = {
+                'quantity': new_quantity,
+                'date': data.get('date'),
+                'created_at': datetime.now().isoformat()
+            }
+            
+            assignment.batches.append(new_batch)
+            assignment.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Batch added successfully'
+            })
+        except MaterialAssignment.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Assignment not found'}, status=404)
+        except ValueError as e:
+            return JsonResponse({'success': False, 'message': 'Invalid date format'}, status=400)
+        except Exception as e:
+            logger.error(f"Error in add_batch_to_assignment: {str(e)}")
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    }, status=405)
+
+def delete_assignment(request, assignment_id):
+    if request.method == 'DELETE':
+        try:
+            if not ObjectId.is_valid(assignment_id):
+                return JsonResponse({'success': False, 'message': 'Invalid assignment ID'}, status=400)
+                
+            assignment = MaterialAssignment.objects.get(id=ObjectId(assignment_id))
+            assignment.delete()
+            return JsonResponse({
+                'success': True,
+                'message': 'Assignment deleted successfully'
+            })
+        except MaterialAssignment.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Assignment not found'}, status=404)
+        except Exception as e:
+            logger.error(f"Error in delete_assignment: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=400)
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    }, status=405)
+
 def update_paid_amount(request, record_id):
-    """Update the paid amount for a payment record"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -284,6 +384,7 @@ def update_paid_amount(request, record_id):
                 'message': 'Paid amount updated successfully'
             })
         except Exception as e:
+            logger.error(f"Error in update_paid_amount: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'message': str(e)
@@ -291,4 +392,4 @@ def update_paid_amount(request, record_id):
     return JsonResponse({
         'success': False,
         'message': 'Invalid request method'
-    }, status=400)
+    }, status=405)

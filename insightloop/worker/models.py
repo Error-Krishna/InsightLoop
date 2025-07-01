@@ -1,4 +1,4 @@
-from mongoengine import Document, fields
+from mongoengine import Document, fields, ValidationError
 from datetime import datetime
 
 class Worker(Document):
@@ -13,7 +13,10 @@ class Worker(Document):
 
     meta = {
         'collection': 'workers',
-        'indexes': ['name']
+        'indexes': [
+            'name',
+            {'fields': ['joining_date'], 'name': 'joining_date_idx'}
+        ]
     }
 
 class MaterialAssignment(Document):
@@ -29,8 +32,31 @@ class MaterialAssignment(Document):
 
     meta = {
         'collection': 'material_assignments',
-        'indexes': ['worker']
+        'indexes': [
+            'worker',
+            {'fields': ['assignment_date'], 'name': 'assignment_date_idx'},
+            {'fields': ['material_name'], 'name': 'material_name_idx'}
+        ]
     }
+    
+    @property
+    def delivered_quantity(self):
+        return sum(batch.get('quantity', 0) for batch in self.batches)
+    
+    @property
+    def balance_quantity(self):
+        return self.quantity - self.delivered_quantity
+    
+    @property
+    def total_value(self):
+        return self.quantity * self.price_per_unit
+    
+    def clean(self):
+        """Validate data before saving"""
+        if self.quantity <= 0:
+            raise ValidationError("Quantity must be positive")
+        if self.price_per_unit <= 0:
+            raise ValidationError("Price must be positive")
 
 class PayRecord(Document):
     worker = fields.ReferenceField(Worker)
@@ -45,5 +71,16 @@ class PayRecord(Document):
 
     meta = {
         'collection': 'pay_records',
-        'indexes': ['worker', 'paid']
+        'indexes': [
+            'worker', 
+            'paid',
+            {'fields': ['date'], 'name': 'date_idx'}
+        ]
     }
+    
+    def clean(self):
+        """Validate data before saving"""
+        if self.units_produced <= 0:
+            raise ValidationError("Units produced must be positive")
+        if self.rate_per_unit <= 0:
+            raise ValidationError("Rate per unit must be positive")
