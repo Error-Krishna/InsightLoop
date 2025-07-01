@@ -14,7 +14,6 @@
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
   
-
   <!-- Header/Navigation -->
   <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -82,7 +81,7 @@
     <!-- Mobile Menu -->
     <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
       <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
-      <a href="#" class="block text-gray-7 00 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
       <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
       
       <!-- Workers Submenu -->
@@ -101,8 +100,7 @@
     </div>
   </nav>
 
-  <!-- Page Content -->
-   <!-- Messages -->
+  <!-- Messages -->
   {% if messages %}
     <div class="fixed top-4 right-4 z-50">
       {% for message in messages %}
@@ -115,6 +113,8 @@
       {% endfor %}
     </div>
   {% endif %}
+
+  <!-- Page Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="mb-10">
         <h2 class="text-3xl font-bold mb-2 text-gray-900 dark:text-white">🧠 Business Insights</h2>
@@ -160,10 +160,10 @@
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-12 transition-all duration-300 hover:shadow-xl">
         <div class="flex justify-between items-start mb-4">
             <div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                <h3 class="main-insight-title text-2xl font-bold text-gray-900 dark:text-white mb-2">
                     📈 {{ main_insight.title }}
                 </h3>
-                <p class="text-gray-600 dark:text-gray-300 text-sm">
+                <p class="main-insight-date text-gray-600 dark:text-gray-300 text-sm">
                     {{ main_insight.created_at|date:"F j, Y" }}
                 </p>
             </div>
@@ -185,7 +185,7 @@
             </div>
         </div>
       
-        <p class="text-gray-700 dark:text-gray-200 mb-6 leading-relaxed">
+        <p class="main-insight-desc text-gray-700 dark:text-gray-200 mb-6 leading-relaxed">
             {{ main_insight.description }}
         </p>
       
@@ -247,7 +247,8 @@
         {% if insight_gallery %}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for insight in insight_gallery %}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-5 hover:shadow-lg transition-all duration-300">
+            <div class="insight-card bg-white dark:bg-gray-800 shadow rounded-lg p-5 hover:shadow-lg transition-all duration-300 cursor-pointer {% if insight.id == main_insight.id %}ring-2 ring-indigo-500{% endif %}" 
+                 data-id="{{ insight.id }}">
                 <div class="flex justify-between items-start mb-3">
                     <h5 class="text-lg font-semibold text-gray-800 dark:text-white truncate pr-2">
                         {{ insight.title }}
@@ -315,14 +316,14 @@
     </div>
   </main>
 
-  <!-- Toggle Scripts -->
+  <!-- JavaScript -->
   <script>
-    // Mobile menu
+    // Mobile menu toggle
     document.getElementById('mobileMenuBtn').addEventListener('click', () => {
       document.getElementById('mobileMenu').classList.toggle('hidden');
     });
 
-    // Theme elements
+    // Theme toggle
     const themeToggle = document.getElementById('themeToggle');
     const lightIcon = document.getElementById('lightIcon');
     const darkIcon = document.getElementById('darkIcon');
@@ -346,11 +347,13 @@
       setTheme(isNowDark);
     });
 
-    // Chart initialization
+    // Initialize chart with main insight data
     {% if main_insight and main_insight.labels and main_insight.data_points %}
-    try {
+    let insightChart = null;
+    
+    function initializeChart() {
       const ctx = document.getElementById('insightChart').getContext('2d');
-      new Chart(ctx, {
+      insightChart = new Chart(ctx, {
         type: 'line',
         data: {
           labels: {{ main_insight.labels|safe }},
@@ -394,10 +397,119 @@
           }
         }
       });
-    } catch (e) {
-      console.error('Error creating chart:', e);
     }
+    
+    // Initialize the chart on page load
+    initializeChart();
     {% endif %}
+
+    // Function to update the chart with new insight data
+    function updateChartWithInsight(insightId) {
+      // Find the insight in our serialized data
+      const insights = JSON.parse('{{ all_insights_json|escapejs }}');
+      const insight = insights.find(i => i.id === insightId);
+      
+      if (!insight) return;
+      
+      // Destroy the existing chart if it exists
+      const chartElement = document.getElementById('insightChart');
+      if (insightChart) {
+        insightChart.destroy();
+      }
+      
+      // Create new chart with the selected insight's data
+      const ctx = chartElement.getContext('2d');
+      insightChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: insight.labels,
+          datasets: [{
+            label: 'Data Values',
+            data: insight.data_points,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            borderWidth: 2,
+            pointBackgroundColor: '#6366f1',
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+      
+      // Update the main insight details
+      document.querySelector('.main-insight-title').textContent = insight.title;
+      document.querySelector('.main-insight-date').textContent = 
+        new Date(insight.created_at).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      document.querySelector('.main-insight-desc').textContent = insight.description;
+      document.querySelector('#note').value = insight.note || '';
+      
+      // Update the hidden field for note saving
+      document.querySelector('input[name="insight_id"]').value = insightId;
+      
+      // Update the export form
+      document.querySelector('input[name="export_insight_id"]').value = insightId;
+      
+      // Highlight the selected card
+      document.querySelectorAll('.insight-card').forEach(card => {
+        card.classList.remove('ring-2', 'ring-indigo-500');
+      });
+      document.querySelector(`.insight-card[data-id="${insightId}"]`).classList.add('ring-2', 'ring-indigo-500');
+    }
+    
+    // Add click handlers to all insight cards
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.insight-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          // Don't trigger if clicking delete button or export link
+          if (e.target.closest('button') || e.target.closest('a')) return;
+          
+          const insightId = card.dataset.id;
+          updateChartWithInsight(insightId);
+          
+          // Update URL without reloading
+          history.pushState(null, '', `/insights/?insight=${insightId}`);
+        });
+      });
+      
+      // Check for insight ID in URL on page load
+      const urlParams = new URLSearchParams(window.location.search);
+      const insightId = urlParams.get('insight');
+      if (insightId && insightId !== '{{ main_insight.id|default:"" }}') {
+        updateChartWithInsight(insightId);
+      }
+    });
 
     // Auto-close messages after 5 seconds
     setTimeout(() => {

@@ -45,9 +45,19 @@ def insights(request):
     if deleted_count > 0:
         messages.info(request, f"Auto-deleted {deleted_count} old insights")
     
-   # Get all insights ordered by creation date
+    # Get all insights ordered by creation date
     all_insights = Insight.objects.order_by('-created_at')
-    main_insight = all_insights.first() if all_insights else None
+    
+    # Check if a specific insight was requested
+    requested_insight_id = request.GET.get('insight')
+    if requested_insight_id:
+        try:
+            main_insight = Insight.objects.get(id=requested_insight_id)
+        except Insight.DoesNotExist:
+            main_insight = all_insights.first() if all_insights else None
+    else:
+        main_insight = all_insights.first() if all_insights else None
+        
     insight_gallery = list(all_insights)
 
     # Handle single insight deletion
