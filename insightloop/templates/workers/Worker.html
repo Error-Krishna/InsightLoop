@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Worker Pay Manager | InsightLoop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300">
+  <!-- Header/Navigation -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">IL</div>
+          <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">InsightLoop</span>
+        </div>
+        
+        <!-- Main Navigation (Desktop) -->
+        <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+          <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+          
+          <!-- Workers Dropdown -->
+          <div class="relative group">
+            <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none font-semibold">Workers</button>
+            <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="{% url 'material_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="{% url 'pay_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+            </div>
+          </div>
+          
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+        </div>
+        
+        <!-- Profile & Settings -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
+          <button id="themeToggle" class="theme-toggle p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+            <svg id="lightIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+            </svg>
+            <svg id="darkIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300 hidden" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          </button>
+          
+          <!-- Profile Dropdown -->
+          <div class="relative group hidden md:block">
+            <button class="focus:outline-none">
+              <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">KG</div>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+            </div>
+          </div>
+          
+          <!-- Mobile Menu Button -->
+          <button id="mobileMenuBtn" class="md:hidden focus:outline-none">
+            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <a href="{% url 'dashboard' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="{% url 'insights' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="{% url 'upload' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      
+      <!-- Workers Submenu -->
+      <div>
+        <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
+        <a href="{% url 'material_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="{% url 'pay_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+      </div>
+      
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+      
+      <hr class="border-gray-200 dark:border-gray-700">
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+    </div>
+  </nav>
+
+<!-- Page Title -->
+<section class="max-w-6xl mx-auto p-6">
+  <h2 class="text-2xl font-semibold mb-2">Worker Pay Manager</h2>
+  <p class="text-sm text-gray-600 dark:text-gray-300">Track your workers' production and calculate their wages.</p>
+</section>
+
+<!-- Wage Entry Form -->
+<section class="max-w-6xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-10">
+  <form id="wageForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-medium">Select Worker</label>
+      <select id="workerSelect" name="worker_id" class="w-full border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required>
+        <option value="">-- Choose Worker --</option>
+        <!-- Options will be populated by JavaScript -->
+      </select>
+      <div id="materialInfo" class="text-xs mt-1 text-gray-500 dark:text-gray-400 hidden">
+        Material assigned: <span id="assignedSpan">0</span> units | 
+        Delivered: <span id="deliveredSpan">0</span> units | 
+        Balance: <span id="balanceSpan">0</span> units
+      </div>
+      <div id="pendingPay" class="text-xs mt-1 text-red-500 dark:text-red-400 hidden">
+        Pending Payment: ₹<span id="pendingAmountSpan">0</span>
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Product Name</label>
+      <input type="text" id="productName" name="product_name" class="w-full border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required />
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Rate per Unit (₹)</label>
+      <input type="number" id="ratePerUnit" name="rate_per_unit" class="w-full border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="1" step="0.01" required />
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Date</label>
+      <input type="date" name="date" id="paymentDate" class="w-full border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" required />
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Units Produced</label>
+      <input type="number" id="unitsProduced" name="units_produced" class="w-full border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="1" required />
+    </div>
+    <div>
+      <label class="block text-sm font-medium">Amount Paid (₹)</label>
+      <input type="number" id="amountPaid" name="amount_paid" class="w-full border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" step="0.01" />
+      <p class="text-xs text-gray-500 dark:text-gray-400">Leave empty or 0 if no payment made yet</p>
+    </div>
+    <div class="col-span-2">
+      <label class="block text-sm font-medium">Auto-Calculated Pay</label>
+      <input type="text" id="autoPay" class="w-full bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white" readonly />
+      <input type="hidden" id="calculatedAmount" name="calculated_amount">
+    </div>
+    <div class="col-span-2 flex justify-between mt-4">
+      <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700">Save Entry</button>
+      <button type="button" class="text-indigo-600 border px-6 py-2 rounded-md hover:bg-indigo-50 dark:hover:bg-gray-700" onclick="openModal()">+ Add Worker</button>
+      <button type="button" class="text-indigo-600 border px-6 py-2 rounded-md hover:bg-indigo-50 dark:hover:bg-gray-700" onclick="window.location.href='{% url 'material_distribution' %}'">Assign Material</button>
+    </div>
+  </form>
+</section>
+
+<!-- Payment Records Table -->
+<div class="max-w-6xl mx-auto mt-10 px-4 py-8 bg-white dark:bg-gray-800 rounded-2xl shadow">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-bold text-indigo-700 dark:text-indigo-400">Payment Records</h2>
+    <div class="flex space-x-2">
+      <button id="filterAllBtn" class="bg-indigo-500 text-white px-4 py-1 rounded hover:bg-indigo-600">Show All</button>
+      <button id="filterPendingBtn" class="bg-yellow-500 text-white px-4 py-1 rounded hover:bg-yellow-600">Show Pending</button>
+      <button id="filterPartialBtn" class="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600">Show Partial</button>
+      <button id="filterPaidBtn" class="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600">Show Paid</button>
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full table-auto text-sm">
+      <thead class="bg-gray-100 dark:bg-gray-700 text-left text-gray-800 dark:text-gray-100">
+        <tr>
+          <th class="px-4 py-2">Worker</th>
+          <th class="px-4 py-2">Product</th>
+          <th class="px-4 py-2">Units</th>
+          <th class="px-4 py-2">Rate/Unit</th>
+          <th class="px-4 py-2">Amount</th>
+          <th class="px-4 py-2">Paid</th>
+          <th class="px-4 py-2">Pending</th>
+          <th class="px-4 py-2">Date</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="payRecordsTableBody">
+        <!-- Records will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Worker Modal -->
+<div id="workerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white dark:bg-gray-700 dark:text-white rounded-lg shadow-lg w-full max-w-lg p-6">
+    <h3 class="text-lg font-bold mb-4">Add New Worker</h3>
+    <form id="addWorkerForm" action="/api/workers/add" method="POST" enctype="multipart/form-data" class="space-y-4">
+      <!-- Full Name -->
+      <div>
+        <label class="block text-sm dark:text-white font-medium text-gray-700">Full Name</label>
+        <input type="text" name="name" placeholder="Enter full name" class="w-full dark:bg-gray-600 border-gray-300 rounded-md" required />
+      </div>
+
+      <!-- Age -->
+      <div>
+        <label class="block text-sm dark:text-white font-medium text-gray-700">Age</label>
+        <input type="number" name="age" placeholder="Enter age" class="w-full dark:bg-gray-600 border-gray-300 rounded-md" required />
+      </div>
+
+      <!-- Image Upload -->
+      <div>
+        <label class="block text-sm dark:text-white font-medium text-gray-700">Upload Image</label>
+        <input type="file" name="image" accept="image/*" class="w-full dark:bg-gray-600 border-gray-300 rounded-md" required />
+      </div>
+
+      <!-- Address -->
+      <div>
+        <label class="block text-sm dark:text-white font-medium text-gray-700">Address</label>
+        <textarea name="address" rows="2" placeholder="Enter full address" class="w-full dark:bg-gray-600 border-gray-300 rounded-md" required></textarea>
+      </div>
+
+      <!-- Phone Number -->
+      <div>
+        <label class="block text-sm dark:text-white font-medium text-gray-700">Phone Number</label>
+        <input type="tel" name="phone" placeholder="Enter contact number" class="w-full dark:bg-gray-600 border-gray-300 rounded-md" required />
+      </div>
+
+      <!-- Date of Joining -->
+      <div>
+        <label class="block text-sm dark:text-white font-medium text-gray-700">Date of Joining</label>
+        <input type="date" class="text-gray-400 dark:bg-gray-600" name="joining_date" class="w-full dark:bg-gray-600 border-gray-300 rounded-md" required />
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" onclick="closeModal()" class="text-gray-600 hover:text-red-500">Cancel</button>
+        <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded-md hover:bg-indigo-700">Add Worker</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white dark:bg-gray-700 dark:text-white rounded-lg shadow-lg w-full max-w-md p-6">
+    <h3 class="text-lg font-bold mb-4">Confirm Deletion</h3>
+    <p class="mb-4">Are you sure you want to delete this payment record? This action cannot be undone.</p>
+    <input type="hidden" id="recordToDelete">
+    <div class="flex justify-end gap-3 pt-2">
+      <button type="button" onclick="closeDeleteModal()" class="text-gray-600 hover:text-gray-800 dark:hover:text-gray-300 px-4 py-2">Cancel</button>
+      <button type="button" onclick="confirmDelete()" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">Delete</button>
+    </div>
+  </div>
+</div>
+<!-- Scripts -->
+<script>
+  // DOM Elements
+  const workerSelect = document.getElementById('workerSelect');
+  const productName = document.getElementById('productName');
+  const ratePerUnit = document.getElementById('ratePerUnit');
+  const unitsProduced = document.getElementById('unitsProduced');
+  const amountPaid = document.getElementById('amountPaid');
+  const autoPay = document.getElementById('autoPay');
+  const calculatedAmount = document.getElementById('calculatedAmount');
+  const payRecordsTableBody = document.getElementById('payRecordsTableBody');
+  const filterPendingBtn = document.getElementById('filterPendingBtn');
+  const filterAllBtn = document.getElementById('filterAllBtn');
+  const materialInfo = document.getElementById('materialInfo');
+  const pendingPay = document.getElementById('pendingPay');
+  const wageForm = document.getElementById('wageForm');
+  const addWorkerForm = document.getElementById('addWorkerForm');
+  const themeToggle = document.getElementById('themeToggle');
+  const lightIcon = document.getElementById('lightIcon');
+  const darkIcon = document.getElementById('darkIcon');
+  const filterPartialBtn = document.getElementById('filterPartialBtn');
+  const filterPaidBtn = document.getElementById('filterPaidBtn');
+
+  // Set today's date as default
+  document.getElementById('paymentDate').valueAsDate = new Date();
+
+  // Theme Toggle Functionality
+  function toggleTheme() {
+    const html = document.documentElement;
+    if (html.classList.contains('dark')) {
+      html.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      lightIcon.classList.remove('hidden');
+      darkIcon.classList.add('hidden');
+    } else {
+      html.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      lightIcon.classList.add('hidden');
+      darkIcon.classList.remove('hidden');
+    }
+  }
+
+  // Check for saved theme preference
+  if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+    lightIcon.classList.add('hidden');
+    darkIcon.classList.remove('hidden');
+  } else {
+    document.documentElement.classList.remove('dark');
+    lightIcon.classList.remove('hidden');
+    darkIcon.classList.add('hidden');
+  }
+
+  // Event listener for theme toggle
+  themeToggle.addEventListener('click', toggleTheme);
+
+  // Fetch all workers and populate dropdown
+  function fetchWorkers() {
+    fetch('/distribution/pay_distribution/workers/')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          workerSelect.innerHTML = '<option value="">-- Choose Worker --</option>';
+          data.workers.forEach(worker => {
+            const option = document.createElement('option');
+            option.value = worker.id;
+            option.textContent = worker.name;
+            option.dataset.materialAssigned = worker.material_assigned || 0;
+            option.dataset.materialDelivered = worker.material_delivered || 0;
+            option.dataset.pendingAmount = worker.pending_amount || 0;
+            workerSelect.appendChild(option);
+          });
+        } else {
+          console.error('Error fetching workers:', data.message);
+        }
+      })
+      .catch(error => console.error('Error fetching workers:', error));
+  }
+
+  // Fetch payment records with filter
+  function fetchPaymentRecords(filter = 'all') {
+    fetch(`/distribution/pay_distribution/records/?filter=${filter}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          renderPaymentRecords(data.records);
+          updateActiveFilterButton(filter);
+        } else {
+          console.error('Error fetching records:', data.message);
+        }
+      })
+      .catch(error => console.error('Error fetching payment records:', error));
+  }
+
+  function updateActiveFilterButton(activeFilter) {
+    // Reset all buttons
+    filterAllBtn.classList.remove('bg-indigo-600', 'dark:bg-indigo-700');
+    filterPendingBtn.classList.remove('bg-yellow-600', 'dark:bg-yellow-700');
+    filterPartialBtn.classList.remove('bg-blue-600', 'dark:bg-blue-700');
+    filterPaidBtn.classList.remove('bg-green-600', 'dark:bg-green-700');
+    
+    filterAllBtn.classList.add('bg-indigo-500', 'dark:bg-indigo-500');
+    filterPendingBtn.classList.add('bg-yellow-500', 'dark:bg-yellow-500');
+    filterPartialBtn.classList.add('bg-blue-500', 'dark:bg-blue-500');
+    filterPaidBtn.classList.add('bg-green-500', 'dark:bg-green-500');
+
+    // Highlight the active one
+    switch(activeFilter) {
+      case 'all':
+        filterAllBtn.classList.add('bg-indigo-600', 'dark:bg-indigo-700');
+        filterAllBtn.classList.remove('bg-indigo-500', 'dark:bg-indigo-500');
+        break;
+      case 'pending':
+        filterPendingBtn.classList.add('bg-yellow-600', 'dark:bg-yellow-700');
+        filterPendingBtn.classList.remove('bg-yellow-500', 'dark:bg-yellow-500');
+        break;
+      case 'partial':
+        filterPartialBtn.classList.add('bg-blue-600', 'dark:bg-blue-700');
+        filterPartialBtn.classList.remove('bg-blue-500', 'dark:bg-blue-500');
+        break;
+      case 'paid':
+        filterPaidBtn.classList.add('bg-green-600', 'dark:bg-green-700');
+        filterPaidBtn.classList.remove('bg-green-500', 'dark:bg-green-500');
+        break;
+    }
+  }
+
+  // Update the renderPaymentRecords function to properly calculate payment status
+  function renderPaymentRecords(records) {
+      payRecordsTableBody.innerHTML = '';
+      
+      if (records.length === 0) {
+          payRecordsTableBody.innerHTML = `
+              <tr class="border-t dark:border-gray-700">
+                  <td colspan="10" class="px-4 py-4 text-center text-gray-500">No records found</td>
+              </tr>
+          `;
+          return;
+      }
+      
+      records.forEach(record => {
+          const totalAmount = record.units_produced * record.rate_per_unit;
+          const paidAmount = record.amount_paid || 0;
+          const pendingAmount = totalAmount - paidAmount;
+          const isFullyPaid = record.paid || (paidAmount >= totalAmount);
+          const paymentStatus = isFullyPaid ? 'Paid' : 
+                              paidAmount > 0 ? 'Partial' : 'Pending';
+          
+          const row = document.createElement('tr');
+          row.className = 'border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700';
+          row.innerHTML = `
+              <td class="px-4 py-2">${record.worker_name}</td>
+              <td class="px-4 py-2">${record.product_name}</td>
+              <td class="px-4 py-2">${record.units_produced}</td>
+              <td class="px-4 py-2">₹${record.rate_per_unit.toFixed(2)}</td>
+              <td class="px-4 py-2">₹${totalAmount.toFixed(2)}</td>
+              <td class="px-4 py-2">
+                  <span class="paid-amount">₹${paidAmount.toFixed(2)}</span>
+                  <button onclick="editPaidAmount('${record.id}', ${totalAmount}, ${paidAmount})" 
+                          class="ml-2 text-blue-600 hover:text-blue-800 dark:hover:text-blue-400 text-xs">
+                      Edit
+                  </button>
+              </td>
+              <td class="px-4 py-2">₹${pendingAmount.toFixed(2)}</td>
+              <td class="px-4 py-2">${record.date}</td>
+              <td class="px-4 py-2">
+                  <span class="${paymentStatus === 'Paid' ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100' : 
+                              paymentStatus === 'Partial' ? 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100' : 
+                              'bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100'} px-2 py-1 rounded text-xs">
+                      ${paymentStatus}
+                  </span>
+              </td>
+              <td class="px-4 py-2 space-x-2">
+                  <button onclick="markAsPaid('${record.id}')" 
+                          class="text-green-600 hover:text-green-800 dark:hover:text-green-400 mr-2 ${isFullyPaid ? 'hidden' : ''}">
+                      Mark Paid
+                  </button>
+                  <button onclick="openDeleteModal('${record.id}')" 
+                          class="text-red-600 hover:text-red-800 dark:hover:text-red-400">
+                      Delete
+                  </button>
+              </td>
+          `;
+          payRecordsTableBody.appendChild(row);
+      });
+  }
+
+  // Add this new function to handle paid amount editing
+  function editPaidAmount(recordId, totalAmount, currentPaid) {
+    const newAmount = prompt(`Enter paid amount (Total: ₹${totalAmount.toFixed(2)}):`, currentPaid.toFixed(2));
+    
+    if (newAmount !== null) {
+      const paidAmount = parseFloat(newAmount) || 0;
+      
+      if (paidAmount > totalAmount) {
+        alert('Paid amount cannot exceed total amount');
+        return;
+      }
+      
+      fetch(`/distribution/pay_distribution/update_paid/${recordId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+          amount_paid: paidAmount,
+          paid: paidAmount >= totalAmount
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          fetchPaymentRecords();
+          fetchWorkers(); // Refresh worker stats
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the payment.');
+      });
+    }
+  }
+
+  // Calculate pay automatically
+  function calculatePay() {
+    if (ratePerUnit.value && unitsProduced.value) {
+      const rate = parseFloat(ratePerUnit.value);
+      const units = parseFloat(unitsProduced.value);
+      const pay = rate * units;
+      autoPay.value = `₹${pay.toFixed(2)}`;
+      calculatedAmount.value = pay.toFixed(2);
+    } else {
+      autoPay.value = '';
+      calculatedAmount.value = '';
+    }
+  }
+
+  // Update worker info when selected
+  function updateWorkerInfo() {
+    const selectedOption = workerSelect.options[workerSelect.selectedIndex];
+    
+    if (selectedOption.value) {
+      const assigned = selectedOption.dataset.materialAssigned || 0;
+      const delivered = selectedOption.dataset.materialDelivered || 0;
+      const balance = assigned - delivered;
+      const pendingAmount = selectedOption.dataset.pendingAmount || 0;
+      
+      document.getElementById('assignedSpan').textContent = assigned;
+      document.getElementById('deliveredSpan').textContent = delivered;
+      document.getElementById('balanceSpan').textContent = balance;
+      document.getElementById('pendingAmountSpan').textContent = pendingAmount.toFixed(2);
+      
+      materialInfo.classList.remove('hidden');
+      pendingPay.classList.remove('hidden');
+      
+      // Fetch updated stats for this worker
+      fetch(`/distribution/pay_distribution/worker_stats/${selectedOption.value}/`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            selectedOption.dataset.materialAssigned = data.assigned;
+            selectedOption.dataset.materialDelivered = data.delivered;
+            selectedOption.dataset.pendingAmount = data.pending_amount;
+            
+            document.getElementById('assignedSpan').textContent = data.assigned;
+            document.getElementById('deliveredSpan').textContent = data.delivered;
+            document.getElementById('balanceSpan').textContent = data.balance;
+            document.getElementById('pendingAmountSpan').textContent = data.pending_amount.toFixed(2);
+          }
+        });
+    } else {
+      materialInfo.classList.add('hidden');
+      pendingPay.classList.add('hidden');
+    }
+  }
+
+  // Form submission for wage entry
+  wageForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+      worker_id: workerSelect.value,
+      product_name: productName.value,
+      rate_per_unit: ratePerUnit.value,
+      units_produced: unitsProduced.value,
+      amount_paid: amountPaid.value || 0,
+      date: document.getElementById('paymentDate').value
+    };
+    
+    fetch('/distribution/pay_distribution/create/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Payment record saved successfully!');
+        wageForm.reset();
+        document.getElementById('paymentDate').valueAsDate = new Date();
+        fetchWorkers();
+        fetchPaymentRecords();
+      } else {
+        alert('Error: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while saving the record.');
+    });
+  });
+
+  // Form submission for adding worker
+  addWorkerForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(addWorkerForm);
+    
+    fetch('/distribution/pay_distribution/add_worker/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Worker added successfully!');
+        closeModal();
+        fetchWorkers();
+      } else {
+        alert('Error: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while adding the worker.');
+    });
+  });
+
+  // Mark payment as paid
+  function markAsPaid(recordId) {
+    if (confirm('Are you sure you want to mark this payment as paid?')) {
+      fetch(`/distribution/pay_distribution/mark_paid/${recordId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          fetchPaymentRecords();
+          fetchWorkers();
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while marking the payment.');
+      });
+    }
+  }
+
+
+  // Delete record functions
+  function openDeleteModal(recordId) {
+    document.getElementById('recordToDelete').value = recordId;
+    document.getElementById('deleteModal').classList.remove('hidden');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+  }
+
+  function confirmDelete() {
+    const recordId = document.getElementById('recordToDelete').value;
+    
+    fetch(`/distribution/pay_distribution/delete/${recordId}/`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        fetchPaymentRecords();
+        fetchWorkers();
+      } else {
+        alert('Error: ' + data.message);
+      }
+      closeDeleteModal();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while deleting the record.');
+      closeDeleteModal();
+    });
+  }
+
+  // Modal functions
+  function openModal() {
+    document.getElementById('workerModal').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('workerModal').classList.add('hidden');
+    addWorkerForm.reset();
+  }
+
+  // Helper function to get CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // Event listeners
+  ratePerUnit.addEventListener('input', calculatePay);
+  unitsProduced.addEventListener('input', calculatePay);
+  workerSelect.addEventListener('change', updateWorkerInfo);
+  filterPendingBtn.addEventListener('click', () => fetchPaymentRecords('pending'));
+  filterPartialBtn.addEventListener('click', () => fetchPaymentRecords('partial'));
+  filterPaidBtn.addEventListener('click', () => fetchPaymentRecords('paid'));
+  filterAllBtn.addEventListener('click', () => fetchPaymentRecords('all'));
+  
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    fetchWorkers();
+    fetchPaymentRecords();
+  });
+</script>
+</body>
+</html>

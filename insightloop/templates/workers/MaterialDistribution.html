@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Material Assignment – InsightLoop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300">
+  <!-- Header/Navigation -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">IL</div>
+          <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">InsightLoop</span>
+        </div>
+        
+        <!-- Main Navigation (Desktop) -->
+        <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+          <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+          
+          <!-- Workers Dropdown -->
+          <div class="relative group">
+            <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none font-semibold">Workers</button>
+            <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="{% url 'material_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="{% url 'pay_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+            </div>
+          </div>
+          
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+        </div>
+        
+        <!-- Profile & Settings -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
+          <button id="themeToggle" class="theme-toggle p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+            <svg id="lightIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+            </svg>
+            <svg id="darkIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300 hidden" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          </button>
+          
+          <!-- Profile Dropdown -->
+          <div class="relative group hidden md:block">
+            <button class="focus:outline-none">
+              <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">KG</div>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+            </div>
+          </div>
+          
+          <!-- Mobile Menu Button -->
+          <button id="mobileMenuBtn" class="md:hidden focus:outline-none">
+            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <a href="{% url 'dashboard' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="{% url 'insights' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="{% url 'upload' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      
+      <!-- Workers Submenu -->
+      <div>
+        <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
+        <a href="{% url 'material_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="{% url 'pay_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+      </div>
+      
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+      
+      <hr class="border-gray-200 dark:border-gray-700">
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Form Section -->
+  <div class="max-w-6xl mx-auto mt-10 px-4 py-8 bg-white dark:bg-gray-800 rounded-2xl shadow">
+    <h2 class="text-2xl font-bold text-indigo-700 dark:text-indigo-400 mb-6">Assign Raw Material to Worker</h2>
+    <form id="materialForm" class="space-y-6">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <input list="workerList" id="workerInput" placeholder="Worker Name" class="border dark:border-gray-600 p-2 rounded-lg w-full bg-white dark:bg-gray-700 text-black dark:text-white" onchange="handleWorkerSelection()" required>
+          <datalist id="workerList">
+            <option value="Ramesh" data-img="/assets/workers/ravi.jpg" data-assigned="500" data-delivered="12"></option>
+            <option value="Suresh" data-img="/assets/workers/sita.jpg" data-assigned="1000" data-delivered="50"></option>
+          </datalist>
+          <p id="registerPrompt" class="text-red-600 text-sm mt-1 hidden">
+            Worker not found. <a href="{% url 'pay_distribution' %}" class="underline text-blue-600">Register now</a>.
+          </p>
+        </div>
+
+        <input type="text" name="material_name" placeholder="Material Name" class="border p-2 rounded-lg w-full bg-white dark:bg-gray-700 text-black dark:text-white" required>
+        <input type="number" name="quantity" placeholder="Quantity" class="border p-2 rounded-lg w-full bg-white dark:bg-gray-700 text-black dark:text-white" required>
+        <input type="number" step="0.01" name="price_per_unit" placeholder="Price per Unit (₹)" class="border p-2 rounded-lg w-full bg-white dark:bg-gray-700 text-black dark:text-white" required>
+        <input type="date" name="assignment_date" class="border p-2 rounded-lg w-full bg-white dark:bg-gray-700 text-black dark:text-white" required>
+      </div>
+
+      <div id="workerImageContainer" class="mt-4 hidden">
+        <label class="block mb-1 font-medium text-gray-700 dark:text-gray-200">Worker Image:</label>
+        <img id="workerImage" src="" alt="Worker Image" class="w-32 h-32 object-cover rounded-lg border shadow">
+        <div id="workerStats" class="mt-2 text-sm">
+          <p>Material Assigned: <span id="assignedStat">0</span> units</p>
+          <p>Material Delivered: <span id="deliveredStat">0</span> units</p>
+          <p>Balance: <span id="balanceStat">0</span> units</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+        <h3 class="font-medium mb-2">Batch Delivery</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <input type="number" id="batchQuantity" placeholder="Batch quantity" class="border p-2 rounded-lg bg-white dark:bg-gray-600 text-black dark:text-white">
+          <input type="date" id="batchDate" class="border p-2 rounded-lg bg-white dark:bg-gray-600 text-black dark:text-white">
+          <button type="button" onclick="addBatch()" class="bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Add Batch</button>
+        </div>
+        <div id="batchList" class="mt-3 space-y-2"></div>
+      </div>
+
+      <textarea name="notes" rows="3" placeholder="Additional Notes (optional)" class="border p-2 rounded-lg w-full bg-white dark:bg-gray-700 text-black dark:text-white"></textarea>
+      <div class="flex justify-between">
+        <button type="submit" class="w-1/2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition mr-2">Assign Material</button>
+        <button type="button" onclick="window.location.href={% url 'pay_distribution' %}" class="w-1/2 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition ml-2">Go to Pay Manager</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Table View -->
+  <section class="max-w-6xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-indigo-700 dark:text-indigo-400 mb-6">Material Update</h2>
+      <button class="bg-green-500 text-white px-4 py-1 rounded hover:bg-green-600">Export CSV</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-auto text-sm">
+        <thead class="bg-gray-100 dark:bg-gray-700 text-left text-gray-800 dark:text-gray-100">
+          <tr>
+            <th class="px-4 py-2">Date</th>
+            <th class="px-4 py-2">Worker</th>
+            <th class="px-4 py-2">Product</th>
+            <th class="px-4 py-2">Units</th>
+            <th class="px-4 py-2">Rate</th>
+            <th class="px-4 py-2">Wage</th>
+            <th class="px-4 py-2">Material Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-t dark:border-gray-700">
+            <td class="px-4 py-2">2025-06-19</td>
+            <td class="px-4 py-2">Ramesh</td>
+            <td class="px-4 py-2">Widget A</td>
+            <td class="px-4 py-2">12</td>
+            <td class="px-4 py-2">₹10</td>
+            <td class="px-4 py-2">₹120</td>
+            <td class="px-4 py-2">488/500 remaining</td>
+          </tr>
+          <tr class="border-t dark:border-gray-700">
+            <td class="px-4 py-2">2025-06-18</td>
+            <td class="px-4 py-2">Suresh</td>
+            <td class="px-4 py-2">Gadget B</td>
+            <td class="px-4 py-2">50</td>
+            <td class="px-4 py-2">₹15</td>
+            <td class="px-4 py-2">₹750</td>
+            <td class="px-4 py-2">950/1000 remaining</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Scripts -->
+  <script>
+    const datalist = document.getElementById('workerList');
+    const options = [...datalist.options];
+    let batches = [];
+
+    function handleWorkerSelection() {
+      const input = document.getElementById('workerInput').value;
+      const match = options.find(opt => opt.value === input);
+      const imgContainer = document.getElementById('workerImageContainer');
+      const imgEl = document.getElementById('workerImage');
+      const prompt = document.getElementById('registerPrompt');
+
+      if (match) {
+        const imgPath = match.dataset.img;
+        imgEl.src = imgPath;
+        imgContainer.classList.remove('hidden');
+        prompt.classList.add('hidden');
+        
+        // Update worker stats
+        document.getElementById('assignedStat').textContent = match.dataset.assigned || '0';
+        document.getElementById('deliveredStat').textContent = match.dataset.delivered || '0';
+        const balance = (parseInt(match.dataset.assigned || 0) - (parseInt(match.dataset.delivered || 0));
+        document.getElementById('balanceStat').textContent = balance;
+      } else {
+        imgContainer.classList.add('hidden');
+        prompt.classList.remove('hidden');
+      }
+    }
+
+    function validateWorker() {
+      const inputVal = document.getElementById('workerInput').value;
+      const found = options.some(opt => opt.value === inputVal);
+      if (!found) {
+        alert("Please register the worker before assigning material.");
+        return false;
+      }
+      return true;
+    }
+
+    function addBatch() {
+      const quantity = document.getElementById('batchQuantity').value;
+      const date = document.getElementById('batchDate').value;
+      
+      if (!quantity || !date) {
+        alert("Please fill both quantity and date fields");
+        return;
+      }
+      
+      batches.push({ quantity, date });
+      updateBatchList();
+      
+      // Clear inputs
+      document.getElementById('batchQuantity').value = '';
+      document.getElementById('batchDate').value = '';
+    }
+
+    function updateBatchList() {
+      const batchList = document.getElementById('batchList');
+      batchList.innerHTML = '';
+      
+      if (batches.length === 0) {
+        batchList.innerHTML = '<p class="text-gray-500">No batches added yet</p>';
+        return;
+      }
+      
+      batches.forEach((batch, index) => {
+        const batchEl = document.createElement('div');
+        batchEl.className = 'flex justify-between items-center bg-gray-200 dark:bg-gray-600 p-2 rounded';
+        batchEl.innerHTML = `
+          <span>Batch ${index + 1}: ${batch.quantity} units on ${batch.date}</span>
+          <button onclick="removeBatch(${index})" class="text-red-500 hover:text-red-700">×</button>
+        `;
+        batchList.appendChild(batchEl);
+      });
+    }
+
+    function removeBatch(index) {
+      batches.splice(index, 1);
+      updateBatchList();
+    }
+
+    // Form submission
+    document.getElementById('materialForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Here you would typically send data to server
+      alert('Material assignment saved successfully!');
+      // Reset form or update UI as needed
+    });
+
+    // Theme elements
+      const themeToggle = document.getElementById('themeToggle');
+      const lightIcon = document.getElementById('lightIcon');
+      const darkIcon = document.getElementById('darkIcon');
+      
+      // Initial theme setup
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const storedTheme = localStorage.getItem('theme');
+      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+      
+      setTheme(isDark);
+      
+      function setTheme(dark) {
+        document.documentElement.classList.toggle('dark', dark);
+        lightIcon.classList.toggle('hidden', dark);
+        darkIcon.classList.toggle('hidden', !dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      }
+      
+      themeToggle.addEventListener('click', () => {
+        const isNowDark = !document.documentElement.classList.contains('dark');
+        setTheme(isNowDark);
+      });
+
+    // Mobile menu toggle
+    const btn = document.getElementById('mobileMenuBtn');
+    const menu = document.getElementById('mobileMenu');
+    btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+
+    // Initialize batch list
+    updateBatchList();
+  </script>
+</body>
+</html>

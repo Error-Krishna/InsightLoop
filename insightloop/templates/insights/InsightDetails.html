@@ -35,8 +35,8 @@
           <div class="relative group">
             <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none">Workers</button>
             <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+              <a href="{% url 'material_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="{% url 'pay_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
             </div>
           </div>
           
@@ -80,15 +80,15 @@
     
     <!-- Mobile Menu -->
     <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
-      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
-      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      <a href="{% url 'dashboard' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="{% url 'insights' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Insights</a>
+      <a href="{% url 'upload' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
       
       <!-- Workers Submenu -->
       <div>
-        <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
-        <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
-        <a href="#" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+        <span class="block text-gray-700 dark:text-gray-300 ">Workers</span>
+        <a href="{% url 'material_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="{% url 'pay_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
       </div>
       
       <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>

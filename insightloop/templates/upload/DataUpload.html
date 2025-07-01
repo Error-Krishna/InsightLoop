@@ -43,12 +43,12 @@
           <div class="relative group">
             <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none">Workers</button>
             <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/MaterialDistribution.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Worker.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+              <a href="{% url 'material_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="{% url 'pay_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
             </div>
           </div>
           
-          <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/Export&AI.html" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
         </div>
         
         <!-- Profile & Settings -->
@@ -69,10 +69,10 @@
               <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">KG</div>
             </button>
             <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Setting.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/users/Billing.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
-              <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/auth/login-signup.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
             </div>
           </div>
           
@@ -88,23 +88,23 @@
     
     <!-- Mobile Menu -->
     <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Dashboard.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/InsightDetails.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/DataUpload.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      <a href="{% url 'dashboard' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="{% url 'insights' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="{% url 'upload' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Upload</a>
       
       <!-- Workers Submenu -->
       <div>
-        <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
-        <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/MaterialDistribution.html" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
-        <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/core/Worker.html" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+        <span class="block text-gray-700 dark:text-gray-300 ">Workers</span>
+        <a href="{% url 'material_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="{% url 'pay_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
       </div>
       
-      <a href="file:///Users/krishnagoyal/Desktop/InsiteLooop/pages/insights/Export&AI.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
       
       <hr class="border-gray-200 dark:border-gray-700">
-      <a href="/users/profile.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
-      <a href="/users/setting.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
-      <a href="/auth/login-signup.html" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
     </div>
   </nav>
 

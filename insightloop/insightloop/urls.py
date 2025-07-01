@@ -16,7 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-
+from django.conf import settings
+from django.conf.urls.static import static
 # from rest_framework.routers import DefaultRouter
 # from landing.views import ProductViewSet  
 # router = DefaultRouter()
@@ -31,4 +32,6 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('insights/', include('insights.urls')),
     path('upload/', include('upload.urls')),
-]
+    path('distribution/', include('worker.urls')),
+    # path('pay_distribution/', include('worker.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
