@@ -202,14 +202,23 @@ def add_worker(request):
 
 def get_worker_stats(request, worker_id):
     try:
+        logger.info(f"Getting stats for worker ID: {worker_id}")
+        
+        # Validate worker ID format
         if not ObjectId.is_valid(worker_id):
-            return JsonResponse({'success': False, 'message': 'Invalid worker ID'}, status=400)
+            logger.warning(f"Invalid worker ID format: {worker_id}")
+            return JsonResponse({'success': False, 'message': 'Invalid worker ID format'}, status=400)
         
-        worker = Worker.objects.get(id=ObjectId(worker_id))
+        # Convert to ObjectId and fetch worker
+        worker_obj_id = ObjectId(worker_id)
+        worker = Worker.objects.get(id=worker_obj_id)
         
+        # Calculate material stats
         assignments = MaterialAssignment.objects.filter(worker=worker)
         total_assigned = sum([a.quantity for a in assignments])
         total_delivered = sum([a.delivered_quantity for a in assignments])
+        
+        logger.info(f"Stats for {worker.name}: assigned={total_assigned}, delivered={total_delivered}")
         
         return JsonResponse({
             'success': True,
@@ -218,9 +227,10 @@ def get_worker_stats(request, worker_id):
             'balance': total_assigned - total_delivered
         })
     except Worker.DoesNotExist:
+        logger.error(f"Worker not found: {worker_id}")
         return JsonResponse({'success': False, 'message': 'Worker not found'}, status=404)
     except Exception as e:
-        logger.error(f"Error in get_worker_stats: {str(e)}")
+        logger.exception(f"Error in get_worker_stats: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': str(e)
@@ -234,6 +244,10 @@ def material_distribution(request):
             
             if not worker_id:
                 return JsonResponse({'success': False, 'message': 'Worker is required'}, status=400)
+                
+            # Validate and convert worker ID
+            if not ObjectId.is_valid(worker_id):
+                return JsonResponse({'success': False, 'message': 'Invalid worker ID format'}, status=400)
                 
             worker = Worker.objects.get(id=ObjectId(worker_id))
             
@@ -259,23 +273,41 @@ def material_distribution(request):
         except Worker.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Worker not found'}, status=404)
         except Exception as e:
-            logger.error(f"Error in material_distribution (POST): {str(e)}")
+            logger.exception(f"Error in material_distribution (POST): {str(e)}")
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     
-    # GET request: fetch workers and assignments
-    workers = Worker.objects.all().only('id', 'name', 'image_url')
+     # GET request: fetch workers and assignments
+    workers = list(Worker.objects.all().only('id', 'name', 'image_url'))
+    # Convert worker IDs to strings
+    for worker in workers:
+        worker.id = str(worker.id)
+
     assignments = MaterialAssignment.objects.all().order_by('-assignment_date')
 
     # Pre-fetch workers to avoid N+1 queries
-    worker_ids = [ass.worker.id for ass in assignments]
     worker_map = {}
+    worker_ids = []
+    
+    for assignment in assignments:
+        # Use assignment.worker.id directly (it's already an ObjectId)
+        worker_id_str = str(assignment.worker.id)
+        worker_ids.append(worker_id_str)
+    
     if worker_ids:
-        workers_list = Worker.objects.filter(id__in=worker_ids).only('id', 'name')
-        worker_map = {str(worker.id): worker for worker in workers_list}
+        # Convert string IDs back to ObjectId for querying
+        object_ids = [ObjectId(wid) for wid in set(worker_ids) if ObjectId.is_valid(wid)]
+        
+        if object_ids:
+            workers_list = Worker.objects.filter(id__in=object_ids).only('id', 'name')
+            # Create a map of worker ID strings to worker objects
+            for worker in workers_list:
+                worker.id_str = str(worker.id)  # Add string version of ID
+                worker_map[worker.id_str] = worker
     
     # Attach workers to assignments
     for assignment in assignments:
-        assignment.cached_worker = worker_map.get(str(assignment.worker.id))
+        worker_id_str = str(assignment.worker.id)
+        assignment.cached_worker = worker_map.get(worker_id_str)
 
     return render(request, 'workers/MaterialDistribution.html', {
         'workers': workers,
@@ -393,3 +425,4 @@ def update_paid_amount(request, record_id):
         'success': False,
         'message': 'Invalid request method'
     }, status=405)
+

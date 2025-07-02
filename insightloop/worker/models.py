@@ -10,6 +10,8 @@ class Worker(Document):
     joining_date = fields.DateTimeField(default=datetime.now)
     created_at = fields.DateTimeField(default=datetime.now)
     updated_at = fields.DateTimeField(default=datetime.now)
+    def __str__(self):
+        return str(self.id)
 
     meta = {
         'collection': 'workers',
