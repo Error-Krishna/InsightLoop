@@ -376,11 +376,10 @@
           fetch('/dashboard/api/charts/rev_exp/').then(res => res.ok ? res.json() : null).catch(() => null),
           fetch('/dashboard/api/charts/profit_trends/').then(res => res.ok ? res.json() : null).catch(() => null),
           fetch('/dashboard/api/workers/payments/').then(res => res.ok ? res.json() : { workers: [] }).catch(() => ({ workers: [] })),
-          fetch('/dashboard/api/top_workers/').then(res => res.ok ? res.json() : []).catch(() => [])
+          fetch('/dashboard/api/top_workers/').then(res => res.ok ? res.json() : { workers: [] }).catch(() => ({ workers: [] }))
         ]);
 
-        const topWorkersData = Array.isArray(topWorkersRes) ? topWorkersRes : 
-                              (topWorkersRes?.data || topWorkersRes?.results || []);
+        const topWorkersData = topWorkersRes.workers || [];
 
         currentData = {
           summary: summaryRes || currentData.summary,
@@ -499,16 +498,16 @@
 
       // Update Top Workers Chart
       if (currentData.topWorkers && currentData.topWorkers.length > 0) {
-        // Store workers data globally for tooltips
         window.topWorkersData = currentData.topWorkers;
         
-        // Sort workers by payout (descending)
-        const sortedWorkers = [...currentData.topWorkers].sort((a, b) => 
-          b.total_payout - a.total_payout
-        );
+        const workerNames = currentData.topWorkers.map(w => w.name);
+        const payouts = currentData.topWorkers.map(w => w.total_payout);
         
-        topWorkersChart.data.labels = sortedWorkers.map(w => w.name);
-        topWorkersChart.data.datasets[0].data = sortedWorkers.map(w => w.total_payout);
+        topWorkersChart.data.labels = workerNames;
+        topWorkersChart.data.datasets[0].data = payouts;
+        topWorkersChart.update();
+    }
+
         
         // Update tooltip callback reference
         topWorkersChart.options.plugins.tooltip.callbacks.afterBody = function(context) {
@@ -521,7 +520,7 @@
         
         topWorkersChart.update();
       }
-    }
+
 
     function exportAnalytics(format = 'csv') {
         try {
@@ -929,55 +928,47 @@
 
       // Top Workers Chart
       const topWorkersCtx = document.getElementById('topWorkersChart').getContext('2d');
-      window.topWorkersChart = new Chart(topWorkersCtx, {
-        type: 'bar',
-        data: {
-          labels: [],
-          datasets: [{
-            label: 'Total Payout (₹)',
-            data: [],
-            backgroundColor: '#8B5CF6',
-            borderColor: '#7C3AED',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Amount (₹)'
-              }
-            },
-            y: {
-              title: {
-                display: true,
-                text: 'Workers'
-              }
-            }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                afterBody: function(context) {
-                  const worker = window.topWorkersData?.[context[0].dataIndex];
-                  if (worker) {
-                    return [
-                      `Payments: ${worker.payment_count}`,
-                      `Latest: ${worker.latest_payment}`
-                    ];
-                  }
-                  return '';
+      window.topWorkersChart = new Chart(
+            document.getElementById('topWorkersChart').getContext('2d'),
+            {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Payout (₹)',
+                        data: [],
+                        backgroundColor: '#8B5CF6'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `₹${context.raw.toLocaleString()}`;
+                                },
+                                afterLabel: function(context) {
+                                    const worker = window.topWorkersData[context.dataIndex];
+                                    return `Payments: ${worker.payment_count}\nLatest: ${worker.latest_payment}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Amount (₹)'
+                            }
+                        }
+                    }
                 }
-              }
             }
-          }
-        }
-      });
+        );
     }
   </script>
 </body>
