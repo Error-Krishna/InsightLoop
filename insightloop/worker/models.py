@@ -8,10 +8,17 @@ class Worker(Document):
     address = fields.StringField()
     phone = fields.StringField()
     joining_date = fields.DateTimeField(default=datetime.now)
+    is_active = fields.BooleanField(default=True)
     created_at = fields.DateTimeField(default=datetime.now)
     updated_at = fields.DateTimeField(default=datetime.now)
     def __str__(self):
         return str(self.id)
+    
+    def delete(self, *args, **kwargs):
+        # Delete related assignments and pay records
+        MaterialAssignment.objects.filter(worker=self).delete()
+        PayRecord.objects.filter(worker=self).delete()
+        super().delete(*args, **kwargs)
 
     meta = {
         'collection': 'workers',

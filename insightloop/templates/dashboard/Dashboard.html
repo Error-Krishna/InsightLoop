@@ -362,15 +362,16 @@
     }
 
     async function fetchData() {
+      const loaders = [
+        'revenue', 'profit', 'workers',
+        'rev-exp', 'profit-trend', 'worker-pay',
+        'top-workers', 'worker-table'
+      ];
+      
       try {
-        const loaders = [
-          'revenue', 'profit', 'workers',
-          'rev-exp', 'profit-trend', 'worker-pay',
-          'top-workers', 'worker-table'
-        ];
         loaders.forEach(showLoader);
 
-        const [summary, revExp, profitTrends, workers, topWorkersRes] = await Promise.all([
+        const [summaryRes, revExpRes, profitTrendsRes, workersRes, topWorkersRes] = await Promise.all([
           fetch('/dashboard/api/summary/').then(res => res.ok ? res.json() : null).catch(() => null),
           fetch('/dashboard/api/charts/rev_exp/').then(res => res.ok ? res.json() : null).catch(() => null),
           fetch('/dashboard/api/charts/profit_trends/').then(res => res.ok ? res.json() : null).catch(() => null),
@@ -378,30 +379,25 @@
           fetch('/dashboard/api/top_workers/').then(res => res.ok ? res.json() : []).catch(() => [])
         ]);
 
-        // Process top workers response
-        const topWorkers = Array.isArray(topWorkersRes) ? topWorkersRes : 
-                          (topWorkersRes?.data || topWorkersRes?.results || []);
+        const topWorkersData = Array.isArray(topWorkersRes) ? topWorkersRes : 
+                              (topWorkersRes?.data || topWorkersRes?.results || []);
 
         currentData = {
-          summary: summary || currentData.summary,
-          revExp: revExp || currentData.revExp,
-          profitTrends: profitTrends || currentData.profitTrends,
-          workers: workers?.workers || [],
-          topWorkers: topWorkers
+          summary: summaryRes || currentData.summary,
+          revExp: revExpRes || currentData.revExp,
+          profitTrends: profitTrendsRes || currentData.profitTrends,
+          workers: workersRes?.workers || [],
+          topWorkers: topWorkersData
         };
 
-        console.log("Processed top workers data:", topWorkers);
         updateDashboard();
       } catch (error) {
         console.error('Data fetch error:', error);
       } finally {
-        [
-          'revenue', 'profit', 'workers',
-          'rev-exp', 'profit-trend', 'worker-pay',
-          'top-workers', 'worker-table'
-        ].forEach(hideLoader);
+        loaders.forEach(hideLoader);
       }
     }
+
 
     function updateDashboard() {
       console.log("Updating dashboard with top workers:", currentData.topWorkers);

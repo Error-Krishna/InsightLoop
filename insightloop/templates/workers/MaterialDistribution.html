@@ -249,10 +249,10 @@
             <td class="px-4 py-2">
               {% if assignment.cached_worker %}
                 {{ assignment.cached_worker.name }}
-                <div class="text-xs text-gray-500">ID: {{ assignment.cached_worker.id_str }}</div>
+                <div class="text-xs text-gray-500">ID: {{ assignment.worker_id_str }}</div>
               {% else %}
                 <span class="text-red-500">Worker not found</span>
-                <div class="text-xs text-gray-500">ID: {{ assignment.worker.id }}</div>
+                <div class="text-xs text-gray-500">ID: {{ assignment.worker_id_str }}</div>
               {% endif %}
             </td>
             <td class="px-4 py-2">{{ assignment.material_name }}</td>

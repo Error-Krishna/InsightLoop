@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
+import mongoengine
 from .models import Worker, MaterialAssignment, PayRecord
 from datetime import datetime
 from bson import ObjectId, errors
 import json
 import logging
-
+from mongoengine.errors import DoesNotExist
+from bson.dbref import DBRef
 logger = logging.getLogger(__name__)
 
 def pay_distribution(request):
@@ -60,6 +62,12 @@ def get_payment_records(request):
             is_partial = 0 < record.amount_paid < total_amount
             is_paid = record.paid or (record.amount_paid >= total_amount)
             
+            # Safely get worker name
+            try:
+                worker_name = record.worker.name
+            except DoesNotExist:
+                worker_name = "Worker Deleted"
+            
             if filter_type == 'all' or \
                (filter_type == 'pending' and is_pending) or \
                (filter_type == 'partial' and is_partial) or \
@@ -67,7 +75,7 @@ def get_payment_records(request):
                 
                 filtered_records.append({
                     'id': str(record.id),
-                    'worker_name': record.worker.name,
+                    'worker_name': worker_name,
                     'product_name': record.product_name,
                     'units_produced': record.units_produced,
                     'rate_per_unit': record.rate_per_unit,
@@ -278,7 +286,6 @@ def material_distribution(request):
     
      # GET request: fetch workers and assignments
     workers = list(Worker.objects.all().only('id', 'name', 'image_url'))
-    # Convert worker IDs to strings
     for worker in workers:
         worker.id = str(worker.id)
 
@@ -289,25 +296,40 @@ def material_distribution(request):
     worker_ids = []
     
     for assignment in assignments:
-        # Use assignment.worker.id directly (it's already an ObjectId)
-        worker_id_str = str(assignment.worker.id)
-        worker_ids.append(worker_id_str)
+        worker_ref = assignment._data.get('worker')
+        if worker_ref:
+            # Extract worker ID whether it's DBRef or ObjectId
+            if hasattr(worker_ref, 'id'):  # If it's a DBRef
+                worker_id = worker_ref.id
+            else:  # If it's already an ObjectId
+                worker_id = worker_ref
+                
+            worker_id_str = str(worker_id)
+            worker_ids.append(worker_id_str)
     
     if worker_ids:
-        # Convert string IDs back to ObjectId for querying
         object_ids = [ObjectId(wid) for wid in set(worker_ids) if ObjectId.is_valid(wid)]
-        
         if object_ids:
             workers_list = Worker.objects.filter(id__in=object_ids).only('id', 'name')
-            # Create a map of worker ID strings to worker objects
             for worker in workers_list:
-                worker.id_str = str(worker.id)  # Add string version of ID
-                worker_map[worker.id_str] = worker
+                worker_map[str(worker.id)] = worker
     
     # Attach workers to assignments
     for assignment in assignments:
-        worker_id_str = str(assignment.worker.id)
-        assignment.cached_worker = worker_map.get(worker_id_str)
+        worker_ref = assignment._data.get('worker')
+        worker_id_str = None
+        
+        if worker_ref:
+            if hasattr(worker_ref, 'id'):  # DBRef
+                worker_id_str = str(worker_ref.id)
+            else:  # ObjectId
+                worker_id_str = str(worker_ref)
+            
+            assignment.cached_worker = worker_map.get(worker_id_str)
+        else:
+            assignment.cached_worker = None
+            
+        assignment.worker_id_str = worker_id_str
 
     return render(request, 'workers/MaterialDistribution.html', {
         'workers': workers,
