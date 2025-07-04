@@ -7,6 +7,7 @@ from bson import ObjectId, errors
 import json
 import logging
 from mongoengine.errors import DoesNotExist
+from django.db.models import Sum, F
 from bson.dbref import DBRef
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,6 @@ def get_payment_records(request):
             is_partial = 0 < record.amount_paid < total_amount
             is_paid = record.paid or (record.amount_paid >= total_amount)
             
-            # Safely get worker name
             try:
                 worker_name = record.worker.name
             except DoesNotExist:
@@ -212,16 +212,22 @@ def get_worker_stats(request, worker_id):
     try:
         logger.info(f"Getting stats for worker ID: {worker_id}")
         
-        # Validate worker ID format
-        if not ObjectId.is_valid(worker_id):
-            logger.warning(f"Invalid worker ID format: {worker_id}")
-            return JsonResponse({'success': False, 'message': 'Invalid worker ID format'}, status=400)
+        if not worker_id or not ObjectId.is_valid(worker_id):
+            logger.warning(f"Invalid worker ID format: {worker_id or 'None'}")
+            return JsonResponse({
+                'success': False, 
+                'message': f'Invalid worker ID format: {worker_id or "None"}'
+            }, status=400)
         
-        # Convert to ObjectId and fetch worker
         worker_obj_id = ObjectId(worker_id)
-        worker = Worker.objects.get(id=worker_obj_id)
+        logger.debug(f"Querying for worker with ID: {worker_obj_id}")
         
-        # Calculate material stats
+        try:
+            worker = Worker.objects.get(id=worker_obj_id)
+        except Worker.DoesNotExist:
+            logger.warning(f"Worker not found by ObjectId, trying string match: {worker_id}")
+            worker = Worker.objects.get(id=worker_id)
+        
         assignments = MaterialAssignment.objects.filter(worker=worker)
         total_assigned = sum([a.quantity for a in assignments])
         total_delivered = sum([a.delivered_quantity for a in assignments])
@@ -235,8 +241,11 @@ def get_worker_stats(request, worker_id):
             'balance': total_assigned - total_delivered
         })
     except Worker.DoesNotExist:
-        logger.error(f"Worker not found: {worker_id}")
-        return JsonResponse({'success': False, 'message': 'Worker not found'}, status=404)
+        logger.error(f"Worker not found: string_id={worker_id}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Worker not found with ID: {worker_id}'
+        }, status=404)
     except Exception as e:
         logger.exception(f"Error in get_worker_stats: {str(e)}")
         return JsonResponse({
@@ -253,7 +262,6 @@ def material_distribution(request):
             if not worker_id:
                 return JsonResponse({'success': False, 'message': 'Worker is required'}, status=400)
                 
-            # Validate and convert worker ID
             if not ObjectId.is_valid(worker_id):
                 return JsonResponse({'success': False, 'message': 'Invalid worker ID format'}, status=400)
                 
@@ -265,7 +273,6 @@ def material_distribution(request):
             except json.JSONDecodeError as e:
                 return JsonResponse({'success': False, 'message': f'Invalid batches data: {str(e)}'}, status=400)
             
-            # Create the assignment
             assignment = MaterialAssignment(
                 worker=worker,
                 material_name=data.get('material_name'),
@@ -284,69 +291,76 @@ def material_distribution(request):
             logger.exception(f"Error in material_distribution (POST): {str(e)}")
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     
-     # GET request: fetch workers and assignments
+    # GET request: fetch workers and assignments
     workers = list(Worker.objects.all().only('id', 'name', 'image_url'))
     for worker in workers:
         worker.id = str(worker.id)
 
     assignments = MaterialAssignment.objects.all().order_by('-assignment_date')
 
-    # Pre-fetch workers to avoid N+1 queries
-    worker_map = {}
-    worker_ids = []
+    # Create a list to hold assignment data with worker info
+    assignment_data = []
+    worker_ids = set()
     
+    # First pass: collect all worker IDs
     for assignment in assignments:
-        worker_ref = assignment._data.get('worker')
-        if worker_ref:
-            # Extract worker ID whether it's DBRef or ObjectId
-            if hasattr(worker_ref, 'id'):  # If it's a DBRef
-                worker_id = worker_ref.id
-            else:  # If it's already an ObjectId
-                worker_id = worker_ref
-                
-            worker_id_str = str(worker_id)
-            worker_ids.append(worker_id_str)
-    
+        try:
+            # Get worker ID as string
+            if isinstance(assignment.worker, DBRef):
+                worker_id = str(assignment.worker.id)
+            else:
+                worker_id = str(assignment.worker.id)
+            worker_ids.add(worker_id)
+        except Exception as e:
+            logger.error(f"Error getting worker ID for assignment {assignment.id}: {str(e)}")
+            worker_id = "Error"
+
+    # Fetch workers in bulk
+    worker_map = {}
     if worker_ids:
-        object_ids = [ObjectId(wid) for wid in set(worker_ids) if ObjectId.is_valid(wid)]
+        object_ids = [ObjectId(wid) for wid in worker_ids if ObjectId.is_valid(wid)]
         if object_ids:
             workers_list = Worker.objects.filter(id__in=object_ids).only('id', 'name')
             for worker in workers_list:
                 worker_map[str(worker.id)] = worker
-    
-    # Attach workers to assignments
+
+    # Second pass: prepare assignment data
     for assignment in assignments:
-        worker_ref = assignment._data.get('worker')
-        worker_id_str = None
-        
-        if worker_ref:
-            if hasattr(worker_ref, 'id'):  # DBRef
-                worker_id_str = str(worker_ref.id)
-            else:  # ObjectId
-                worker_id_str = str(worker_ref)
-            
-            assignment.cached_worker = worker_map.get(worker_id_str)
-        else:
-            assignment.cached_worker = None
-            
-        assignment.worker_id_str = worker_id_str
+        try:
+            # Get worker ID as string
+            if isinstance(assignment.worker, DBRef):
+                worker_id_str = str(assignment.worker.id)
+            else:
+                worker_id_str = str(assignment.worker.id)
+                
+            # Get worker object from map
+            worker_obj = worker_map.get(worker_id_str)
+        except Exception as e:
+            logger.error(f"Error processing assignment {assignment.id}: {str(e)}")
+            worker_id_str = "Error"
+            worker_obj = None
+
+        # Create a dictionary with assignment data
+        assignment_data.append({
+            'assignment': assignment,
+            'worker_id_str': worker_id_str,
+            'cached_worker': worker_obj
+        })
 
     return render(request, 'workers/MaterialDistribution.html', {
         'workers': workers,
-        'assignments': assignments
+        'assignments': assignment_data  # Use the prepared data instead
     })
 
 def add_batch_to_assignment(request, assignment_id):
     if request.method == 'POST':
         try:
-            # Validate assignment_id
             if not ObjectId.is_valid(assignment_id):
                 return JsonResponse({'success': False, 'message': 'Invalid assignment ID'}, status=400)
                 
             data = json.loads(request.body)
             assignment = MaterialAssignment.objects.get(id=ObjectId(assignment_id))
             
-            # Validate batch quantity
             balance = assignment.balance_quantity
             new_quantity = int(data.get('quantity'))
             
@@ -362,7 +376,6 @@ def add_batch_to_assignment(request, assignment_id):
                     'message': f'Cannot add batch: quantity exceeds balance ({balance} units available)'
                 }, status=400)
             
-            # Validate batch date
             batch_date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
             if batch_date > datetime.now().date():
                 return JsonResponse({
@@ -448,3 +461,11 @@ def update_paid_amount(request, record_id):
         'message': 'Invalid request method'
     }, status=405)
 
+def get_worker_total_payments(month_start, month_end):
+    result = PayRecord.objects.filter(
+        date__gte=month_start,
+        date__lte=month_end
+    ).aggregate(
+        total_payments=Sum(F('units_produced') * F('rate_per_unit'))
+    )
+    return float(result['total_payments'] or 0)

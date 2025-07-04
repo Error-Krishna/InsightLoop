@@ -486,14 +486,13 @@
         `;
       }
 
-      // Update Worker Payments Chart
+      // Update the chart data processing
       if (currentData.workers && currentData.workers.length > 0) {
-        const workerNames = currentData.workers.map(w => w.name);
-        const paymentAmounts = currentData.workers.map(w => w.amount);
-        
-        workerPayChart.data.labels = workerNames;
-        workerPayChart.data.datasets[0].data = paymentAmounts;
-        workerPayChart.update();
+          const workerNames = currentData.workers.map(w => w.name);
+          const paymentAmounts = currentData.workers.map(w => w.amount);
+          workerPayChart.data.labels = workerNames;
+          workerPayChart.data.datasets[0].data = paymentAmounts;
+          workerPayChart.update();
       }
 
       // Update Top Workers Chart
@@ -906,24 +905,33 @@
         }
     );
 
-      // Worker Payments Chart
+      // Replace the workerPayChart initialization
       window.workerPayChart = new Chart(
-        document.getElementById('workerPayChart').getContext('2d'),
-        {
-          type: 'bar',
-          data: {
-            labels: [],
-            datasets: [{
-              label: 'Payment Amount',
-              data: [],
-              backgroundColor: '#F59E0B'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false
+          document.getElementById('workerPayChart').getContext('2d'),
+          {
+              type: 'bar',
+              data: {
+                  labels: [],
+                  datasets: [{
+                      label: 'Total Payment Amount',
+                      data: [],
+                      backgroundColor: '#F59E0B'
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                      y: {
+                          beginAtZero: true,
+                          title: {
+                              display: true,
+                              text: 'Amount (₹)'
+                          }
+                      }
+                  }
+              }
           }
-        }
       );
 
       // Top Workers Chart

@@ -112,3 +112,32 @@ def get_top_workers():
         top_workers.append(worker_data)
     
     return top_workers
+
+def get_worker_total_payments():
+    """Get total payments per worker"""
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$worker",
+                "total_amount": {
+                    "$sum": {"$multiply": ["$units_produced", "$rate_per_unit"]}
+                }
+            }
+        },
+        {
+            "$lookup": {
+                "from": "workers",
+                "localField": "_id",
+                "foreignField": "_id",
+                "as": "worker_info"
+            }
+        },
+        {"$unwind": "$worker_info"},
+        {"$project": {
+            "name": "$worker_info.name",
+            "amount": "$total_amount"
+        }}
+    ]
+    
+    results = PayRecord._get_collection().aggregate(pipeline)
+    return list(results)

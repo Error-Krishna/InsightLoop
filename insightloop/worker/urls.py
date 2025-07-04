@@ -9,7 +9,7 @@ urlpatterns = [
     path('pay_distribution/mark_paid/<str:record_id>/', views.mark_paid, name='mark_paid'),
     path('pay_distribution/delete/<str:record_id>/', views.delete_payment_record, name='delete_payment_record'),
     path('pay_distribution/add_worker/', views.add_worker, name='add_worker'),
-    path('pay_distribution/worker_stats/<str:worker_id>/', views.get_worker_stats, name='worker_stats'),
+    path('pay_distribution/worker_stats/<str:worker_id>', views.get_worker_stats, name='worker_stats'),
     path('material_distribution/', views.material_distribution, name='material_distribution'),
     path('material_distribution/add_batch/<str:assignment_id>', 
          views.add_batch_to_assignment, 
@@ -18,5 +18,4 @@ urlpatterns = [
          views.delete_assignment, 
          name='delete_assignment'),
     path('pay_distribution/update_paid/<str:record_id>/', views.update_paid_amount, name='update_paid_amount'),
-    
 ]

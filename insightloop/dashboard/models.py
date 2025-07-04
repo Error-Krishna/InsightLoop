@@ -9,12 +9,13 @@ class FinancialSummary(Document):
     timestamp = DateTimeField(required=True)
     total_revenue = DecimalField(precision=2, required=True)
     total_profit = DecimalField(precision=2, required=True)
-    active_workers = IntField(required=True, default=0)  # Set default to 0
+    worker_payments = DecimalField(precision=2, required=True)  # Add this field
+    active_workers = IntField(required=True, default=0)
     meta = {
         'collection': 'financial_summaries',
         'indexes': [
-            '-timestamp',  # Descending timestamp index
-            {'fields': ['timestamp'], 'expireAfterSeconds': 31536000}  # Optional TTL
+            '-timestamp',
+            {'fields': ['timestamp'], 'expireAfterSeconds': 31536000}
         ]
     }
 class Worker(Document):

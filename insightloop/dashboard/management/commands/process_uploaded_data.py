@@ -72,5 +72,6 @@ class Command(BaseCommand):
                     timestamp=end_date,
                     total_revenue=Decimal(str(monthly_data['total_revenue'])),
                     total_profit=Decimal(str(monthly_data['total_profit'])),
-                    active_workers=0  # Set to 0 as per your requirements
+                    worker_payments=Decimal('0'),  # Add this line
+                    active_workers=0
                 ).save()

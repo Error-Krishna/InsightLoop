@@ -4,14 +4,15 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from django.utils import timezone
 from worker.models import Worker
+from worker.views import get_worker_total_payments
+
 
 def process_uploaded_data():
     """Process raw business data into financial summaries"""
-    # Calculate date range for this month
     now = timezone.now()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
-    # Aggregate business data for this month - UPDATED CALCULATION
+    # Aggregate business data for this month
     pipeline = [
         {"$match": {
             "date": {
@@ -26,12 +27,9 @@ def process_uploaded_data():
                     "$multiply": ["$quantity", "$selling_price"]
                 }
             },
-            "total_profit": {
+            "total_cost": {
                 "$sum": {
-                    "$subtract": [
-                        {"$multiply": ["$quantity", "$selling_price"]},
-                        {"$multiply": ["$quantity", "$production_cost"]}
-                    ]
+                    "$multiply": ["$quantity", "$production_cost"]
                 }
             }
         }}
@@ -40,21 +38,28 @@ def process_uploaded_data():
     monthly_data = BusinessData._get_collection().aggregate(pipeline)
     result = next(monthly_data, None)
     
-    # Create or update financial summary
+    # Calculate worker payments
+    worker_payments = get_worker_total_payments(month_start, now)
+    
+    # Calculate gross profit (revenue - cost)
+    gross_profit = Decimal(result['total_revenue'] - result['total_cost']) if result else Decimal(0)
+    
+    # Calculate net profit (gross profit - worker payments)
+    net_profit = gross_profit - Decimal(worker_payments)
+    
+    # Create/update financial summary
     FinancialSummary.objects.update_or_create(
         timestamp=month_start,
         defaults={
-            'total_revenue': Decimal(str(result['total_revenue'])) if result else 0,
-            'total_profit': Decimal(str(result['total_profit'])) if result else 0,
-            'active_workers': 0  # Always 0 for now
+            'total_revenue': Decimal(result['total_revenue']) if result else Decimal(0),
+            'total_profit': net_profit,  # This now includes worker payment deduction
+            'worker_payments': Decimal(worker_payments),
+            'active_workers': get_active_workers_count()
         }
     )
 
 def get_summary_data():
     """Get financial summary data without request dependency"""
-    active_workers = get_active_workers_count()
-    workers_change = get_workers_change()
-    
     # Get latest summary
     summary = FinancialSummary.objects.order_by('-timestamp').first()
     
@@ -62,13 +67,14 @@ def get_summary_data():
         return {
             'total_revenue': 0.0,
             'total_profit': 0.0,
-            'active_workers': active_workers,
+            'worker_payments': 0.0,
+            'active_workers': get_active_workers_count(),
             'revenue_change': 0.0,
             'profit_change': 0.0,
-            'workers_change': workers_change
+            'workers_change': get_workers_change()
         }
     
-    # Calculate previous month range using timezone-aware dates
+    # Calculate previous month range
     current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     prev_month_end = current_month_start - timedelta(days=1)
     prev_month_start = prev_month_end.replace(day=1)
@@ -87,18 +93,19 @@ def get_summary_data():
         return float(round(((new - old) / abs(old)) * 100, 1))
     
     return {
-        'total_revenue': float(summary.total_revenue) if summary else 0.0,
-        'total_profit': float(summary.total_profit) if summary else 0.0,
-        'active_workers': active_workers,  # Updated
+        'total_revenue': float(summary.total_revenue),
+        'total_profit': float(summary.total_profit),  # This already includes worker payment deduction
+        'worker_payments': float(summary.worker_payments),
+        'active_workers': get_active_workers_count(),
         'revenue_change': calc_change(
             float(prev_month.total_revenue) if prev_month else 0.0,
-            float(summary.total_revenue) if summary else 0.0
+            float(summary.total_revenue)
         ),
         'profit_change': calc_change(
             float(prev_month.total_profit) if prev_month else 0.0,
-            float(summary.total_profit) if summary else 0.0
+            float(summary.total_profit)
         ),
-        'workers_change': workers_change  # Updated
+        'workers_change': get_workers_change()
     }
 
 
