@@ -2,6 +2,7 @@ from mongoengine import Document, fields
 from datetime import datetime, timedelta
 
 class Insight(Document):
+    company_id = fields.StringField(required=True)  # Added company_id
     title = fields.StringField(required=True, max_length=255)
     description = fields.StringField(required=True)
     labels = fields.ListField(fields.StringField(), default=list)
@@ -14,6 +15,7 @@ class Insight(Document):
         'collection': 'insights',
         'ordering': ['-created_at'],
         'indexes': [
-            {'fields': ['expires_at'], 'expireAfterSeconds': 0}
+            {'fields': ['expires_at'], 'expireAfterSeconds': 0},
+            {'fields': ['company_id']}  # Added index for company_id
         ]
     }

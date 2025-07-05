@@ -4,19 +4,18 @@ from .data_service import get_summary_data
 from .encoders import CustomJSONEncoder
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from bson import ObjectId  # Add this import
+from bson import ObjectId
 import json
 from mongoengine.errors import DoesNotExist
+from worker.models import Worker, PayRecord
 
-from worker.models import Worker, PayRecord  # Add these imports
-
-def get_dashboard_data():
+def get_dashboard_data(company_id):
     data = {
-        'summary': get_summary_data(),
-        'revExp': get_rev_exp_data(),
-        'profitTrends': get_profit_trends(months=6, interval='monthly'),
-        'workers': get_worker_payments(),
-        'topWorkers': get_top_workers()
+        'summary': get_summary_data(company_id),
+        'revExp': get_rev_exp_data(company_id),
+        'profitTrends': get_profit_trends(company_id, months=6, interval='monthly'),
+        'workers': get_worker_payments(company_id),
+        'topWorkers': get_top_workers(company_id)
     }
     
     # Convert MongoDB documents to serializable format
@@ -32,15 +31,13 @@ def get_dashboard_data():
     converted_data = convert_types(data)
     return json.loads(json.dumps(converted_data, cls=CustomJSONEncoder))
 
-# Add these new functions
-def get_worker_payments():
+def get_worker_payments(company_id):
     """Get recent worker payments"""
-    records = PayRecord.objects.order_by('-date')[:10]
+    records = PayRecord.objects(company_id=company_id).order_by('-date')[:10]
     results = []
     
     for record in records:
         try:
-            # Attempt to access worker name (triggers dereference)
             worker_name = record.worker.name
         except DoesNotExist:
             worker_name = "Deleted Worker"
@@ -54,20 +51,21 @@ def get_worker_payments():
         
     return results
 
-def broadcast_update():
-    data = get_dashboard_data()
+def broadcast_update(company_id):
+    data = get_dashboard_data(company_id)
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
-        "dashboard",
+        f'dashboard_{company_id}',  # Company-specific group
         {
             'type': 'dashboard.update',
             'data': data
         }
     )
 
-def get_top_workers():
+def get_top_workers(company_id):
     """Get top workers by total payout"""
     pipeline = [
+        {"$match": {"company_id": company_id}},
         {"$group": {
             "_id": "$worker",
             "total_payout": {"$sum": {"$multiply": ["$units_produced", "$rate_per_unit"]}},
@@ -95,14 +93,12 @@ def get_top_workers():
     top_workers = []
     
     for worker in results:
-        # Convert MongoDB types to Python native types
         worker_data = {
             'name': worker.get('name', 'Unknown'),
             'total_payout': float(worker.get('total_payout', 0)),
             'payment_count': worker.get('payment_count', 0),
         }
         
-        # Handle latest_payment
         latest_payment = worker.get('latest_payment')
         if isinstance(latest_payment, datetime):
             worker_data['latest_payment'] = latest_payment.isoformat()
@@ -113,9 +109,10 @@ def get_top_workers():
     
     return top_workers
 
-def get_worker_total_payments():
+def get_worker_total_payments(company_id):
     """Get total payments per worker"""
     pipeline = [
+        {"$match": {"company_id": company_id}},
         {
             "$group": {
                 "_id": "$worker",

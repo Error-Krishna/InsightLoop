@@ -1,6 +1,8 @@
 from mongoengine import Document, fields
+from django.conf import settings
 
 class BusinessData(Document):
+    company_id = fields.StringField(required=True)  # Added company_id
     date = fields.DateField(required=True)
     product = fields.StringField(required=True, max_length=100)
     category = fields.StringField(max_length=50)
@@ -17,6 +19,7 @@ class BusinessData(Document):
     meta = {
         'collection': 'business_data',
         'indexes': [
+            'company_id',  # Added index
             'date',
             'product',
             'category',

@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 import mongoengine
+
+from django.conf import settings  # Correct import for settings
+
 from .models import Worker, MaterialAssignment, PayRecord
 from datetime import datetime
 from bson import ObjectId, errors
@@ -9,22 +12,33 @@ import logging
 from mongoengine.errors import DoesNotExist
 from django.db.models import Sum, F
 from bson.dbref import DBRef
+from django.contrib.auth.decorators import login_required
+from insightloop.auth_utils import is_authenticated
+
 logger = logging.getLogger(__name__)
 
+
 def pay_distribution(request):
-    return render(request, 'workers/Worker.html')
+    if not is_authenticated(request):
+        return redirect(f'{settings.LOGIN_URL}?next={request.path}')
+    else:
+        return render(request, 'workers/Worker.html')
+
 
 def get_workers(request):
     try:
-        workers = Worker.objects.all()
+        if not hasattr(request, 'company_id') or not request.company_id:
+            return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+        
+        workers = Worker.objects.filter(company_id=request.company_id)
         workers_data = []
         
         for worker in workers:
-            assignments = MaterialAssignment.objects.filter(worker=worker)
+            assignments = MaterialAssignment.objects.filter(worker=worker, company_id=request.company_id)
             total_assigned = sum([a.quantity for a in assignments])
             total_delivered = sum([a.delivered_quantity for a in assignments])
             
-            payment_records = PayRecord.objects.filter(worker=worker)
+            payment_records = PayRecord.objects.filter(worker=worker, company_id=request.company_id)
             pending_amount = 0
             for record in payment_records:
                 total_amount = record.units_produced * record.rate_per_unit
@@ -50,11 +64,15 @@ def get_workers(request):
             'message': str(e)
         }, status=400)
 
+
 def get_payment_records(request):
     try:
+        if not hasattr(request, 'company_id') or not request.company_id:
+            return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+            
         filter_type = request.GET.get('filter', 'all')
         
-        records = PayRecord.objects.all().order_by('-date')
+        records = PayRecord.objects.filter(company_id=request.company_id).order_by('-date')
         
         filtered_records = []
         for record in records:
@@ -95,16 +113,24 @@ def get_payment_records(request):
             'message': str(e)
         }, status=400)
 
+
 def create_payment_record(request):
     if request.method == 'POST':
         try:
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
             data = json.loads(request.body)
-            worker = Worker.objects.get(id=ObjectId(data.get('worker_id')))
+            worker = Worker.objects.get(
+                id=ObjectId(data.get('worker_id')),
+                company_id=request.company_id
+            )
             
             amount_paid = float(data.get('amount_paid', 0))
             total_amount = float(data.get('units_produced')) * float(data.get('rate_per_unit'))
             
             pay_record = PayRecord(
+                company_id=request.company_id,
                 worker=worker,
                 product_name=data.get('product_name'),
                 units_produced=int(data.get('units_produced')),
@@ -130,10 +156,17 @@ def create_payment_record(request):
         'message': 'Invalid request method'
     }, status=405)
 
+
 def mark_paid(request, record_id):
     if request.method == 'POST':
         try:
-            record = PayRecord.objects.get(id=ObjectId(record_id))
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
+            record = PayRecord.objects.get(
+                id=ObjectId(record_id),
+                company_id=request.company_id
+            )
             total_amount = record.units_produced * record.rate_per_unit
             record.amount_paid = total_amount
             record.paid = True
@@ -155,10 +188,17 @@ def mark_paid(request, record_id):
         'message': 'Invalid request method'
     }, status=405)
 
+
 def delete_payment_record(request, record_id):
     if request.method == 'DELETE':
         try:
-            record = PayRecord.objects.get(id=ObjectId(record_id))
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
+            record = PayRecord.objects.get(
+                id=ObjectId(record_id),
+                company_id=request.company_id
+            )
             record.delete()
             
             return JsonResponse({
@@ -176,11 +216,16 @@ def delete_payment_record(request, record_id):
         'message': 'Invalid request method'
     }, status=405)
 
+
 def add_worker(request):
     if request.method == 'POST':
         try:
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
             data = request.POST
             worker = Worker(
+                company_id=request.company_id,
                 name=data.get('name'),
                 age=int(data.get('age')) if data.get('age') else None,
                 address=data.get('address'),
@@ -208,8 +253,12 @@ def add_worker(request):
         'message': 'Invalid request method'
     }, status=405)
 
+
 def get_worker_stats(request, worker_id):
     try:
+        if not hasattr(request, 'company_id') or not request.company_id:
+            return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+            
         logger.info(f"Getting stats for worker ID: {worker_id}")
         
         if not worker_id or not ObjectId.is_valid(worker_id):
@@ -223,12 +272,21 @@ def get_worker_stats(request, worker_id):
         logger.debug(f"Querying for worker with ID: {worker_obj_id}")
         
         try:
-            worker = Worker.objects.get(id=worker_obj_id)
+            worker = Worker.objects.get(
+                id=worker_obj_id,
+                company_id=request.company_id
+            )
         except Worker.DoesNotExist:
             logger.warning(f"Worker not found by ObjectId, trying string match: {worker_id}")
-            worker = Worker.objects.get(id=worker_id)
+            worker = Worker.objects.get(
+                id=worker_id,
+                company_id=request.company_id
+            )
         
-        assignments = MaterialAssignment.objects.filter(worker=worker)
+        assignments = MaterialAssignment.objects.filter(
+            worker=worker,
+            company_id=request.company_id
+        )
         total_assigned = sum([a.quantity for a in assignments])
         total_delivered = sum([a.delivered_quantity for a in assignments])
         
@@ -253,9 +311,13 @@ def get_worker_stats(request, worker_id):
             'message': str(e)
         }, status=400)
 
+
 def material_distribution(request):
     if request.method == 'POST':
         try:
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
             data = request.POST
             worker_id = data.get('worker_id')
             
@@ -265,7 +327,10 @@ def material_distribution(request):
             if not ObjectId.is_valid(worker_id):
                 return JsonResponse({'success': False, 'message': 'Invalid worker ID format'}, status=400)
                 
-            worker = Worker.objects.get(id=ObjectId(worker_id))
+            worker = Worker.objects.get(
+                id=ObjectId(worker_id),
+                company_id=request.company_id
+            )
             
             batches_data = data.get('batches', '[]')
             try:
@@ -274,6 +339,7 @@ def material_distribution(request):
                 return JsonResponse({'success': False, 'message': f'Invalid batches data: {str(e)}'}, status=400)
             
             assignment = MaterialAssignment(
+                company_id=request.company_id,
                 worker=worker,
                 material_name=data.get('material_name'),
                 quantity=int(data.get('quantity')),
@@ -292,11 +358,13 @@ def material_distribution(request):
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     
     # GET request: fetch workers and assignments
-    workers = list(Worker.objects.all().only('id', 'name', 'image_url'))
+    workers = list(Worker.objects.filter(company_id=request.company_id).only('id', 'name', 'image_url'))
     for worker in workers:
         worker.id = str(worker.id)
 
-    assignments = MaterialAssignment.objects.all().order_by('-assignment_date')
+    assignments = MaterialAssignment.objects.filter(
+        company_id=request.company_id
+    ).order_by('-assignment_date')
 
     # Create a list to hold assignment data with worker info
     assignment_data = []
@@ -320,7 +388,10 @@ def material_distribution(request):
     if worker_ids:
         object_ids = [ObjectId(wid) for wid in worker_ids if ObjectId.is_valid(wid)]
         if object_ids:
-            workers_list = Worker.objects.filter(id__in=object_ids).only('id', 'name')
+            workers_list = Worker.objects.filter(
+                id__in=object_ids,
+                company_id=request.company_id
+            ).only('id', 'name')
             for worker in workers_list:
                 worker_map[str(worker.id)] = worker
 
@@ -352,14 +423,21 @@ def material_distribution(request):
         'assignments': assignment_data  # Use the prepared data instead
     })
 
+
 def add_batch_to_assignment(request, assignment_id):
     if request.method == 'POST':
         try:
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
             if not ObjectId.is_valid(assignment_id):
                 return JsonResponse({'success': False, 'message': 'Invalid assignment ID'}, status=400)
                 
             data = json.loads(request.body)
-            assignment = MaterialAssignment.objects.get(id=ObjectId(assignment_id))
+            assignment = MaterialAssignment.objects.get(
+                id=ObjectId(assignment_id),
+                company_id=request.company_id
+            )
             
             balance = assignment.balance_quantity
             new_quantity = int(data.get('quantity'))
@@ -408,13 +486,20 @@ def add_batch_to_assignment(request, assignment_id):
         'message': 'Invalid request method'
     }, status=405)
 
+
 def delete_assignment(request, assignment_id):
     if request.method == 'DELETE':
         try:
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
             if not ObjectId.is_valid(assignment_id):
                 return JsonResponse({'success': False, 'message': 'Invalid assignment ID'}, status=400)
                 
-            assignment = MaterialAssignment.objects.get(id=ObjectId(assignment_id))
+            assignment = MaterialAssignment.objects.get(
+                id=ObjectId(assignment_id),
+                company_id=request.company_id
+            )
             assignment.delete()
             return JsonResponse({
                 'success': True,
@@ -433,11 +518,18 @@ def delete_assignment(request, assignment_id):
         'message': 'Invalid request method'
     }, status=405)
 
+
 def update_paid_amount(request, record_id):
     if request.method == 'POST':
         try:
+            if not hasattr(request, 'company_id') or not request.company_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+                
             data = json.loads(request.body)
-            record = PayRecord.objects.get(id=ObjectId(record_id))
+            record = PayRecord.objects.get(
+                id=ObjectId(record_id),
+                company_id=request.company_id
+            )
             total_amount = record.units_produced * record.rate_per_unit
             amount_paid = float(data.get('amount_paid', 0))
             

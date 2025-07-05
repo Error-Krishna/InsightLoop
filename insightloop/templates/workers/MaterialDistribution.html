@@ -51,16 +51,20 @@
   <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16 items-center">
+        
+        <!-- Logo & Brand -->
         <div class="flex items-center space-x-3">
           <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">IL</div>
           <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">InsightLoop</span>
         </div>
         
+        <!-- Main Navigation (Desktop) -->
         <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
-          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 ">Dashboard</a>
           <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
           <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
           
+          <!-- Workers Dropdown -->
           <div class="relative group">
             <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none font-semibold">Workers</button>
             <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
@@ -72,7 +76,9 @@
           <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
         </div>
         
+        <!-- Profile & Settings -->
         <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
           <button id="themeToggle" class="theme-toggle p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
             <svg id="lightIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
@@ -82,18 +88,32 @@
             </svg>
           </button>
           
+          <!-- Profile Dropdown -->
           <div class="relative group hidden md:block">
             <button class="focus:outline-none">
-              <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">KG</div>
+              {% if request.session.user_name %}
+                {% with name=request.session.user_name %}
+                  {% with parts=name.split %}
+                    {% if parts|length >= 2 %}
+                      <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">{{ parts.0.0|upper }}{{ parts.1.0|upper }}</div>
+                    {% else %}
+                      <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">{{ name|slice:":2"|upper }}</div>
+                    {% endif %}
+                  {% endwith %}
+                {% endwith %}
+              {% else %}
+                <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">IL</div>
+              {% endif %}
             </button>
             <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
               <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
               <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
               <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
-              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+              <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
             </div>
           </div>
           
+          <!-- Mobile Menu Button -->
           <button id="mobileMenuBtn" class="md:hidden focus:outline-none">
             <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -103,11 +123,13 @@
       </div>
     </div>
     
+    <!-- Mobile Menu -->
     <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
       <a href="{% url 'dashboard' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
       <a href="{% url 'insights' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
       <a href="{% url 'upload' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
       
+      <!-- Workers Submenu -->
       <div>
         <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
         <a href="{% url 'material_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
@@ -119,7 +141,7 @@
       <hr class="border-gray-200 dark:border-gray-700">
       <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
       <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
-      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+      <a href="{% url 'logout' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
     </div>
   </nav>
 
@@ -268,6 +290,10 @@
   </div>
 
   <script>
+    // Mobile menu toggle
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      document.getElementById('mobileMenu').classList.toggle('hidden');
+    });
     let batches = [];
     let currentAssignmentId = '';
     const WORKER_STATS_URL_TEMPLATE = "{% url 'worker_stats' '000000000000000000000000' %}";

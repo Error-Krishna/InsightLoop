@@ -4,11 +4,8 @@ from django.core.mail import EmailMessage
 from django.contrib.auth.hashers import check_password
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_protect
-from django.contrib.auth import get_user_model
-from .mongo_models import User, ContactMessage
-
-
-
+from .mongo_models import User, ContactMessage, Company
+import uuid
 
 def contact_view(request):
     if request.method == 'POST':
@@ -37,20 +34,6 @@ def contact_view(request):
 
     return redirect('/#contact')
 
-
-
-from django.contrib import messages
-
-
-
-# from rest_framework import viewsets
-# from .mongo_models import Product
-# from .serializers import ProductSerializer
-
-# class ProductViewSet(viewsets.ModelViewSet):
-#     queryset = Product.objects.all()
-#     serializer_class = ProductSerializer
-
 def home(request):
     return render (request, 'landing/home.html')
 
@@ -62,10 +45,9 @@ def pricing(request):
 
 def faq(request):
     return  redirect ('/#faq')
+
 def contact(request):
     return  redirect ('/#contact')
-def login(request):
-    return render(request, 'landing/login-signup.html')
 
 @csrf_protect
 def signup_view(request):
@@ -73,12 +55,18 @@ def signup_view(request):
         name = request.POST.get('name')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        company_name = request.POST.get('company_name', 'My Company')
 
         if User.objects(email=email).first():
             messages.error(request, "Email already registered.")
             return redirect('signup')
 
-        user = User(name=name, email=email)
+        # Create company
+        company = Company(name=company_name)
+        company.save()
+
+        # Create user
+        user = User(name=name, email=email, company=company)
         user.set_password(password)
         user.save()
 
@@ -86,7 +74,6 @@ def signup_view(request):
         return redirect('login')
 
     return render(request, 'landing/login-signup.html')
-
 
 @csrf_protect
 def login_view(request):
@@ -96,14 +83,25 @@ def login_view(request):
 
         user = User.objects(email=email).first()
         if user and user.check_password(password):
-            # Set session manually (since not using Django auth backend)
+            # Set session data
             request.session['user_email'] = user.email
             request.session['user_name'] = user.name
+            request.session['company_id'] = str(user.company.company_id)
+            request.session['company_name'] = user.company.name
+            
+            # Explicitly save session to ensure persistence
+            request.session.modified = True
 
             messages.success(request, f"Welcome, {user.name}!")
-            return redirect('/dashboard')  # Change this to your logged-in page
+            # Redirect to dashboard with trailing slash
+            return redirect('dashboard')  
         else:
             messages.error(request, "Invalid email or password.")
             return redirect('login')
 
     return render(request, 'landing/login-signup.html')
+
+def logout_view(request):
+    request.session.flush()
+    messages.success(request, "You have been logged out.")
+    return redirect('home')

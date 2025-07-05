@@ -5,13 +5,14 @@ import calendar
 from upload.models import BusinessData
 from django.utils import timezone
 
-def get_rev_exp_data(months=6):
+def get_rev_exp_data(company_id, months=6):  # Added company_id parameter
     end_date = timezone.now()
     start_date = end_date - timedelta(days=30*months)
     
     pipeline = [
         {
             "$match": {
+                "company_id": company_id,  # Added company_id filter
                 "date": {
                     "$gte": start_date,
                     "$lte": end_date
@@ -53,7 +54,7 @@ def get_rev_exp_data(months=6):
         'expenses': expenses
     }
 
-def get_profit_trends(months=6, interval='monthly'):
+def get_profit_trends(company_id, months=6, interval='monthly'):  # Added company_id parameter
     end_date = timezone.now()
     start_date = end_date - timedelta(days=30*months)
     
@@ -79,6 +80,7 @@ def get_profit_trends(months=6, interval='monthly'):
     pipeline = [
         {
             "$match": {
+                "company_id": company_id,  # Added company_id filter
                 "date": {
                     "$gte": start_date,
                     "$lte": end_date

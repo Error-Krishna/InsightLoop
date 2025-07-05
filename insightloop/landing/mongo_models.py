@@ -1,13 +1,14 @@
 # from mongoengine import Document, StringField, FloatField
-
-# class Product(Document):
-#     name = StringField(required=True, max_length=100)
-#     price = FloatField(required=True)
-
-from mongoengine import Document, StringField, EmailField
+from mongoengine import Document, StringField, EmailField, ReferenceField
 from django.contrib.auth.hashers import make_password, check_password
+import uuid
+
+class Company(Document):
+    company_id = StringField(required=True, default=lambda: str(uuid.uuid4()))
+    name = StringField(required=True, max_length=100)
 
 class User(Document):
+    company = ReferenceField(Company, required=True)
     name = StringField(required=True, max_length=100)
     email = EmailField(required=True, unique=True)
     password = StringField(required=True)

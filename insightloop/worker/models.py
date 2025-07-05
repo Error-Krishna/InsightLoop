@@ -2,8 +2,10 @@ from bson import ObjectId
 from mongoengine import Document, fields, ValidationError
 from datetime import datetime
 from bson.dbref import DBRef
+from django.conf import settings
 
 class Worker(Document):
+    company_id = fields.StringField(required=True)
     name = fields.StringField(required=True)
     age = fields.IntField()
     image_url = fields.StringField()
@@ -31,6 +33,7 @@ class Worker(Document):
     }
 
 class MaterialAssignment(Document):
+    company_id = fields.StringField(required=True)
     worker = fields.ReferenceField(Worker)
     material_name = fields.StringField(required=True)
     quantity = fields.IntField(required=True)
@@ -64,25 +67,7 @@ class MaterialAssignment(Document):
     
     @property
     def worker_id(self):
-        """Directly access the worker ID as ObjectId"""
         return self.worker.id
-    
-    # @property
-    # def worker_id_str(self):
-    #     """Consistently get worker ID as string"""
-    #     try:
-    #         # If worker is a DBRef
-    #         if hasattr(self.worker, 'id'):
-    #             return str(self.worker.id)
-    #         # If worker is an ObjectId
-    #         elif isinstance(self.worker, ObjectId):
-    #             return str(self.worker)
-    #         # If worker is a Worker instance
-    #         elif hasattr(self.worker, 'id'):
-    #             return str(self.worker.id)
-    #     except Exception:
-    #         return "Error"
-    #     return "Unknown"
     
     def clean(self):
         if self.quantity <= 0:
@@ -91,6 +76,7 @@ class MaterialAssignment(Document):
             raise ValidationError("Price must be positive")
 
 class PayRecord(Document):
+    company_id = fields.StringField(required=True)
     worker = fields.ReferenceField(Worker)
     product_name = fields.StringField(required=True)
     units_produced = fields.IntField(required=True)

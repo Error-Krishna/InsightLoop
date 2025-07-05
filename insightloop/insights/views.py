@@ -1,8 +1,11 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseForbidden
+from django.conf import settings  # Correct import for settings
+
 from upload.models import BusinessData
-from .models import Insight # Fixed import
+from .models import Insight
 import json
-from django.http import HttpResponse
 import csv
 from io import StringIO
 from django.contrib import messages
@@ -10,49 +13,61 @@ from datetime import datetime, timedelta
 import numpy as np
 from collections import defaultdict
 from mongoengine.queryset.visitor import Q
+from insightloop.auth_utils import is_authenticated
+
 
 def delete_insight(request, insight_id):
+    if not hasattr(request, 'company_id') or not request.company_id:
+        return HttpResponseForbidden("You are not authorized to perform this action.")
+    
     try:
-        insight = Insight.objects.get(id=insight_id)
+        insight = Insight.objects.get(id=insight_id, company_id=request.company_id)
         insight.delete()
         messages.success(request, f"Deleted insight: {insight.title}")
     except Insight.DoesNotExist:
         messages.error(request, "Insight not found")
     return redirect('insights')
 
+@login_required
 def delete_all_insights(request):
-    """Delete all insights"""
-    count = Insight.objects.count()
-    Insight.objects.delete()
+    """Delete all insights for the current company"""
+    if not hasattr(request, 'company_id') or not request.company_id:
+        return HttpResponseForbidden("You are not authorized to perform this action.")
+    
+    count = Insight.objects(company_id=request.company_id).count()
+    Insight.objects(company_id=request.company_id).delete()
     messages.success(request, f"Deleted {count} insights")
     return redirect('insights')
 
-def delete_old_insights(days=30):
-    """Automatically delete insights older than X days"""
+def delete_old_insights(request, days=30):
+    """Automatically delete insights older than X days for the current company"""
+    if not hasattr(request, 'company_id') or not request.company_id:
+        return 0
+    
     cutoff_date = datetime.now() - timedelta(days=days)
-    old_insights = Insight.objects(created_at__lt=cutoff_date)
+    old_insights = Insight.objects(company_id=request.company_id, created_at__lt=cutoff_date)
     count = old_insights.count()
     old_insights.delete()
     return count
 
 
-
-
-
 def insights(request):
+    if not is_authenticated(request):
+        return redirect(f'{settings.LOGIN_URL}?next={request.path}')
+    
     # Auto-delete insights older than 30 days before any processing
-    deleted_count = delete_old_insights(days=30)
+    deleted_count = delete_old_insights(request, days=30)
     if deleted_count > 0:
         messages.info(request, f"Auto-deleted {deleted_count} old insights")
     
-    # Get all insights ordered by creation date
-    all_insights = Insight.objects.order_by('-created_at')
+    # Get all insights for the current company, ordered by creation date
+    all_insights = Insight.objects(company_id=request.company_id).order_by('-created_at')
     
     # Check if a specific insight was requested
     requested_insight_id = request.GET.get('insight')
     if requested_insight_id:
         try:
-            main_insight = Insight.objects.get(id=requested_insight_id)
+            main_insight = Insight.objects.get(id=requested_insight_id, company_id=request.company_id)
         except Insight.DoesNotExist:
             main_insight = all_insights.first() if all_insights else None
     else:
@@ -64,7 +79,7 @@ def insights(request):
     if request.method == 'POST' and 'delete_insight_id' in request.POST:
         insight_id = request.POST.get('delete_insight_id')
         try:
-            insight = Insight.objects.get(id=insight_id)
+            insight = Insight.objects.get(id=insight_id, company_id=request.company_id)
             insight.delete()
             messages.success(request, f"Deleted insight: {insight.title}")
             return redirect('insights')
@@ -74,11 +89,12 @@ def insights(request):
     # Handle insight creation based on data analysis
     if request.method == 'POST' and 'analyze_data' in request.POST:
         try:
-            insights_list = analyze_sales_data()
+            insights_list = analyze_sales_data(request.company_id)  # Pass company_id to the analysis function
             
             if insights_list:
                 for insight_data in insights_list:
                     Insight(
+                        company_id=request.company_id,  # Set company_id
                         title=insight_data['title'],
                         description=insight_data['description'],
                         labels=insight_data['labels'],
@@ -102,7 +118,7 @@ def insights(request):
         note = request.POST.get('note', '')
         
         try:
-            insight = Insight.objects.get(id=insight_id)
+            insight = Insight.objects.get(id=insight_id, company_id=request.company_id)
             insight.note = note
             insight.save()
             messages.success(request, "Note saved successfully!")
@@ -114,7 +130,7 @@ def insights(request):
     if request.method == 'POST' and 'export_insight_id' in request.POST:
         insight_id = request.POST.get('export_insight_id')
         try:
-            insight = Insight.objects.get(id=insight_id)
+            insight = Insight.objects.get(id=insight_id, company_id=request.company_id)
             return export_insight(insight)
         except Insight.DoesNotExist:
             messages.error(request, "Insight not found")
@@ -144,14 +160,15 @@ def insights(request):
     }
     return render(request, 'insights/InsightDetails.html', context)
 
-def analyze_sales_data():
-    """Analyze BusinessData to generate insights"""
+def analyze_sales_data(company_id):
+    """Analyze BusinessData to generate insights for a specific company"""
     insights_list = []
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=90)
     
-    # Query business data
+    # Query business data for the company
     biz_data = BusinessData.objects(
+        company_id=company_id,  # Filter by company_id
         date__gte=start_date,
         date__lte=end_date
     ).only('date', 'product', 'quantity', 'selling_price')

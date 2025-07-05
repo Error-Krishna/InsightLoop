@@ -1,13 +1,22 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+
+from django.conf import settings  # Correct import for settings
+
 from .models import BusinessData
 from .forms import ManualDataForm
 import csv
 from io import TextIOWrapper
 from datetime import datetime
 from django.core.management import call_command
+from insightloop.auth_utils import is_authenticated
+
 
 def upload(request):
+    if not is_authenticated(request):
+        return redirect(f'{settings.LOGIN_URL}?next={request.path}')
+    
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
         
@@ -32,6 +41,7 @@ def upload(request):
                 for row_num, row in enumerate(reader, 1):
                     try:
                         BusinessData.objects.create(
+                            company_id=request.company_id,  # Added company_id
                             date=datetime.strptime(row['date'], '%Y-%m-%d').date(),
                             product=row['product'],
                             category=row.get('category', ''),
@@ -54,6 +64,7 @@ def upload(request):
             if form.is_valid():
                 try:
                     BusinessData.objects.create(
+                        company_id=request.company_id,  # Added company_id
                         date=form.cleaned_data['date'],
                         product=form.cleaned_data['product'],
                         category=form.cleaned_data['category'],
@@ -72,7 +83,7 @@ def upload(request):
                         messages.error(request, f"{field.capitalize()}: {error}")
         
         try:
-            call_command('process_uploaded_data')
+            call_command('process_uploaded_data', company_id=request.company_id)  # Added company_id
             messages.success(request, 'Data processed successfully! Dashboard updated.')
         except Exception as e:
             messages.error(request, f'Error processing data: {str(e)}')
