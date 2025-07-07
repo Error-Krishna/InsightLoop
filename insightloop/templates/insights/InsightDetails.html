@@ -27,7 +27,7 @@
         
         <!-- Main Navigation (Desktop) -->
         <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
-          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 ">Dashboard</a>
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
           <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Insights</a>
           <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
           
@@ -40,7 +40,7 @@
             </div>
           </div>
           
-          <a href="#" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+          <a href="{% url 'aiexport' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
         </div>
         
         <!-- Profile & Settings -->

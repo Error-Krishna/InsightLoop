@@ -1,13 +1,177 @@
 from datetime import datetime
+import io
 from .queries import get_rev_exp_data, get_profit_trends
 from .data_service import get_summary_data
 from .encoders import CustomJSONEncoder
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from bson import ObjectId
+from django.core.files.base import ContentFile
 import json
 from mongoengine.errors import DoesNotExist
 from worker.models import Worker, PayRecord
+import os
+from datetime import datetime
+from django.conf import settings
+from django.http import HttpResponse
+import pandas as pd
+from io import BytesIO
+from django.core.files.storage import default_storage
+
+from datetime import datetime
+from django.core.files.storage import default_storage
+import csv
+from io import StringIO
+from dashboard.models import FinancialSummary
+from upload.models import BusinessData
+from worker.models import Worker, MaterialAssignment, PayRecord
+from insights.models import Insight
+
+from datetime import datetime
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+import csv
+import io
+
+from worker.models import Worker, MaterialAssignment, PayRecord
+from insights.models import Insight
+
+def safe_date_format(date_obj, default=""):
+    """Safely format date objects, handling None values"""
+    return date_obj.isoformat() if date_obj else default
+
+def safe_getattr(obj, attr, default=""):
+    """Safely get attribute, handling None values"""
+    value = getattr(obj, attr, None)
+    return value if value is not None else default
+
+def generate_export_file(company_id, report_type):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"exports/{company_id}/{report_type}_{timestamp}.csv"
+    
+    # Create in-memory CSV file
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    
+    # Generate different reports based on type
+    if report_type == "business_trends":
+        # Get business data
+        business_data = BusinessData.objects(company_id=company_id).order_by('date')
+        
+        # Write CSV header
+        writer.writerow([
+            'Date', 'Product', 'Category', 'Quantity Sold', 
+            'Production Cost', 'Selling Price', 'Revenue', 'Profit'
+        ])
+        
+        # Write data rows with safe date handling
+        for data in business_data:
+            date_str = safe_date_format(data.date)
+            revenue = data.quantity * safe_getattr(data, 'selling_price', 0)
+            cost = data.quantity * safe_getattr(data, 'production_cost', 0)
+            profit = revenue - cost
+            
+            writer.writerow([
+                date_str,
+                safe_getattr(data, 'product', ''),
+                safe_getattr(data, 'category', ''),
+                safe_getattr(data, 'quantity', 0),
+                safe_getattr(data, 'production_cost', 0),
+                safe_getattr(data, 'selling_price', 0),
+                revenue,
+                profit
+            ])
+    
+    elif report_type == "worker_management":
+        # Get workers with their assignments and pay records
+        workers = Worker.objects(company_id=company_id)
+        writer.writerow([
+            'Worker Name', 'Contact', 'Status', 'Total Materials Assigned',
+            'Total Value', 'Total Units Produced', 'Total Pay Due'
+        ])
+        
+        for worker in workers:
+            # Calculate worker stats with safe handling
+            materials = MaterialAssignment.objects(company_id=company_id, worker=worker)
+            pay_records = PayRecord.objects(company_id=company_id, worker=worker)
+            
+            total_materials = sum(safe_getattr(m, 'quantity', 0) for m in materials)
+            total_value = sum(safe_getattr(m, 'quantity', 0) * safe_getattr(m, 'price_per_unit', 0) for m in materials)
+            total_units = sum(safe_getattr(p, 'units_produced', 0) for p in pay_records)
+            total_pay = sum(safe_getattr(p, 'units_produced', 0) * safe_getattr(p, 'rate_per_unit', 0) for p in pay_records)
+            
+            writer.writerow([
+                safe_getattr(worker, 'name', 'Unknown'),
+                safe_getattr(worker, 'phone', ''),
+                'Active' if safe_getattr(worker, 'is_active', False) else 'Inactive',
+                total_materials,
+                total_value,
+                total_units,
+                total_pay
+            ])
+    
+    elif report_type == "salary_payments":
+        # Get payment records
+        payments = PayRecord.objects(company_id=company_id).order_by('-date')
+        writer.writerow([
+            'Date', 'Worker', 'Product', 'Units Produced', 
+            'Rate per Unit', 'Amount Due', 'Payment Status'
+        ])
+        
+        for payment in payments:
+            # Safely handle worker reference
+            worker_name = safe_getattr(payment.worker, 'name', 'Unknown') if payment.worker else 'Unknown'
+            
+            writer.writerow([
+                safe_date_format(payment.date),
+                worker_name,
+                safe_getattr(payment, 'product_name', ''),
+                safe_getattr(payment, 'units_produced', 0),
+                safe_getattr(payment, 'rate_per_unit', 0),
+                safe_getattr(payment, 'units_produced', 0) * safe_getattr(payment, 'rate_per_unit', 0),
+                'Paid' if safe_getattr(payment, 'paid', False) else 'Pending'
+            ])
+    
+    elif report_type == "complete_analytics":
+        # Combined report with multiple sections
+        # Section 1: Financial Overview
+        financials = FinancialSummary.objects(company_id=company_id).order_by('-timestamp')
+        writer.writerow(['Financial Summary'])
+        writer.writerow([
+            'Timestamp', 'Total Revenue', 'Total Profit', 
+            'Worker Payments', 'Active Workers'
+        ])
+        
+        for fin in financials:
+            writer.writerow([
+                safe_date_format(fin.timestamp),
+                safe_getattr(fin, 'total_revenue', 0),
+                safe_getattr(fin, 'total_profit', 0),
+                safe_getattr(fin, 'worker_payments', 0),
+                safe_getattr(fin, 'active_workers', 0)
+            ])
+        
+        # Section 2: Key Insights
+        insights = Insight.objects(company_id=company_id).order_by('-created_at')
+        writer.writerow([])
+        writer.writerow(['Business Insights'])
+        writer.writerow(['Title', 'Description', 'Created At'])
+        
+        for insight in insights:
+            writer.writerow([
+                safe_getattr(insight, 'title', ''),
+                (safe_getattr(insight, 'description', '')[:100] + '...') if len(safe_getattr(insight, 'description', '')) > 100 
+                    else safe_getattr(insight, 'description', ''),
+                safe_date_format(insight.created_at)
+            ])
+    
+    # Create file content
+    content = buffer.getvalue()
+    buffer.close()
+    
+    # Save CSV content to storage using ContentFile
+    default_storage.save(filename, ContentFile(content.encode('utf-8')))
+    return default_storage.url(filename)
 
 def get_dashboard_data(company_id):
     data = {

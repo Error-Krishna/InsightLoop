@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'dashboard',
     'upload',
     'worker',
+    'aiexport',
 ]
 
 MIDDLEWARE = [
