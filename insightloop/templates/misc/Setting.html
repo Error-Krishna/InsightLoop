@@ -1,29 +1,21 @@
-<!DOCTYPE html>
 {% load static %}
-<html lang="en" class="transition-colors duration-300">
+<!DOCTYPE html>
+<html lang="en" class="transition duration-300">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Upload Data – InsightLoop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
-  <script>
+    <script>
     tailwind.config = {
       darkMode: 'class',
     };
+    
   </script>
-  <style>
-    .errorlist {
-      color: #ef4444;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-    }
-  </style>
 </head>
-<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-  
-  <!-- Header/Navigation -->
-  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
+<body>
+  <!-- Navigation same as before -->
+   <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16 items-center">
         
@@ -35,9 +27,9 @@
         
         <!-- Main Navigation (Desktop) -->
         <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
-          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 ">Dashboard</a>
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
           <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
-          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Upload</a>
+          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
           
           <!-- Workers Dropdown -->
           <div class="relative group">
@@ -120,125 +112,140 @@
       <a href="{% url 'logout' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
     </div>
   </nav>
-
-  <!-- Upload Section -->
-  <div class="max-w-5xl mx-auto py-10 px-4 grid md:grid-cols-2 gap-8">
-    <!-- Success/Error Messages -->
+  
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto py-10 px-6 bg-blue-100 dark:bg-gray-800">
+    <h1 class="text-3xl font-bold mb-8 text-center text-blue-900 dark:text-indigo-300">Account Settings</h1>
+    
     {% if messages %}
-      <div class="md:col-span-2">
+      <div class="mb-6">
         {% for message in messages %}
-          <div class="mb-4 p-4 text-white rounded-md
-                     {% if message.tags == 'success' %} bg-green-500
-                     {% else %} bg-red-500{% endif %}">
+          <div class="p-4 mb-4 text-sm rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}" role="alert">
             {{ message }}
           </div>
         {% endfor %}
       </div>
     {% endif %}
-
-    <!-- CSV Upload -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
-      <h2 class="text-xl font-bold mb-4">Upload CSV File</h2>
-      <form method="post" enctype="multipart/form-data" class="space-y-4">
-        {% csrf_token %}
-        <input type="hidden" name="form_type" value="csv">
-        <input type="file" name="csv_file" accept=".csv" required
-               class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900 file:text-indigo-700 dark:file:text-indigo-200 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-800"/>
-        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition">Upload & Analyze</button>
-      </form>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
-          Need a sample? 
-          <a href="{% static 'upload/sample_business_data.csv' %}" 
-            download="sample_business_data.csv"
-            class="text-indigo-600 dark:text-indigo-400 hover:underline">
-              Download sample CSV
-          </a>
-      </p>
-    </div>
-
-    <!-- Manual Entry -->
-    <!-- Manual Entry Form Section -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
-      <h2 class="text-xl font-bold mb-4">Manual Data Entry</h2>
-      <form method="post" class="space-y-4">
+    
+    <div class="space-y-10">
+      <!-- Personal Information -->
+      <section class="bg-white dark:bg-gray-700 rounded shadow p-6">
+        <h2 class="text-xl font-semibold mb-4 text-blue-800 dark:text-indigo-300">Personal Information</h2>
+        <form method="post" action="{% url 'settings' %}">
           {% csrf_token %}
-          <input type="hidden" name="form_type" value="manual">
-          <div class="grid grid-cols-2 gap-4">
-              <div>
-                  <label class="block text-sm font-medium mb-1">Date</label>
-                  <input type="date" name="date" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Product</label>
-                  <input type="text" name="product" placeholder="Product Name" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Category</label>
-                  <input type="text" name="category" placeholder="Category" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Quantity</label>
-                  <input type="number" name="quantity" placeholder="Number of units" min="1" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Production Cost (per unit)</label>
-                  <input type="number" name="production_cost" placeholder="Cost to produce one unit" step="0.01" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Selling Price (per unit)</label>
-                  <input type="number" name="selling_price" placeholder="Price per unit" step="0.01" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Region</label>
-                  <input type="text" name="region" placeholder="Region" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Customer Type</label>
-                  <select name="customer_type" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-                      <option value="">Select Type</option>
-                      <option value="Retail">Retail</option>
-                      <option value="Wholesale">Wholesale</option>
-                      <option value="Online">Online</option>
-                  </select>
-              </div>
+          <input type="hidden" name="update_personal" value="1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">Full Name</label>
+              <input type="text" name="full_name" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" value="{{ user.name }}" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">Username</label>
+              <input type="text" name="username" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" value="{{ user.username }}" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">Email</label>
+              <input type="email" name="email" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" value="{{ user.email }}" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">Phone Number</label>
+              <input type="tel" name="phone" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" value="{{ user.phone }}" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">Location</label>
+              <input type="text" name="location" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" value="{{ user.location }}" />
+            </div>
           </div>
-          <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">Submit Entry</button>
-      </form>
+          <div class="mt-4 text-right">
+            <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save Changes</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Security Section -->
+      <section class="bg-white dark:bg-gray-700 rounded shadow p-6">
+        <h2 class="text-xl font-semibold mb-4 text-blue-800 dark:text-indigo-300">Security Settings</h2>
+        <form method="post" action="{% url 'settings' %}">
+          {% csrf_token %}
+          <input type="hidden" name="update_password" value="1">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">Current Password</label>
+              <input type="password" name="current_password" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">New Password</label>
+              <input type="password" name="new_password" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-blue-600 dark:text-gray-200">Confirm New Password</label>
+              <input type="password" name="confirm_password" class="w-full mt-1 px-3 py-2 border rounded border-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required />
+            </div>
+          </div>
+          <div class="mt-4 text-right">
+            <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Update Password</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Notifications -->
+      <section class="bg-white dark:bg-gray-700 rounded shadow p-6">
+        <h2 class="text-xl font-semibold mb-4 text-blue-800 dark:text-indigo-300">Notification Preferences</h2>
+        <form method="post" action="{% url 'settings' %}">
+          {% csrf_token %}
+          <input type="hidden" name="update_notifications" value="1">
+          <div class="space-y-3 text-gray-800 dark:text-gray-200">
+            <label class="flex items-center space-x-3">
+              <input type="checkbox" name="comments" class="form-checkbox text-indigo-600" {% if user.notifications.comments %}checked{% endif %} />
+              <span>Email me when someone comments on my insights</span>
+            </label>
+            <label class="flex items-center space-x-3">
+              <input type="checkbox" name="weekly_summary" class="form-checkbox text-indigo-600" {% if user.notifications.weekly_summary %}checked{% endif %} />
+              <span>Send weekly usage summary</span>
+            </label>
+            <label class="flex items-center space-x-3">
+              <input type="checkbox" name="updates" class="form-checkbox text-indigo-600" {% if user.notifications.updates %}checked{% endif %} />
+              <span>Product updates and announcements</span>
+            </label>
+          </div>
+          <div class="mt-4 text-right">
+            <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save Preferences</button>
+          </div>
+        </form>
+      </section>
     </div>
   </div>
 
-  <!-- JavaScript -->
+  <!-- ✅ Dark Mode Script -->
   <script>
-    // Theme elements
-    const themeToggle = document.getElementById('themeToggle');
-    const lightIcon = document.getElementById('lightIcon');
-    const darkIcon = document.getElementById('darkIcon');
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const mobileMenu = document.getElementById('mobileMenu');
-    
     // Mobile menu toggle
-    mobileMenuBtn.addEventListener('click', () => {
-      mobileMenu.classList.toggle('hidden');
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      document.getElementById('mobileMenu').classList.toggle('hidden');
     });
-    
-    // Initial theme setup
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const storedTheme = localStorage.getItem('theme');
-    const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
-    
-    setTheme(isDark);
-    
-    function setTheme(dark) {
-      document.documentElement.classList.toggle('dark', dark);
-      lightIcon.classList.toggle('hidden', dark);
-      darkIcon.classList.toggle('hidden', !dark);
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-    }
-    
-    themeToggle.addEventListener('click', () => {
-      const isNowDark = !document.documentElement.classList.contains('dark');
-      setTheme(isNowDark);
-    });
+    // Theme elements
+      const themeToggle = document.getElementById('themeToggle');
+      const lightIcon = document.getElementById('lightIcon');
+      const darkIcon = document.getElementById('darkIcon');
+      
+      // Initial theme setup
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const storedTheme = localStorage.getItem('theme');
+      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+      
+      setTheme(isDark);
+      
+      function setTheme(dark) {
+        document.documentElement.classList.toggle('dark', dark);
+        lightIcon.classList.toggle('hidden', dark);
+        darkIcon.classList.toggle('hidden', !dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      }
+      
+      themeToggle.addEventListener('click', () => {
+        const isNowDark = !document.documentElement.classList.contains('dark');
+        setTheme(isNowDark);
+        updateCharts();
+      });
   </script>
 </body>
 </html>

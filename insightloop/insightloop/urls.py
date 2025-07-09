@@ -12,4 +12,8 @@ urlpatterns = [
     path('upload/', include('upload.urls')),
     path('distribution/', include('worker.urls')),
     path('aiexport/', include('aiexport.urls')),
+    path('user/', include('misc.urls')),
+
+
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,29 +1,19 @@
-<!DOCTYPE html>
+
 {% load static %}
-<html lang="en" class="transition-colors duration-300">
+<!DOCTYPE html>
+<html lang="en" class="transition duration-300">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Upload Data – InsightLoop</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>User Profile</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-    };
+    tailwind.config = { darkMode: 'class' };
   </script>
-  <style>
-    .errorlist {
-      color: #ef4444;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-    }
-  </style>
 </head>
-<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-  
-  <!-- Header/Navigation -->
-  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition duration-300">
+  <!-- Navigation and other content same as before -->
+   <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16 items-center">
         
@@ -35,9 +25,9 @@
         
         <!-- Main Navigation (Desktop) -->
         <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
-          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 ">Dashboard</a>
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
           <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
-          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">Upload</a>
+          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
           
           <!-- Workers Dropdown -->
           <div class="relative group">
@@ -120,125 +110,103 @@
       <a href="{% url 'logout' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
     </div>
   </nav>
+  
+  <!-- Profile Content -->
+  <div class="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-bold mb-8 text-center text-blue-800 dark:text-blue-400">User Profile</h1>
 
-  <!-- Upload Section -->
-  <div class="max-w-5xl mx-auto py-10 px-4 grid md:grid-cols-2 gap-8">
-    <!-- Success/Error Messages -->
-    {% if messages %}
-      <div class="md:col-span-2">
-        {% for message in messages %}
-          <div class="mb-4 p-4 text-white rounded-md
-                     {% if message.tags == 'success' %} bg-green-500
-                     {% else %} bg-red-500{% endif %}">
-            {{ message }}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div class="flex flex-col md:flex-row md:items-center gap-6">
+        <!-- Avatar -->
+        <div class="flex-shrink-0">
+          <img src="{% static 'assets/user-avatar.png' %}" alt="User Avatar" class="w-32 h-32 rounded-full border-2 border-indigo-500 object-cover shadow-sm">
+        </div>
+
+        <!-- Info -->
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-blue-600 dark:text-blue-300">Full Name</label>
+            <p class="text-lg font-semibold">{{ user.name }}</p>
           </div>
-        {% endfor %}
+          <div>
+            <label class="text-sm font-medium text-blue-600 dark:text-blue-300">Username</label>
+            <p class="text-lg font-semibold">@{{ user.username }}</p>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-blue-600 dark:text-blue-300">Email Address</label>
+            <p class="text-lg font-semibold">{{ user.email }}</p>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-blue-600 dark:text-blue-300">Phone Number</label>
+            <p class="text-lg font-semibold">{{ user.phone }}</p>
+          </div>
+        </div>
       </div>
-    {% endif %}
 
-    <!-- CSV Upload -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
-      <h2 class="text-xl font-bold mb-4">Upload CSV File</h2>
-      <form method="post" enctype="multipart/form-data" class="space-y-4">
-        {% csrf_token %}
-        <input type="hidden" name="form_type" value="csv">
-        <input type="file" name="csv_file" accept=".csv" required
-               class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900 file:text-indigo-700 dark:file:text-indigo-200 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-800"/>
-        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition">Upload & Analyze</button>
-      </form>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
-          Need a sample? 
-          <a href="{% static 'upload/sample_business_data.csv' %}" 
-            download="sample_business_data.csv"
-            class="text-indigo-600 dark:text-indigo-400 hover:underline">
-              Download sample CSV
-          </a>
-      </p>
-    </div>
+      <hr class="my-6 border-gray-300 dark:border-gray-600">
 
-    <!-- Manual Entry -->
-    <!-- Manual Entry Form Section -->
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
-      <h2 class="text-xl font-bold mb-4">Manual Data Entry</h2>
-      <form method="post" class="space-y-4">
-          {% csrf_token %}
-          <input type="hidden" name="form_type" value="manual">
-          <div class="grid grid-cols-2 gap-4">
-              <div>
-                  <label class="block text-sm font-medium mb-1">Date</label>
-                  <input type="date" name="date" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Product</label>
-                  <input type="text" name="product" placeholder="Product Name" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Category</label>
-                  <input type="text" name="category" placeholder="Category" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white">
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Quantity</label>
-                  <input type="number" name="quantity" placeholder="Number of units" min="1" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Production Cost (per unit)</label>
-                  <input type="number" name="production_cost" placeholder="Cost to produce one unit" step="0.01" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Selling Price (per unit)</label>
-                  <input type="number" name="selling_price" placeholder="Price per unit" step="0.01" min="0" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Region</label>
-                  <input type="text" name="region" placeholder="Region" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-              </div>
-              <div>
-                  <label class="block text-sm font-medium mb-1">Customer Type</label>
-                  <select name="customer_type" class="border p-2 rounded-lg w-full dark:bg-gray-700 dark:text-white" required>
-                      <option value="">Select Type</option>
-                      <option value="Retail">Retail</option>
-                      <option value="Wholesale">Wholesale</option>
-                      <option value="Online">Online</option>
-                  </select>
-              </div>
-          </div>
-          <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">Submit Entry</button>
-      </form>
+      <!-- Business Details -->
+      <h2 class="text-xl font-bold mb-4 text-blue-800 dark:text-blue-400">Business Details</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-medium text-blue-600 dark:text-blue-300">Company Name</label>
+          <p class="text-lg font-semibold">{{ company.name }}</p>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-blue-600 dark:text-blue-300">Business Type</label>
+          <p class="text-lg font-semibold">{{ company.business_type }}</p>
+        </div>
+      </div>
+
+      <hr class="my-6 border-gray-300 dark:border-gray-600">
+
+      <!-- Account Info -->
+      <h2 class="text-xl font-bold mb-4 text-blue-800 dark:text-blue-400">Account Information</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-medium text-blue-600 dark:text-blue-300">Member Since</label>
+          <p class="text-lg font-semibold">{{ user.created_at }}</p>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-indigo-600 dark:text-indigo-400">Current Subscription</label>
+          <p class="text-lg font-semibold text-indigo-600 dark:text-indigo-400">{{ user.subscription }}</p>
+        </div>
+      </div>
+
+      <div class="mt-8 flex justify-end">
+        <a href="{% url 'billing' %}" class="px-6 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-md font-medium transition">Manage Subscription</a>
+      </div>
     </div>
   </div>
-
-  <!-- JavaScript -->
   <script>
-    // Theme elements
-    const themeToggle = document.getElementById('themeToggle');
-    const lightIcon = document.getElementById('lightIcon');
-    const darkIcon = document.getElementById('darkIcon');
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const mobileMenu = document.getElementById('mobileMenu');
-    
     // Mobile menu toggle
-    mobileMenuBtn.addEventListener('click', () => {
-      mobileMenu.classList.toggle('hidden');
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      document.getElementById('mobileMenu').classList.toggle('hidden');
     });
-    
-    // Initial theme setup
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const storedTheme = localStorage.getItem('theme');
-    const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
-    
-    setTheme(isDark);
-    
-    function setTheme(dark) {
-      document.documentElement.classList.toggle('dark', dark);
-      lightIcon.classList.toggle('hidden', dark);
-      darkIcon.classList.toggle('hidden', !dark);
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-    }
-    
-    themeToggle.addEventListener('click', () => {
-      const isNowDark = !document.documentElement.classList.contains('dark');
-      setTheme(isNowDark);
-    });
+    // Theme elements
+      const themeToggle = document.getElementById('themeToggle');
+      const lightIcon = document.getElementById('lightIcon');
+      const darkIcon = document.getElementById('darkIcon');
+      
+      // Initial theme setup
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const storedTheme = localStorage.getItem('theme');
+      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+      
+      setTheme(isDark);
+      
+      function setTheme(dark) {
+        document.documentElement.classList.toggle('dark', dark);
+        lightIcon.classList.toggle('hidden', dark);
+        darkIcon.classList.toggle('hidden', !dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      }
+      
+      themeToggle.addEventListener('click', () => {
+        const isNowDark = !document.documentElement.classList.contains('dark');
+        setTheme(isNowDark);
+        updateCharts();
+      });
   </script>
 </body>
 </html>
