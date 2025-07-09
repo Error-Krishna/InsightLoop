@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% comment %} <!DOCTYPE html>
 <html lang="en" class="transition duration-300">
 <head>
   <meta charset="UTF-8" />
@@ -215,6 +215,672 @@
             </button>
           </div>
           <button id="jarvis-settings-btn" class="text-xs text-gray-400 hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Container -->
+  <div id="jarvis-alerts" class="fixed top-6 right-6 z-50 space-y-3 w-96"></div>
+
+  <!-- JavaScript -->
+  <script>
+    // Shared WebSocket connection for both assistants
+    let aiWebSocket;
+    
+    function initWebSocket() {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      aiWebSocket = new WebSocket(`${wsProtocol}//${window.location.host}/ws/ai-assistant/`);
+      
+      aiWebSocket.onmessage = function(e) {
+        const response = JSON.parse(e.data);
+        
+        // Route response to appropriate UI
+        if (response.assistant === 'jarvis') {
+          handleJarvisResponse(response);
+        } else {
+          handleAIResponse(response);
+        }
+      };
+      
+      aiWebSocket.onopen = function() {
+        console.log('WebSocket connection established!');
+        
+        // Show connection status in both assistants
+        const statusMsg = document.createElement("div");
+        statusMsg.className = "self-start bg-green-200 dark:bg-green-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
+        statusMsg.textContent = "Connected to AI Assistant!";
+        document.getElementById("chatBox").appendChild(statusMsg);
+        document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+        
+        const jarvisStatus = document.createElement("div");
+        jarvisStatus.className = "self-start bg-green-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
+        jarvisStatus.textContent = "Connected to AI Assistant!";
+        document.getElementById("jarvis-messages").appendChild(jarvisStatus);
+        document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
+      };
+
+      aiWebSocket.onerror = function(error) {
+        console.error('WebSocket Error:', error);
+        
+        const errorMsg = document.createElement("div");
+        errorMsg.className = "self-start bg-red-200 dark:bg-red-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
+        errorMsg.textContent = "Connection failed. Please refresh the page.";
+        document.getElementById("chatBox").appendChild(errorMsg);
+        document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+        
+        const jarvisError = document.createElement("div");
+        jarvisError.className = "self-start bg-red-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
+        jarvisError.textContent = "Connection failed. Please refresh the page.";
+        document.getElementById("jarvis-messages").appendChild(jarvisError);
+        document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
+      };
+
+      aiWebSocket.onclose = function(event) {
+        console.log('WebSocket closed:', event);
+        
+        const closeMsg = document.createElement("div");
+        closeMsg.className = "self-start bg-yellow-200 dark:bg-yellow-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
+        closeMsg.textContent = "Connection closed. Try reconnecting.";
+        document.getElementById("chatBox").appendChild(closeMsg);
+        document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+        
+        const jarvisClose = document.createElement("div");
+        jarvisClose.className = "self-start bg-yellow-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
+        jarvisClose.textContent = "Connection closed. Try reconnecting.";
+        document.getElementById("jarvis-messages").appendChild(jarvisClose);
+        document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
+      };
+    }
+    
+    function handleAIResponse(response) {
+      // Handle responses for the main AI Export page
+      switch(response.action) {
+        case 'navigate':
+          window.location.href = response.url;
+          break;
+        case 'download':
+          // Create a temporary link to trigger download
+          const link = document.createElement('a');
+          link.href = response.file_url;
+          link.download = response.file_url.split('/').pop();
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Show success message
+          const successMsg = document.createElement("div");
+          successMsg.className = "self-start bg-green-200 dark:bg-green-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
+          successMsg.textContent = response.message || "Your export is ready! Downloading...";
+          document.getElementById("chatBox").appendChild(successMsg);
+          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          break;
+        case 'display':
+          const botMsg = document.createElement("div");
+          botMsg.className = "self-start bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
+          
+          try {
+            // Try to parse as JSON for structured data
+            const data = JSON.parse(response.content);
+            let content = '<div class="font-semibold">Analysis Results:</div>';
+            data.forEach(item => {
+              content += `<div class="mt-1">${item.name}: ${item.productivity}%</div>`;
+            });
+            botMsg.innerHTML = content;
+          } catch {
+            // Regular text response
+            botMsg.textContent = response.content;
+          }
+          
+          document.getElementById("chatBox").appendChild(botMsg);
+          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          break;
+        case 'message':
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "self-start bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
+          messageDiv.textContent = response.content;
+          document.getElementById("chatBox").appendChild(messageDiv);
+          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          break;
+        case 'error':
+          const errorMsg = document.createElement("div");
+          errorMsg.className = "self-start bg-red-200 dark:bg-red-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
+          errorMsg.textContent = response.content;
+          document.getElementById("chatBox").appendChild(errorMsg);
+          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          break;
+        default:
+          console.log("Unknown action:", response.action);
+      }
+    }
+    
+    function handleJarvisResponse(response) {
+      // Handle responses for the JARVIS assistant
+      const messagesDiv = document.getElementById("jarvis-messages");
+      
+      switch(response.type) {
+        case 'welcome':
+          const welcomeMsg = document.createElement("div");
+          welcomeMsg.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
+          welcomeMsg.textContent = response.greeting;
+          messagesDiv.appendChild(welcomeMsg);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          break;
+          
+        case 'message':
+          const messageEl = document.createElement("div");
+          messageEl.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
+          messageEl.textContent = response.content;
+          messagesDiv.appendChild(messageEl);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          break;
+          
+        case 'download':
+          const downloadMsg = document.createElement("div");
+          downloadMsg.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
+          downloadMsg.textContent = response.message;
+          messagesDiv.appendChild(downloadMsg);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          
+          // Trigger download
+          const link = document.createElement('a');
+          link.href = response.file_url;
+          link.download = response.file_url.split('/').pop();
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          break;
+          
+        case 'visualization':
+          // Visualization rendering would go here
+          break;
+          
+        case 'alert':
+          const alertEl = document.createElement("div");
+          alertEl.className = "jarvis-alert bg-gradient-to-r from-red-700/90 to-red-800/90 text-white rounded-lg p-4 border border-red-500 shadow-lg flex items-start";
+          alertEl.innerHTML = `
+            <div class="mr-3 text-xl">⚠️</div>
+            <div class="flex-1">
+              <div class="font-semibold">${response.priority.toUpperCase()} PRIORITY</div>
+              <div class="text-sm mt-1">${response.message}</div>
+            </div>
+            <button class="ml-2 text-gray-300 hover:text-white close-alert">✕</button>
+          `;
+          document.getElementById("jarvis-alerts").appendChild(alertEl);
+          
+          // Auto-remove after 10 seconds
+          setTimeout(() => {
+            alertEl.remove();
+          }, 10000);
+          
+          // Close button
+          alertEl.querySelector('.close-alert').addEventListener('click', () => {
+            alertEl.remove();
+          });
+          break;
+          
+        default:
+          console.log("Unknown JARVIS response type:", response.type);
+      }
+    }
+    
+    // Voice recognition for both assistants
+    let recognition = null;
+    
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+    
+      recognition.onresult = function(event) {
+        const command = event.results[0][0].transcript;
+        
+        // Determine which assistant is active
+        if (!document.getElementById("jarvis-panel").classList.contains('hidden')) {
+          document.getElementById("jarvis-input").value = command;
+          sendJarvisCommand(command);
+        } else {
+          document.getElementById("userInput").value = command;
+          sendCommandToAI(command);
+        }
+      };
+    
+      recognition.onerror = function(event) {
+        console.error('Speech recognition error', event.error);
+      };
+    }
+    
+    function sendCommandToAI(command) {
+      // Add user message to chat
+      const chatBox = document.getElementById("chatBox");
+      const userMsg = document.createElement("div");
+      userMsg.className = "self-end bg-blue-600 text-white rounded-lg px-4 py-2 max-w-md ml-auto";
+      userMsg.textContent = command;
+      chatBox.appendChild(userMsg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      
+      // Send via WebSocket
+      if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
+        aiWebSocket.send(JSON.stringify({ 
+          command: command,
+          assistant: 'export-ai'
+        }));
+      }
+    }
+    
+    function sendJarvisCommand(command) {
+      // Add user message to JARVIS chat
+      const jarvisMessages = document.getElementById("jarvis-messages");
+      const userMsg = document.createElement("div");
+      userMsg.className = "self-end bg-blue-700 text-white rounded-lg px-4 py-2 max-w-[80%] ml-auto mb-3";
+      userMsg.textContent = command;
+      jarvisMessages.appendChild(userMsg);
+      jarvisMessages.scrollTop = jarvisMessages.scrollHeight;
+      
+      // Send via WebSocket
+      if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
+        aiWebSocket.send(JSON.stringify({ 
+          command: command,
+          assistant: 'jarvis'
+        }));
+      }
+    }
+    
+    // Button shortcut handler
+    function sendCommand(command) {
+      sendCommandToAI(command);
+    }
+    
+    // Form submit handler
+    function sendMessage() {
+      const message = document.getElementById("userInput").value.trim();
+      if (!message) return;
+      sendCommandToAI(message);
+      document.getElementById("userInput").value = "";
+    }
+    
+    // JARVIS functionality
+    const jarvis = {
+      init: function() {
+        // Setup event listeners
+        document.getElementById('jarvis-head').addEventListener('click', () => {
+          const panel = document.getElementById('jarvis-panel');
+          panel.classList.toggle('hidden');
+        });
+        
+        document.getElementById('jarvis-send-btn').addEventListener('click', () => this.sendMessage());
+        document.getElementById('jarvis-input').addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') this.sendMessage();
+        });
+        
+        document.getElementById('jarvis-voice-toggle').addEventListener('click', () => this.toggleVoiceMode());
+        
+        document.querySelectorAll('.jarvis-quick-cmd').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const command = e.target.dataset.cmd;
+            document.getElementById('jarvis-input').value = command;
+            this.sendMessage();
+          });
+        });
+      },
+      
+      sendMessage: function() {
+        const input = document.getElementById('jarvis-input');
+        const message = input.value.trim();
+        if (!message) return;
+        
+        sendJarvisCommand(message);
+        input.value = '';
+      },
+      
+      toggleVoiceMode: function() {
+        if (!recognition) {
+          return;
+        }
+        
+        if (recognition && recognition.running) {
+          recognition.stop();
+          document.getElementById('jarvis-voice-toggle').classList.remove('bg-red-500', 'animate-pulse');
+        } else {
+          recognition.start();
+          document.getElementById('jarvis-voice-toggle').classList.add('bg-red-500', 'animate-pulse');
+          
+          // Show listening message
+          const listeningMsg = document.createElement("div");
+          listeningMsg.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
+          listeningMsg.textContent = "Listening...";
+          document.getElementById("jarvis-messages").appendChild(listeningMsg);
+          document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
+        }
+      }
+    };
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize WebSocket connection
+      initWebSocket();
+      
+      // Initialize JARVIS
+      jarvis.init();
+      
+      // Theme toggle (existing functionality)
+      const themeToggle = document.getElementById('themeToggle');
+      const lightIcon = document.getElementById('lightIcon');
+      const darkIcon = document.getElementById('darkIcon');
+      
+      // Initial theme setup
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const storedTheme = localStorage.getItem('theme');
+      const isDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+      
+      setTheme(isDark);
+      
+      function setTheme(dark) {
+        document.documentElement.classList.toggle('dark', dark);
+        lightIcon.classList.toggle('hidden', dark);
+        darkIcon.classList.toggle('hidden', !dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+      }
+      
+      themeToggle.addEventListener('click', () => {
+        const isNowDark = !document.documentElement.classList.contains('dark');
+        setTheme(isNowDark);
+      });
+    });
+  </script>
+</body>
+</html> {% endcomment %}
+
+
+
+<!DOCTYPE html>
+<html lang="en" class="transition duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Export & Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+  <style>
+    .coming-soon-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+      z-index: 10;
+    }
+    .coming-soon-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      z-index: 20;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body class="bg-blue-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition duration-300">
+
+  <!-- Header/Navigation -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">IL</div>
+          <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">InsightLoop</span>
+        </div>
+        
+        <!-- Main Navigation (Desktop) -->
+        <div class="hidden md:flex space-x-6 text-sm font-family text-gray-700 dark:text-gray-300 items-center">
+          <a href="{% url 'dashboard' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+          <a href="{% url 'insights' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+          <a href="{% url 'upload' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+          
+          <!-- Workers Dropdown -->
+          <div class="relative group">
+            <button class="hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none">Workers</button>
+            <div class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="{% url 'material_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Material Distribution</a>
+              <a href="{% url 'pay_distribution' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Pay Distribution</a>
+            </div>
+          </div>
+          
+          <a href="{% url 'aiexport' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold">AI & Export</a>
+        </div>
+        
+        <!-- Profile & Settings -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark Mode Toggle -->
+          <button id="themeToggle" class="theme-toggle p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+            <svg id="lightIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+            </svg>
+            <svg id="darkIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark:text-gray-300 hidden" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          </button>
+          
+          <!-- Profile Dropdown -->
+          <div class="relative group hidden md:block">
+            <button class="focus:outline-none">
+              {% if request.session.user_name %}
+                {% with name=request.session.user_name %}
+                  {% with parts=name.split %}
+                    {% if parts|length >= 2 %}
+                      <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">{{ parts.0.0|upper }}{{ parts.1.0|upper }}</div>
+                    {% else %}
+                      <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">{{ name|slice:":2"|upper }}</div>
+                    {% endif %}
+                  {% endwith %}
+                {% endwith %}
+              {% else %}
+                <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">IL</div>
+              {% endif %}
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition duration-150 ease-in-out z-50 border dark:border-gray-700">
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Billing</a>
+              <a href="{% url 'logout' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+            </div>
+          </div>
+          
+          <!-- Mobile Menu Button -->
+          <button id="mobileMenuBtn" class="md:hidden focus:outline-none">
+            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden hidden px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <a href="{% url 'dashboard' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Dashboard</a>
+      <a href="{% url 'insights' %}" class="block text-gray-7 00 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Insights</a>
+      <a href="{% url 'upload' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Upload</a>
+      
+      <!-- Workers Submenu -->
+      <div>
+        <span class="block text-gray-700 dark:text-gray-300 font-semibold">Workers</span>
+        <a href="{% url 'material_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Material Distribution</a>
+        <a href="{% url 'pay_distribution' %}" class="block ml-4 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Pay Distribution</a>
+      </div>
+      
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">AI & Export</a>
+      
+      <hr class="border-gray-200 dark:border-gray-700">
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Profile</a>
+      <a href="#" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Settings</a>
+      <a href="{% url 'logout' %}" class="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-4 p-6 max-w-7xl mx-auto w-full">
+
+    <!-- Export Section -->
+    <section class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 flex flex-col gap-4">
+      <h2 class="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">📊 Export Reports</h2>
+      <button class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition" onclick="sendCommand('Export Business Trends')">Export Business Trends</button>
+      <button class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition" onclick="sendCommand('Export Worker Payments')">Export Worker Management</button>
+      <button class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition" onclick="sendCommand('Export Salary Payments')">Export Salary & Payments</button>
+      <button class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition" onclick="sendCommand('Export Complete Analytics')">Export Complete Analytics</button>
+    </section>
+
+    <!-- AI Chat Section -->
+    <section class="col-span-2 bg-blue-600 dark:bg-blue-700 rounded-lg shadow-md flex flex-col p-6 relative">
+      <!-- "Coming Soon" badge -->
+      <div class="coming-soon-badge">AI COMING SOON</div>
+      
+      <!-- Overlay for AI section -->
+      <div class="coming-soon-overlay">
+        <div class="text-center p-4">
+          <div class="text-2xl font-bold text-white mb-2">AI Assistant Coming Soon!</div>
+          <p class="text-white/80 mb-4">We're working hard to bring you a powerful AI experience</p>
+          <div class="bg-blue-800/50 rounded-lg p-3 inline-block">
+            <div class="flex justify-center space-x-2 mb-2">
+              <div class="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+              <div class="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-75"></div>
+              <div class="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-150"></div>
+            </div>
+            <div class="text-xs text-blue-200">Currently in development</div>
+          </div>
+        </div>
+      </div>
+      
+      <h2 class="text-xl font-semibold mb-4 text-white">🤖 Talk to Export AI</h2>
+
+      <div id="chatBox" class="flex-1 overflow-y-auto space-y-3 p-4 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 opacity-40">
+        <div class="self-start bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md">
+          👋 Hi! I'm your assistant. Ask anything about your exports, performance, or management.
+        </div>
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        <input
+          id="userInput"
+          type="text"
+          placeholder="Ask something like 'Show me this month's revenue trends...'"
+          class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-40"
+          disabled
+        />
+        <button id="voiceBtn" class="p-2 bg-blue-500 text-white rounded-full opacity-40" disabled>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>
+        </button>
+        <button onclick="sendMessage()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 opacity-40" disabled>Send</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-200 dark:bg-gray-800 text-center py-4 text-sm text-gray-600 dark:text-gray-300">
+    &copy; 2025 ExportAI. Built with 💡 by Krishna Goyal
+  </footer>
+
+  <!-- Floating JARVIS Assistant -->
+  <div id="jarvis-interface" class="fixed bottom-6 right-6 z-50">
+    <div id="jarvis-head" class="w-16 h-16 bg-gradient-to-br from-yellow-600 to-yellow-400 rounded-full flex items-center justify-center cursor-pointer shadow-lg transform transition duration-300 hover:scale-110 relative">
+      <span class="text-2xl font-bold text-white">J</span>
+      <!-- "Coming Soon" badge for JARVIS -->
+      <div class="coming-soon-badge">SOON</div>
+    </div>
+    
+    <!-- Conversation Panel -->
+    <div id="jarvis-panel" class="hidden bg-gray-800 rounded-xl shadow-2xl w-96 h-[600px] mt-2 flex flex-col border border-yellow-500/30">
+      <div class="bg-gradient-to-r from-blue-900 to-indigo-800 p-4 rounded-t-xl">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-yellow-600 to-yellow-400 rounded-full flex items-center justify-center">
+            <span class="text-xl font-bold text-white">J</span>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white">J.A.R.V.I.S.</h3>
+            <div class="flex items-center space-x-1">
+              <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+              <span class="text-xs text-yellow-300">Under Development</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Message Area -->
+      <div id="jarvis-messages" class="flex-1 p-4 space-y-3 overflow-y-auto bg-gray-900/50">
+        <!-- Coming soon message -->
+        <div class="self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3">
+          Hello! I'm J.A.R.V.I.S., your AI assistant.
+        </div>
+        <div class="self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3">
+          Currently under development - coming soon with powerful features!
+        </div>
+        <div class="self-start bg-yellow-900/60 text-yellow-100 rounded-lg px-4 py-2 max-w-[80%] mb-3">
+          ⚠️ AI capabilities launching in the next update
+        </div>
+      </div>
+      
+      <!-- Interaction Area -->
+      <div class="p-3 border-t border-gray-700 bg-gray-800 rounded-b-xl">
+        <div class="flex space-x-2">
+          <button id="jarvis-voice-toggle" class="p-2 bg-gradient-to-br from-gray-600 to-gray-500 rounded-full cursor-not-allowed opacity-50" disabled>
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+            </svg>
+          </button>
+          <input 
+            id="jarvis-input"
+            type="text"
+            placeholder="AI features coming soon..."
+            class="flex-1 bg-gray-700 text-gray-400 rounded-lg px-4 py-2 focus:outline-none cursor-not-allowed"
+            disabled
+          />
+          <button id="jarvis-send-btn" class="bg-gradient-to-r from-gray-600 to-gray-700 text-gray-400 px-4 py-2 rounded-lg cursor-not-allowed" disabled>
+            Send
+          </button>
+        </div>
+        <div class="mt-2 flex justify-between">
+          <div class="flex space-x-1">
+            <button class="jarvis-quick-cmd text-xs bg-gray-700 px-2 py-1 rounded cursor-not-allowed opacity-50" disabled>
+              Export Trends
+            </button>
+            <button class="jarvis-quick-cmd text-xs bg-gray-700 px-2 py-1 rounded cursor-not-allowed opacity-50" disabled>
+              Show Metrics
+            </button>
+            <button class="jarvis-quick-cmd text-xs bg-gray-700 px-2 py-1 rounded cursor-not-allowed opacity-50" disabled>
+              Analyze Usage
+            </button>
+          </div>
+          <button id="jarvis-settings-btn" class="text-xs text-gray-500 cursor-not-allowed" disabled>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
