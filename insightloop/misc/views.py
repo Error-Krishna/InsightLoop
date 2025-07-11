@@ -96,6 +96,21 @@ def settings(request):
                 }
                 user.save()
                 messages.success(request, 'Notification preferences updated!')
+            
+            # Profile Picture Update
+            elif 'update_profile_pic' in request.POST:
+                profile_pic = request.FILES.get('profile_pic', None)
+                if profile_pic:
+                    # Delete old profile pic if exists
+                    if user.profile_pic:
+                        user.profile_pic.delete()
+                    
+                    # Save new profile pic
+                    user.profile_pic = profile_pic
+                    user.save()
+                    messages.success(request, 'Profile picture updated successfully!')
+                else:
+                    messages.error(request, 'Please select an image to upload')
         
         context = {'user': user}
         return render(request, 'misc/Setting.html', context)

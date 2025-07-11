@@ -4,9 +4,9 @@ class CompanyMiddleware:
         
     def __call__(self, request):
         # Check if session has authentication info
-        if 'user_email' in request.session and 'company_id' in request.session:
+        if 'user_email' in request.session:
             # Set request attributes from session
-            request.company_id = request.session['company_id']
+            request.company_id = request.session.get('company_id')
             request.user_email = request.session['user_email']
             request.user_name = request.session.get('user_name', '')
             request.company_name = request.session.get('company_name', '')

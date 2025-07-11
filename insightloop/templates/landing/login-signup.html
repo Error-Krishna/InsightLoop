@@ -23,15 +23,26 @@
   </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-950 min-h-screen flex items-center justify-center px-4 text-gray-900 dark:text-gray-100">
-
+  
   <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-md space-y-6 transition">
+    
     <h2 class="text-3xl font-bold text-center text-blue-600 dark:text-blue-400">Welcome to InsightLoop</h2>
 
     <!-- Tabs -->
     <div class="flex justify-center space-x-8 text-gray-600 dark:text-gray-300 font-semibold border-b dark:border-gray-700 mb-6">
+      
       <button id="loginTab" class="pb-2 tab-active text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400">Login</button>
       <button id="signupTab" class="pb-2">Sign Up</button>
     </div>
+    {% if messages %}
+      <div class="mb-6">
+        {% for message in messages %}
+          <div class="p-4 mb-4 text-sm rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
 
     <!-- Login Form -->
     <form id="loginForm" method="POST" action="{% url 'login' %}" class="space-y-4">
@@ -69,20 +80,21 @@
 
     <!-- Social Buttons -->
     <div class="flex flex-col space-y-3">
-      <button class="flex items-center justify-center border border-gray-300 dark:border-gray-600 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-        <img src="https://img.icons8.com/color/24/google-logo.png" class="mr-2" alt="Google" />
-        Sign in with Google
-      </button>
-      <button class="flex items-center justify-center border border-gray-300 dark:border-gray-600 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-        <img src="https://img.icons8.com/ios-filled/24/github.png" class="mr-2" alt="GitHub" />
-        Sign in with GitHub
-      </button>
-      <button class="flex items-center justify-center border border-gray-300 dark:border-gray-600 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+      <a href="{% url 'google_auth' %}" class="flex items-center justify-center border border-gray-300 dark:border-gray-600 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+          <img src="https://img.icons8.com/color/24/google-logo.png" class="mr-2" alt="Google" />
+          Sign in with Google
+      </a>
+      <a href="{% url 'github_auth' %}" class="flex items-center justify-center border border-gray-300 dark:border-gray-600 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+          <img src="https://img.icons8.com/ios-filled/24/github.png" class="mr-2" alt="GitHub" />
+          Sign in with GitHub
+      </a>
+      {% comment %} <button class="flex items-center justify-center border border-gray-300 dark:border-gray-600 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">
         <img src="https://img.icons8.com/color/24/linkedin.png" class="mr-2" alt="LinkedIn" />
         Sign in with LinkedIn
-      </button>
+      </button> {% endcomment %}
     </div>
   </div>
+  
 
     <!-- Toggle Button (Icon) -->
     <div class="absolute top-4 right-4">
