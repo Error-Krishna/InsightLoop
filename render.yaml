@@ -8,7 +8,7 @@ services:
       find . -type d
       echo "=== Python Path ==="
       python -c "import sys; print('\n'.join(sys.path))"
-    startCommand: gunicorn asgi_entry:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    startCommand: gunicorn insightloop.asgi:application --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHONPATH
         value: /opt/render/project/src
