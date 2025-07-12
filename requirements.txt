@@ -99,3 +99,4 @@ hpack==4.1.0
 priority==1.3.0
 pyOpenSSL
 service-identity
+uvicorn
