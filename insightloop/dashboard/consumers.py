@@ -3,19 +3,18 @@ from .utils import get_dashboard_data
 from .encoders import CustomJSONEncoder
 import json
 from django.contrib.auth.models import AnonymousUser
-from channels.db import database_sync_to_async
 
 class DashboardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # Get company_id from session
         session = self.scope.get("session")
-        if not session or 'company_id' not in session:
-            await self.close(code=4001)
+        if not session:
+            await self.close()
             return
             
         company_id = session.get("company_id")
         if not company_id:
-            await self.close(code=4001)
+            await self.close()
             return
         
         # Add to company-specific group
@@ -24,7 +23,7 @@ class DashboardConsumer(AsyncWebsocketConsumer):
         await self.accept()
         
         # Send initial data
-        data = await database_sync_to_async(get_dashboard_data)(company_id)
+        data = get_dashboard_data(company_id)
         await self.send(json.dumps(data, cls=CustomJSONEncoder))
 
     async def disconnect(self, close_code):
