@@ -775,10 +775,14 @@
     function initWebSocket() {
       // Get company ID from session
       const companyId = "{{ request.company_id }}";
+      if (!companyId) {
+        console.error("No company ID available for WebSocket connection");
+        return;
+      }
       
       // Determine WebSocket protocol
       const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const socketUrl = `${wsScheme}://${window.location.host}/ws/dashboard/?company_id=${companyId}`;
+      const socketUrl = `${wsScheme}://${window.location.host}/ws/dashboard?company_id=${companyId}`;
       
       const socket = new WebSocket(socketUrl);
 
@@ -788,15 +792,19 @@
       };
 
       socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        currentData = {
-          summary: data.summary || currentData.summary,
-          revExp: data.revExp || currentData.revExp,
-          profitTrends: data.profitTrends || currentData.profitTrends,
-          workers: data.workers || currentData.workers,
-          topWorkers: data.topWorkers || currentData.topWorkers
-        };
-        updateDashboard();
+        try {
+          const data = JSON.parse(event.data);
+          currentData = {
+            summary: data.summary || currentData.summary,
+            revExp: data.revExp || currentData.revExp,
+            profitTrends: data.profitTrends || currentData.profitTrends,
+            workers: data.workers || currentData.workers,
+            topWorkers: data.topWorkers || currentData.topWorkers
+          };
+          updateDashboard();
+        } catch (error) {
+          console.error('WebSocket message error:', error);
+        }
       };
 
       socket.onerror = (error) => {
@@ -804,10 +812,15 @@
         document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-red-500';
       };
 
-      socket.onclose = () => {
-        console.log('WebSocket closed. Reconnecting...');
+      socket.onclose = (event) => {
+        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason})`);
         document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-yellow-500';
-        setTimeout(initWebSocket, 3000);
+        
+        // Only reconnect if not a normal closure
+        if (event.code !== 1000) {
+          console.log('Reconnecting in 3 seconds...');
+          setTimeout(initWebSocket, 3000);
+        }
       };
     }
 
