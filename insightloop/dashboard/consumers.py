@@ -2,19 +2,17 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from .utils import get_dashboard_data
 from .encoders import CustomJSONEncoder
 import json
-from django.contrib.auth.models import AnonymousUser
+from channels.db import database_sync_to_async
+from urllib.parse import parse_qs
 
 class DashboardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # Get company_id from session
-        session = self.scope.get("session")
-        if not session:
-            await self.close()
-            return
-            
-        company_id = session.get("company_id")
+        # Get company_id from query parameters
+        query_string = parse_qs(self.scope["query_string"].decode())
+        company_id = query_string.get('company_id', [None])[0]
+        
         if not company_id:
-            await self.close()
+            await self.close(code=4001)  # Custom close code for missing company ID
             return
         
         # Add to company-specific group
@@ -23,8 +21,8 @@ class DashboardConsumer(AsyncWebsocketConsumer):
         await self.accept()
         
         # Send initial data
-        data = get_dashboard_data(company_id)
-        await self.send(json.dumps(data, cls=CustomJSONEncoder))
+        data = await database_sync_to_async(get_dashboard_data)(company_id)
+        await self.send(text_data=json.dumps(data, cls=CustomJSONEncoder))
 
     async def disconnect(self, close_code):
         # Remove from group
@@ -33,4 +31,4 @@ class DashboardConsumer(AsyncWebsocketConsumer):
 
     async def dashboard_update(self, event):
         # Broadcast updates to company group
-        await self.send(json.dumps(event['data'], cls=CustomJSONEncoder))
+        await self.send(text_data=json.dumps(event['data'], cls=CustomJSONEncoder))

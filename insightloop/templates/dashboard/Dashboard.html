@@ -773,8 +773,14 @@
       }
 
     function initWebSocket() {
+      // Get company ID from session
+      const companyId = "{{ request.company_id }}";
+      
+      // Determine WebSocket protocol
       const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const socket = new WebSocket(`${wsScheme}://${window.location.host}/ws/dashboard/`);
+      const socketUrl = `${wsScheme}://${window.location.host}/ws/dashboard/?company_id=${companyId}`;
+      
+      const socket = new WebSocket(socketUrl);
 
       socket.onopen = () => {
         console.log('WebSocket connected');
@@ -787,7 +793,8 @@
           summary: data.summary || currentData.summary,
           revExp: data.revExp || currentData.revExp,
           profitTrends: data.profitTrends || currentData.profitTrends,
-          workers: data.workers || currentData.workers
+          workers: data.workers || currentData.workers,
+          topWorkers: data.topWorkers || currentData.topWorkers
         };
         updateDashboard();
       };
@@ -795,9 +802,6 @@
       socket.onerror = (error) => {
         console.error('WebSocket error:', error);
         document.getElementById('connection-status').className = 'h-3 w-3 rounded-full bg-red-500';
-        if (socket.readyState === WebSocket.CLOSED) {
-          setTimeout(initWebSocket, 3000);
-        }
       };
 
       socket.onclose = () => {

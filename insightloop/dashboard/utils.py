@@ -16,6 +16,7 @@ from django.conf import settings
 from django.http import HttpResponse
 import pandas as pd
 from io import BytesIO
+from channels.db import database_sync_to_async
 from django.core.files.storage import default_storage
 
 from datetime import datetime
@@ -215,8 +216,19 @@ def get_worker_payments(company_id):
         
     return results
 
+async def async_broadcast_update(company_id):
+    data = await database_sync_to_async(get_dashboard_data)(company_id)
+    channel_layer = get_channel_layer()
+    await channel_layer.group_send(
+        f'dashboard_{company_id}',
+        {
+            'type': 'dashboard.update',
+            'data': data
+        }
+    )
+
 def broadcast_update(company_id):
-    data = get_dashboard_data(company_id)
+    async_to_sync(async_broadcast_update)(company_id)
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'dashboard_{company_id}',  # Company-specific group

@@ -8,6 +8,7 @@ from pathlib import Path
 from mongoengine import connect
 import os
 from dotenv import load_dotenv
+import redis
 load_dotenv()
 
 connect(
@@ -129,10 +130,18 @@ EMAIL_HOST_PASSWORD = 'jbff tgkb udlf ouwh'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ADMIN_EMAIL = 'iamkrishnagoyal@gmail.com'
 
-# Channels
+# Configure Redis for production
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+redis_client = redis.from_url(REDIS_URL)
+
+# Channel layers configuration
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [REDIS_URL],
+            "symmetric_encryption_keys": [os.environ.get('CHANNELS_SECRET', 'secret-key')]
+        },
     },
 }
 
