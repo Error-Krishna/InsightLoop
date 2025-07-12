@@ -2,18 +2,16 @@ services:
   - name: insightloop
     type: web
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: daphne -b 0.0.0.0 -p $PORT insightloop.asgi:application
-    envVars:
-      - key: PYTHONPATH
-        value: /opt/render/project/src
-      - key: REDIS_URL
-        fromService:
-          name: insightloop-redis
-          type: redis
-          property: connectionString
-
-  - name: insightloop-redis
-    type: redis
-    plan: free
-    maxmemoryPolicy: noeviction
+    buildCommand: |
+      pip install -r requirements.txt
+      echo "=== Project Structure ==="
+      find . -type d
+      echo "=== Python Path ==="
+      python -c "import sys; print('\n'.join(sys.path))"
+      # Optional: Run collectstatic if using static files
+      python manage.py collectstatic --noinput || echo "No static files to collect"
+    startCommand: >
+      gunicorn insightloop.asgi:application 
+      --chdir insightloop 
+      --worker-class uvicorn.workers.UvicornWorker 
+      --bind 0.0.0.0:$PORT
