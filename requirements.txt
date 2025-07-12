@@ -19,7 +19,7 @@ daphne==4.2.0
 defusedxml==0.7.1
 distlib==0.3.9
 dj-database-url==3.0.1
-Django==5.2.4
+Django==4.2.10
 django-mongoengine==0.5.6
 django-rest-framework-mongoengine==3.4.1
 djangorestframework==3.16.0
