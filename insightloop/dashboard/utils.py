@@ -234,7 +234,7 @@ def broadcast_update(company_id):
         f'dashboard_{company_id}',  # Company-specific group
         {
             'type': 'dashboard.update',
-            'data': data
+            'data': 'data'
         }
     )
 
