@@ -11,10 +11,7 @@ services:
       # Optional: Run collectstatic if using static files
       python manage.py collectstatic --noinput || echo "No static files to collect"
     startCommand: >
-      PYTHONPATH=/opt/render/project/src
       gunicorn insightloop.asgi:application 
+      --chdir insightloop 
       --worker-class uvicorn.workers.UvicornWorker 
       --bind 0.0.0.0:$PORT
-    envVars:
-      - key: PYTHONPATH
-        value: /opt/render/project/src
