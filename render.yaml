@@ -3,7 +3,9 @@ services:
     type: web
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: daphne insightloop.asgi:application --bind 0.0.0.0 --port $PORT
+    startCommand: >
+        PYTHONPATH=/opt/render/project/src 
+        daphne insightloop.asgi:application --bind 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHONPATH
-        value: /opt/render/project/src  # Verify this path matches your structure
+        value: /opt/render/project/src
