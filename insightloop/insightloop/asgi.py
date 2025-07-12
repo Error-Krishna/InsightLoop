@@ -1,5 +1,11 @@
 # insightloop/asgi.py
 import os
+import sys
+
+# Add this to ensure the project root is in sys.path
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
