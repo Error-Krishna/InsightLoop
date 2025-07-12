@@ -215,11 +215,16 @@ def get_worker_payments(company_id):
         
     return results
 
-def broadcast_update(company_id):
-    data = get_dashboard_data(company_id)
+
+def async_get_dashboard_data(company_id):
+    return get_dashboard_data(company_id)
+
+# Update the broadcast_update function
+async def async_broadcast_update(company_id):
+    data = await async_get_dashboard_data(company_id)
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f'dashboard_{company_id}',  # Company-specific group
+    await channel_layer.group_send(
+        f'dashboard_{company_id}',
         {
             'type': 'dashboard.update',
             'data': data

@@ -6,6 +6,7 @@ from .queries import get_rev_exp_data, get_profit_trends
 from .utils import get_worker_payments, get_top_workers
 from .encoders import CustomJSONEncoder
 
+
 # Custom authentication check
 def is_authenticated(request):
     return hasattr(request, 'company_id') and request.company_id and 'user_email' in request.session
