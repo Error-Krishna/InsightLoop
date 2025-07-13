@@ -18,8 +18,7 @@ connect(
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = True
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-9rgdok5ulclnpv(m)5!+*)wg%js%w6hadj^w_#o7iqa_pim24p'
@@ -28,14 +27,10 @@ SECRET_KEY = 'django-insecure-9rgdok5ulclnpv(m)5!+*)wg%js%w6hadj^w_#o7iqa_pim24p
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = [
-    'https://insightloop.onrender.com',
-    'https://*.onrender.com',  # Wildcard for all Render subdomains
-]
+
 
 # Application definition
 INSTALLED_APPS = [
-    'corsheaders',
     'channels',
     "daphne",
     'rest_framework',
@@ -55,7 +50,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -159,17 +153,11 @@ LOGIN_REDIRECT_URL = '/dashboard'
 LOGOUT_REDIRECT_URL = '/'
 
 # Session settings
-SESSION_COOKIE_DOMAIN = '.onrender.com'
-SESSION_COOKIE_NAME = '__Secure-insightloop_session'
-CSRF_COOKIE_NAME = '__Secure-csrftoken'
+SESSION_COOKIE_NAME = 'insightloop_session'
 SESSION_COOKIE_PATH = '/'
-SESSION_COOKIE_SECURE = True  # Set to True in production
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = False  # Set to True in production
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SAMESITE = 'None'
-CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
-CORS_ALLOW_CREDENTIALS = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 86400  # 1 day in seconds
