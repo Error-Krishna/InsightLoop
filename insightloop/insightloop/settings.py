@@ -24,7 +24,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-9rgdok5ulclnpv(m)5!+*)wg%js%w6hadj^w_#o7iqa_pim24p'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+CSRF_TRUSTED_ORIGINS = ['https://insightloop.onrender.com', 'https://your-production-domain.com']
 
 ALLOWED_HOSTS = ['*']
 
@@ -155,7 +156,10 @@ LOGOUT_REDIRECT_URL = '/'
 # Session settings
 SESSION_COOKIE_NAME = 'insightloop_session'
 SESSION_COOKIE_PATH = '/'
-SESSION_COOKIE_SECURE = True  # Set to True in production
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Add this for Render.com
+
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_SAVE_EVERY_REQUEST = True
