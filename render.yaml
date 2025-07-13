@@ -4,12 +4,5 @@ services:
     env: python
     buildCommand: |
       pip install -r requirements.txt
-      echo "=== Project Structure ==="
-      find . -type d
-      echo "=== Python Path ==="
-      python -c "import sys; print('\n'.join(sys.path))"
       python manage.py collectstatic --noinput || echo "No static files to collect"
-    startCommand: >
-      daphne insightloop.asgi:application 
-      --port $PORT 
-      --bind 0.0.0.0
+    startCommand: daphne insightloop.insightloop.asgi:application --port $PORT --bind 0.0.0.0
