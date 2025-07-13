@@ -773,16 +773,11 @@
       }
 
     function initWebSocket() {
-      // Get company ID from session
       const companyId = "{{ request.company_id }}";
-      if (!companyId) {
-        console.error("No company ID available for WebSocket connection");
-        return;
-      }
+      if (!companyId) return;
       
-      // Determine WebSocket protocol
       const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const socketUrl = `${wsScheme}://${window.location.host}/ws/dashboard?company_id=${companyId}`;
+      const socketUrl = `${wsScheme}://${window.location.host}/ws/dashboard/${companyId}/`;
       
       const socket = new WebSocket(socketUrl);
 

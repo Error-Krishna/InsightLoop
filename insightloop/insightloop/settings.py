@@ -136,11 +136,10 @@ redis_client = redis.from_url(REDIS_URL)
 
 # Channel layers configuration
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [REDIS_URL],
-            "symmetric_encryption_keys": [os.environ.get('CHANNELS_SECRET', 'secret-key')]
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.environ.get('redis-10823.c8.us-east-1-4.ec2.redns.redis-cloud.com:10823', 'redis://localhost:6379')],
         },
     },
 }

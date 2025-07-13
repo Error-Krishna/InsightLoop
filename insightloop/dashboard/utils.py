@@ -228,13 +228,13 @@ async def async_broadcast_update(company_id):
     )
 
 def broadcast_update(company_id):
-    async_to_sync(async_broadcast_update)(company_id)
+    data = get_dashboard_data(company_id)
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
-        f'dashboard_{company_id}',  # Company-specific group
+        f'dashboard_{company_id}',
         {
             'type': 'dashboard.update',
-            'data': 'data'
+            'data': data
         }
     )
 
