@@ -27,7 +27,9 @@ SECRET_KEY = 'django-insecure-9rgdok5ulclnpv(m)5!+*)wg%js%w6hadj^w_#o7iqa_pim24p
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+CSRF_TRUSTED_ORIGINS = [
+    'https://insightloop.onrender.com',
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -54,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -156,8 +159,13 @@ LOGOUT_REDIRECT_URL = '/'
 SESSION_COOKIE_NAME = 'insightloop_session'
 SESSION_COOKIE_PATH = '/'
 SESSION_COOKIE_SECURE = False  # Set to True in production
+CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'None'
+CORS_ALLOWED_ORIGINS = [
+    "https://insightloop.onrender.com",
+]
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_AGE = 86400  # 1 day in seconds
