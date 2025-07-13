@@ -5,4 +5,8 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput || echo "No static files to collect"
-    startCommand: daphne insightloop.insightloop.asgi:application --port $PORT --bind 0.0.0.0
+    startCommand: >
+      cd insightloop && 
+      daphne insightloop.asgi:application 
+      --port $PORT 
+      --bind 0.0.0.0
