@@ -777,7 +777,7 @@
       if (!companyId) return;
       
       const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const socketUrl = `${wsScheme}://${window.location.host}/ws/dashboard/${companyId}/`;
+      const socketUrl = `${wsScheme}://${window.location.host}/ws/dashboard/`;
       
       const socket = new WebSocket(socketUrl);
 
