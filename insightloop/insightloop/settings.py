@@ -155,7 +155,7 @@ LOGOUT_REDIRECT_URL = '/'
 # Session settings
 SESSION_COOKIE_NAME = 'insightloop_session'
 SESSION_COOKIE_PATH = '/'
-SESSION_COOKIE_SECURE = False  # Set to True in production
+SESSION_COOKIE_SECURE = True  # Set to True in production
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_SAVE_EVERY_REQUEST = True
