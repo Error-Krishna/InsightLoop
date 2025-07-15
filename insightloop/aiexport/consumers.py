@@ -1,18 +1,35 @@
 # aiexport/consumers.py
 import json
+from aiexport import apps
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .ai_processor import process_ai_command
+from asgiref.sync import database_sync_to_async
 
 class AIAssistantConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # Authenticate using company ID from session
-        session = self.scope.get("session")
-        if not session or not session.get("company_id"):
+        # Get session from HTTP cookies
+        session_key = self.scope["cookies"].get("sessionid")
+        if not session_key:
             await self.close(code=4001)
             return
+            
+        # Get session from database
+        Session = apps.get_model('sessions', 'Session')
+        try:
+            session = await database_sync_to_async(Session.objects.get)(session_key=session_key)
+            session_data = session.get_decoded()
+        except Session.DoesNotExist:
+            await self.close(code=4001)
+            return
+            
+        # Get company_id and user_email from session
+        self.company_id = session_data.get("company_id")
+        self.user_email = session_data.get("user_email")
         
-        self.company_id = session["company_id"]
-        self.user_email = session["user_email"]
+        if not self.company_id or not self.user_email:
+            await self.close(code=4001)
+            return
+            
         self.group_name = f'ai_assistant_{self.company_id}'
         
         await self.channel_layer.group_add(self.group_name, self.channel_name)

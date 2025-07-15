@@ -897,86 +897,182 @@
 
   <!-- JavaScript -->
   <script>
-    // Mobile menu toggle
-    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-      document.getElementById('mobileMenu').classList.toggle('hidden');
-    });
-    // Shared WebSocket connection for both assistants
-    let aiWebSocket;
-    
+    // Global WebSocket reference and state management
+    let aiWebSocket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    const reconnectDelayBase = 1000;
+    let isAuthenticated = false;
+
+    // DOM Elements
+    const connectionStatus = document.createElement("div");
+    const chatBox = document.getElementById("chatBox");
+    const jarvisMessages = document.getElementById("jarvis-messages");
+    const userInput = document.getElementById("userInput");
+    const jarvisInput = document.getElementById("jarvis-input");
+
+    // Create connection status indicator
+    function createStatusIndicator() {
+      connectionStatus.id = "connection-status";
+      connectionStatus.className = "h-3 w-3 rounded-full bg-yellow-500";
+      connectionStatus.title = "Connecting to AI...";
+      connectionStatus.style.position = "absolute";
+      connectionStatus.style.top = "12px";
+      connectionStatus.style.right = "60px";
+      connectionStatus.style.zIndex = "100";
+      document.querySelector("nav").appendChild(connectionStatus);
+    }
+
+    // Notification system
+    function showNotification(message, type = "info") {
+      const notification = document.createElement("div");
+      notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md shadow-lg z-50 ${
+        type === "error" ? "bg-red-500" : 
+        type === "warning" ? "bg-yellow-500" : 
+        type === "success" ? "bg-green-500" : "bg-blue-500"
+      } text-white`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.opacity = "0";
+        notification.style.transition = "opacity 0.5s";
+        setTimeout(() => notification.remove(), 500);
+      }, 3000);
+    }
+
+    // Update connection status indicator
+    function updateConnectionStatus(status) {
+      switch(status) {
+        case 'connected':
+          connectionStatus.className = "h-3 w-3 rounded-full bg-green-500 animate-pulse";
+          connectionStatus.title = "Connected to AI";
+          break;
+        case 'connecting':
+          connectionStatus.className = "h-3 w-3 rounded-full bg-yellow-500 animate-pulse";
+          connectionStatus.title = "Connecting to AI...";
+          break;
+        case 'error':
+          connectionStatus.className = "h-3 w-3 rounded-full bg-red-500";
+          connectionStatus.title = "Connection error";
+          break;
+        case 'disconnected':
+          connectionStatus.className = "h-3 w-3 rounded-full bg-yellow-500";
+          connectionStatus.title = "Disconnected - reconnecting...";
+          break;
+        default:
+          connectionStatus.className = "h-3 w-3 rounded-full bg-gray-500";
+          connectionStatus.title = "Connection status unknown";
+      }
+    }
+
+    // WebSocket initialization
     function initWebSocket() {
+      // Clean up any existing connection
+      if (aiWebSocket) {
+        aiWebSocket.onopen = null;
+        aiWebSocket.onmessage = null;
+        aiWebSocket.onerror = null;
+        aiWebSocket.onclose = null;
+        if (aiWebSocket.readyState === WebSocket.OPEN) {
+          aiWebSocket.close();
+        }
+      }
+      
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       aiWebSocket = new WebSocket(`${wsProtocol}//${window.location.host}/ws/ai-assistant/`);
+      updateConnectionStatus('connecting');
       
-      aiWebSocket.onmessage = function(e) {
-        const response = JSON.parse(e.data);
-        
-        // Route response to appropriate UI
-        if (response.assistant === 'jarvis') {
-          handleJarvisResponse(response);
-        } else {
-          handleAIResponse(response);
-        }
-      };
-      
+      // Connection opened
       aiWebSocket.onopen = function() {
         console.log('WebSocket connection established!');
+        reconnectAttempts = 0;
+        updateConnectionStatus('connected');
+        showNotification("AI Assistant connected", "success");
         
-        // Show connection status in both assistants
-        const statusMsg = document.createElement("div");
-        statusMsg.className = "self-start bg-green-200 dark:bg-green-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
-        statusMsg.textContent = "Connected to AI Assistant!";
-        document.getElementById("chatBox").appendChild(statusMsg);
-        document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+        // Send session cookie to authenticate
+        const sessionCookie = document.cookie.split('; ')
+          .find(row => row.startsWith('sessionid='));
         
-        const jarvisStatus = document.createElement("div");
-        jarvisStatus.className = "self-start bg-green-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
-        jarvisStatus.textContent = "Connected to AI Assistant!";
-        document.getElementById("jarvis-messages").appendChild(jarvisStatus);
-        document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
+        if (sessionCookie) {
+          aiWebSocket.send(JSON.stringify({
+            type: "session",
+            session: sessionCookie.split('=')[1]
+          }));
+        } else {
+          showNotification("Session not found. Please log in again.", "error");
+          console.error("Session cookie not found");
+        }
       };
 
+      // Message received
+      aiWebSocket.onmessage = function(e) {
+        try {
+          const response = JSON.parse(e.data);
+          
+          // Handle session authentication response
+          if (response.type === "session_status") {
+            if (!response.authenticated) {
+              showNotification("Authentication failed. Please log in again.", "error");
+              console.error('Session authentication failed');
+              return;
+            } else {
+              isAuthenticated = true;
+              showNotification("Authenticated successfully", "success");
+            }
+          }
+          
+          // Route response to appropriate UI
+          if (response.assistant === 'jarvis') {
+            handleJarvisResponse(response);
+          } else {
+            handleAIResponse(response);
+          }
+        } catch (error) {
+          console.error('WebSocket message error:', error);
+          showNotification("Error processing AI response", "error");
+        }
+      };
+
+      // Connection error
       aiWebSocket.onerror = function(error) {
-        console.error('WebSocket Error:', error);
-        
-        const errorMsg = document.createElement("div");
-        errorMsg.className = "self-start bg-red-200 dark:bg-red-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
-        errorMsg.textContent = "Connection failed. Please refresh the page.";
-        document.getElementById("chatBox").appendChild(errorMsg);
-        document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
-        
-        const jarvisError = document.createElement("div");
-        jarvisError.className = "self-start bg-red-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
-        jarvisError.textContent = "Connection failed. Please refresh the page.";
-        document.getElementById("jarvis-messages").appendChild(jarvisError);
-        document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
+        console.error('WebSocket error:', error);
+        updateConnectionStatus('error');
+        showNotification("AI connection error. Trying to reconnect...", "error");
       };
 
+      // Connection closed
       aiWebSocket.onclose = function(event) {
-        console.log('WebSocket closed:', event);
+        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason})`);
+        updateConnectionStatus('disconnected');
         
-        const closeMsg = document.createElement("div");
-        closeMsg.className = "self-start bg-yellow-200 dark:bg-yellow-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
-        closeMsg.textContent = "Connection closed. Try reconnecting.";
-        document.getElementById("chatBox").appendChild(closeMsg);
-        document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
-        
-        const jarvisClose = document.createElement("div");
-        jarvisClose.className = "self-start bg-yellow-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
-        jarvisClose.textContent = "Connection closed. Try reconnecting.";
-        document.getElementById("jarvis-messages").appendChild(jarvisClose);
-        document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
+        // Only reconnect for abnormal closures
+        if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+          const delay = Math.min(
+            reconnectDelayBase * Math.pow(2, reconnectAttempts), 
+            30000 // Max 30 seconds
+          );
+          
+          console.log(`Reconnecting in ${delay/1000} seconds (attempt ${reconnectAttempts + 1})...`);
+          showNotification(`Reconnecting in ${Math.round(delay/1000)} seconds...`, "warning");
+          
+          setTimeout(() => {
+            reconnectAttempts++;
+            initWebSocket();
+          }, delay);
+        } else if (reconnectAttempts >= maxReconnectAttempts) {
+          showNotification("AI connection failed. Please refresh the page.", "error");
+        }
       };
     }
-    
+
+    // Handle responses for main AI Export page
     function handleAIResponse(response) {
-      // Handle responses for the main AI Export page
       switch(response.action) {
         case 'navigate':
           window.location.href = response.url;
           break;
         case 'download':
-          // Create a temporary link to trigger download
           const link = document.createElement('a');
           link.href = response.file_url;
           link.download = response.file_url.split('/').pop();
@@ -984,19 +1080,17 @@
           link.click();
           document.body.removeChild(link);
           
-          // Show success message
           const successMsg = document.createElement("div");
           successMsg.className = "self-start bg-green-200 dark:bg-green-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
           successMsg.textContent = response.message || "Your export is ready! Downloading...";
-          document.getElementById("chatBox").appendChild(successMsg);
-          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          chatBox.appendChild(successMsg);
+          chatBox.scrollTop = chatBox.scrollHeight;
           break;
         case 'display':
           const botMsg = document.createElement("div");
           botMsg.className = "self-start bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
           
           try {
-            // Try to parse as JSON for structured data
             const data = JSON.parse(response.content);
             let content = '<div class="font-semibold">Analysis Results:</div>';
             data.forEach(item => {
@@ -1004,61 +1098,55 @@
             });
             botMsg.innerHTML = content;
           } catch {
-            // Regular text response
             botMsg.textContent = response.content;
           }
           
-          document.getElementById("chatBox").appendChild(botMsg);
-          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          chatBox.appendChild(botMsg);
+          chatBox.scrollTop = chatBox.scrollHeight;
           break;
         case 'message':
           const messageDiv = document.createElement("div");
           messageDiv.className = "self-start bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
           messageDiv.textContent = response.content;
-          document.getElementById("chatBox").appendChild(messageDiv);
-          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          chatBox.appendChild(messageDiv);
+          chatBox.scrollTop = chatBox.scrollHeight;
           break;
         case 'error':
           const errorMsg = document.createElement("div");
           errorMsg.className = "self-start bg-red-200 dark:bg-red-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 max-w-md";
           errorMsg.textContent = response.content;
-          document.getElementById("chatBox").appendChild(errorMsg);
-          document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight;
+          chatBox.appendChild(errorMsg);
+          chatBox.scrollTop = chatBox.scrollHeight;
           break;
         default:
           console.log("Unknown action:", response.action);
       }
     }
-    
+
+    // Handle responses for JARVIS assistant
     function handleJarvisResponse(response) {
-      // Handle responses for the JARVIS assistant
-      const messagesDiv = document.getElementById("jarvis-messages");
-      
       switch(response.type) {
         case 'welcome':
           const welcomeMsg = document.createElement("div");
           welcomeMsg.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
           welcomeMsg.textContent = response.greeting;
-          messagesDiv.appendChild(welcomeMsg);
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          jarvisMessages.appendChild(welcomeMsg);
+          jarvisMessages.scrollTop = jarvisMessages.scrollHeight;
           break;
-          
         case 'message':
           const messageEl = document.createElement("div");
           messageEl.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
           messageEl.textContent = response.content;
-          messagesDiv.appendChild(messageEl);
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          jarvisMessages.appendChild(messageEl);
+          jarvisMessages.scrollTop = jarvisMessages.scrollHeight;
           break;
-          
         case 'download':
           const downloadMsg = document.createElement("div");
           downloadMsg.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
           downloadMsg.textContent = response.message;
-          messagesDiv.appendChild(downloadMsg);
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          jarvisMessages.appendChild(downloadMsg);
+          jarvisMessages.scrollTop = jarvisMessages.scrollHeight;
           
-          // Trigger download
           const link = document.createElement('a');
           link.href = response.file_url;
           link.download = response.file_url.split('/').pop();
@@ -1066,11 +1154,6 @@
           link.click();
           document.body.removeChild(link);
           break;
-          
-        case 'visualization':
-          // Visualization rendering would go here
-          break;
-          
         case 'alert':
           const alertEl = document.createElement("div");
           alertEl.className = "jarvis-alert bg-gradient-to-r from-red-700/90 to-red-800/90 text-white rounded-lg p-4 border border-red-500 shadow-lg flex items-start";
@@ -1084,52 +1167,19 @@
           `;
           document.getElementById("jarvis-alerts").appendChild(alertEl);
           
-          // Auto-remove after 10 seconds
-          setTimeout(() => {
-            alertEl.remove();
-          }, 10000);
-          
-          // Close button
-          alertEl.querySelector('.close-alert').addEventListener('click', () => {
-            alertEl.remove();
-          });
+          setTimeout(() => alertEl.remove(), 10000);
+          alertEl.querySelector('.close-alert').addEventListener('click', () => alertEl.remove());
           break;
-          
         default:
           console.log("Unknown JARVIS response type:", response.type);
       }
     }
-    
-    // Voice recognition for both assistants
-    let recognition = null;
-    
-    if ('webkitSpeechRecognition' in window) {
-      recognition = new webkitSpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-    
-      recognition.onresult = function(event) {
-        const command = event.results[0][0].transcript;
-        
-        // Determine which assistant is active
-        if (!document.getElementById("jarvis-panel").classList.contains('hidden')) {
-          document.getElementById("jarvis-input").value = command;
-          sendJarvisCommand(command);
-        } else {
-          document.getElementById("userInput").value = command;
-          sendCommandToAI(command);
-        }
-      };
-    
-      recognition.onerror = function(event) {
-        console.error('Speech recognition error', event.error);
-      };
-    }
-    
+
+    // Send command to main AI
     function sendCommandToAI(command) {
+      if (!command.trim()) return;
+      
       // Add user message to chat
-      const chatBox = document.getElementById("chatBox");
       const userMsg = document.createElement("div");
       userMsg.className = "self-end bg-blue-600 text-white rounded-lg px-4 py-2 max-w-md ml-auto";
       userMsg.textContent = command;
@@ -1137,17 +1187,21 @@
       chatBox.scrollTop = chatBox.scrollHeight;
       
       // Send via WebSocket
-      if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
+      if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN && isAuthenticated) {
         aiWebSocket.send(JSON.stringify({ 
           command: command,
           assistant: 'export-ai'
         }));
+      } else {
+        showNotification("AI not connected. Please wait...", "warning");
       }
     }
-    
+
+    // Send command to JARVIS
     function sendJarvisCommand(command) {
+      if (!command.trim()) return;
+      
       // Add user message to JARVIS chat
-      const jarvisMessages = document.getElementById("jarvis-messages");
       const userMsg = document.createElement("div");
       userMsg.className = "self-end bg-blue-700 text-white rounded-lg px-4 py-2 max-w-[80%] ml-auto mb-3";
       userMsg.textContent = command;
@@ -1155,92 +1209,63 @@
       jarvisMessages.scrollTop = jarvisMessages.scrollHeight;
       
       // Send via WebSocket
-      if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN) {
+      if (aiWebSocket && aiWebSocket.readyState === WebSocket.OPEN && isAuthenticated) {
         aiWebSocket.send(JSON.stringify({ 
           command: command,
           assistant: 'jarvis'
         }));
+      } else {
+        showNotification("JARVIS not connected. Please wait...", "warning");
       }
     }
-    
+
     // Button shortcut handler
     function sendCommand(command) {
       sendCommandToAI(command);
     }
-    
-    // Form submit handler
+
+    // Form submit handler for main AI
     function sendMessage() {
-      const message = document.getElementById("userInput").value.trim();
+      const message = userInput.value.trim();
       if (!message) return;
       sendCommandToAI(message);
-      document.getElementById("userInput").value = "";
+      userInput.value = "";
     }
-    
+
     // JARVIS functionality
     const jarvis = {
       init: function() {
-        // Setup event listeners
         document.getElementById('jarvis-head').addEventListener('click', () => {
           const panel = document.getElementById('jarvis-panel');
           panel.classList.toggle('hidden');
         });
         
         document.getElementById('jarvis-send-btn').addEventListener('click', () => this.sendMessage());
-        document.getElementById('jarvis-input').addEventListener('keypress', (e) => {
+        jarvisInput.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') this.sendMessage();
-        });
-        
-        document.getElementById('jarvis-voice-toggle').addEventListener('click', () => this.toggleVoiceMode());
-        
-        document.querySelectorAll('.jarvis-quick-cmd').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const command = e.target.dataset.cmd;
-            document.getElementById('jarvis-input').value = command;
-            this.sendMessage();
-          });
         });
       },
       
       sendMessage: function() {
-        const input = document.getElementById('jarvis-input');
-        const message = input.value.trim();
+        const message = jarvisInput.value.trim();
         if (!message) return;
-        
         sendJarvisCommand(message);
-        input.value = '';
-      },
-      
-      toggleVoiceMode: function() {
-        if (!recognition) {
-          return;
-        }
-        
-        if (recognition && recognition.running) {
-          recognition.stop();
-          document.getElementById('jarvis-voice-toggle').classList.remove('bg-red-500', 'animate-pulse');
-        } else {
-          recognition.start();
-          document.getElementById('jarvis-voice-toggle').classList.add('bg-red-500', 'animate-pulse');
-          
-          // Show listening message
-          const listeningMsg = document.createElement("div");
-          listeningMsg.className = "self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-[80%] mb-3";
-          listeningMsg.textContent = "Listening...";
-          document.getElementById("jarvis-messages").appendChild(listeningMsg);
-          document.getElementById("jarvis-messages").scrollTop = document.getElementById("jarvis-messages").scrollHeight;
-        }
+        jarvisInput.value = '';
       }
     };
 
     // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
+      // Create connection status indicator
+      createStatusIndicator();
+      
       // Initialize WebSocket connection
       initWebSocket();
       
       // Initialize JARVIS
       jarvis.init();
       
-      // Theme toggle (existing functionality)
+      // Theme toggle
       const themeToggle = document.getElementById('themeToggle');
       const lightIcon = document.getElementById('lightIcon');
       const darkIcon = document.getElementById('darkIcon');
@@ -1262,6 +1287,11 @@
       themeToggle.addEventListener('click', () => {
         const isNowDark = !document.documentElement.classList.contains('dark');
         setTheme(isNowDark);
+      });
+      
+      // Mobile menu toggle
+      document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+        document.getElementById('mobileMenu').classList.toggle('hidden');
       });
     });
   </script>
