@@ -12,7 +12,8 @@ class DashboardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
             self.company_id = self.scope['url_route']['kwargs']['company_id']
-            if not self.company_id:
+            # Add validation for company_id format
+            if not self.company_id or not self.company_id.isalnum():
                 await self.close(code=4001)
                 return
 
