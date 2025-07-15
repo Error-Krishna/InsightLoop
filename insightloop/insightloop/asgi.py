@@ -23,8 +23,11 @@ from aiexport.routing import websocket_urlpatterns as ai_assistant_ws_urls
 # Combine both sets of routes
 websocket_urlpatterns = dashboard_ws_urls + ai_assistant_ws_urls
 
+# Get ASGI application
+django_asgi_app = get_asgi_application()
+
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             URLRouter(websocket_urlpatterns)

@@ -897,30 +897,24 @@
 
   <!-- JavaScript -->
   <script>
-    // Global WebSocket reference and state management
+    // Global WebSocket state
     let aiWebSocket = null;
+    let isAuthenticated = false;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 10;
-    const reconnectDelayBase = 1000;
-    let isAuthenticated = false;
-
-    // DOM Elements
-    const connectionStatus = document.createElement("div");
-    const chatBox = document.getElementById("chatBox");
-    const jarvisMessages = document.getElementById("jarvis-messages");
-    const userInput = document.getElementById("userInput");
-    const jarvisInput = document.getElementById("jarvis-input");
+    const reconnectDelayBase = 1000; // 1 second
 
     // Create connection status indicator
     function createStatusIndicator() {
-      connectionStatus.id = "connection-status";
-      connectionStatus.className = "h-3 w-3 rounded-full bg-yellow-500";
-      connectionStatus.title = "Connecting to AI...";
-      connectionStatus.style.position = "absolute";
-      connectionStatus.style.top = "12px";
-      connectionStatus.style.right = "60px";
-      connectionStatus.style.zIndex = "100";
-      document.querySelector("nav").appendChild(connectionStatus);
+      const statusIndicator = document.createElement("div");
+      statusIndicator.id = "connection-status";
+      statusIndicator.className = 'h-3 w-3 rounded-full bg-yellow-500';
+      statusIndicator.title = "Connecting to AI...";
+      statusIndicator.style.position = "absolute";
+      statusIndicator.style.top = "12px";
+      statusIndicator.style.right = "60px";
+      statusIndicator.style.zIndex = "100";
+      document.querySelector("nav").appendChild(statusIndicator);
     }
 
     // Notification system
@@ -943,26 +937,29 @@
 
     // Update connection status indicator
     function updateConnectionStatus(status) {
+      const statusIndicator = document.getElementById("connection-status");
+      if (!statusIndicator) return;
+      
       switch(status) {
         case 'connected':
-          connectionStatus.className = "h-3 w-3 rounded-full bg-green-500 animate-pulse";
-          connectionStatus.title = "Connected to AI";
+          statusIndicator.className = 'h-3 w-3 rounded-full bg-green-500 animate-pulse';
+          statusIndicator.title = "Connected to AI";
           break;
         case 'connecting':
-          connectionStatus.className = "h-3 w-3 rounded-full bg-yellow-500 animate-pulse";
-          connectionStatus.title = "Connecting to AI...";
+          statusIndicator.className = 'h-3 w-3 rounded-full bg-yellow-500 animate-pulse';
+          statusIndicator.title = "Connecting to AI...";
           break;
         case 'error':
-          connectionStatus.className = "h-3 w-3 rounded-full bg-red-500";
-          connectionStatus.title = "Connection error";
+          statusIndicator.className = 'h-3 w-3 rounded-full bg-red-500';
+          statusIndicator.title = "Connection error";
           break;
         case 'disconnected':
-          connectionStatus.className = "h-3 w-3 rounded-full bg-yellow-500";
-          connectionStatus.title = "Disconnected - reconnecting...";
+          statusIndicator.className = 'h-3 w-3 rounded-full bg-yellow-500';
+          statusIndicator.title = "Disconnected - reconnecting...";
           break;
         default:
-          connectionStatus.className = "h-3 w-3 rounded-full bg-gray-500";
-          connectionStatus.title = "Connection status unknown";
+          statusIndicator.className = 'h-3 w-3 rounded-full bg-gray-500';
+          statusIndicator.title = "Connection status unknown";
       }
     }
 
@@ -989,20 +986,6 @@
         reconnectAttempts = 0;
         updateConnectionStatus('connected');
         showNotification("AI Assistant connected", "success");
-        
-        // Send session cookie to authenticate
-        const sessionCookie = document.cookie.split('; ')
-          .find(row => row.startsWith('sessionid='));
-        
-        if (sessionCookie) {
-          aiWebSocket.send(JSON.stringify({
-            type: "session",
-            session: sessionCookie.split('=')[1]
-          }));
-        } else {
-          showNotification("Session not found. Please log in again.", "error");
-          console.error("Session cookie not found");
-        }
       };
 
       // Message received
@@ -1010,16 +993,10 @@
         try {
           const response = JSON.parse(e.data);
           
-          // Handle session authentication response
-          if (response.type === "session_status") {
-            if (!response.authenticated) {
-              showNotification("Authentication failed. Please log in again.", "error");
-              console.error('Session authentication failed');
-              return;
-            } else {
-              isAuthenticated = true;
-              showNotification("Authenticated successfully", "success");
-            }
+          // Handle authentication response
+          if (response.type === "session_status" && response.authenticated) {
+            isAuthenticated = true;
+            showNotification("Authenticated successfully", "success");
           }
           
           // Route response to appropriate UI
@@ -1046,7 +1023,14 @@
         console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason})`);
         updateConnectionStatus('disconnected');
         
-        // Only reconnect for abnormal closures
+        // Handle authentication failure
+        if (event.code === 4001) {
+          showNotification("Authentication failed. Please log in again.", "error");
+          // Don't reconnect on auth failure
+          return;
+        }
+        
+        // Only reconnect for other abnormal closures
         if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
           const delay = Math.min(
             reconnectDelayBase * Math.pow(2, reconnectAttempts), 

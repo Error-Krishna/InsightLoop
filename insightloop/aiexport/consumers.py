@@ -2,8 +2,6 @@ import json
 import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from django.contrib.sessions.models import Session
-from .ai_processor import process_ai_command
 
 logger = logging.getLogger(__name__)
 
@@ -15,88 +13,56 @@ class AIAssistantConsumer(AsyncWebsocketConsumer):
         self.user_email = None
         self.group_name = None
         
-        # Accept the connection to allow communication
+        # Get session from scope
+        session = self.scope.get("session")
+        if not session:
+            logger.warning("No session found in WebSocket scope")
+            await self.close(code=4001)
+            return
+            
+        # Get session data
+        self.company_id = session.get("company_id")
+        self.user_email = session.get("user_email")
+        
+        if not self.company_id or not self.user_email:
+            logger.warning("Missing company_id or user_email in session")
+            await self.close(code=4001)
+            return
+            
+        # Create group name
+        self.group_name = f'ai_assistant_{self.company_id}'
+        
+        # Add to channel group
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+        
+        self.authenticated = True
         await self.accept()
-        logger.info("WebSocket connection accepted, awaiting authentication")
-
-    @database_sync_to_async
-    def get_session_data(self, session_key):
-        """Fetch session data from the database"""
-        try:
-            session = Session.objects.get(session_key=session_key)
-            return session.get_decoded()
-        except Session.DoesNotExist:
-            logger.warning(f"Session not found: {session_key}")
-            return None
-        except Exception as e:
-            logger.error(f"Error fetching session: {str(e)}")
-            return None
+        
+        # Send authentication success
+        await self.send(json.dumps({
+            "type": "session_status",
+            "authenticated": True,
+            "message": "Authenticated successfully"
+        }))
+        logger.info(f"Authenticated user {self.user_email} from company {self.company_id}")
 
     async def receive(self, text_data):
         try:
-            data = json.loads(text_data)
-            logger.debug(f"Received WebSocket message: {data}")
-            
-            # Handle session authentication
-            if data.get("type") == "session":
-                session_key = data.get("session")
-                if not session_key:
-                    await self.send(json.dumps({
-                        "type": "session_status",
-                        "authenticated": False,
-                        "message": "Missing session token"
-                    }))
-                    await self.close(code=4001)
-                    return
-                
-                session_data = await self.get_session_data(session_key)
-                if not session_data:
-                    await self.send(json.dumps({
-                        "type": "session_status",
-                        "authenticated": False,
-                        "message": "Invalid session"
-                    }))
-                    await self.close(code=4001)
-                    return
-                
-                self.company_id = session_data.get("company_id")
-                self.user_email = session_data.get("user_email")
-                
-                if not self.company_id or not self.user_email:
-                    await self.send(json.dumps({
-                        "type": "session_status",
-                        "authenticated": False,
-                        "message": "Missing company or user data"
-                    }))
-                    await self.close(code=4001)
-                    return
-                
-                # Create group name and add to channel group
-                self.group_name = f'ai_assistant_{self.company_id}'
-                await self.channel_layer.group_add(
-                    self.group_name,
-                    self.channel_name
-                )
-                
-                self.authenticated = True
-                await self.send(json.dumps({
-                    "type": "session_status",
-                    "authenticated": True,
-                    "message": "Authenticated successfully"
-                }))
-                logger.info(f"Authenticated user {self.user_email} from company {self.company_id}")
-                return
-            
-            # Process commands only if authenticated
             if not self.authenticated:
+                logger.warning("Received message before authentication")
                 await self.send(json.dumps({
                     "type": "error",
                     "content": "Not authenticated",
                     "assistant": "system"
                 }))
-                await self.close(code=4003)
                 return
                 
+            data = json.loads(text_data)
+            logger.debug(f"Received WebSocket message: {data}")
+            
             command = data.get("command")
             assistant_type = data.get("assistant", "jarvis")
             
@@ -110,7 +76,7 @@ class AIAssistantConsumer(AsyncWebsocketConsumer):
                 
             # Process command with AI
             logger.info(f"Processing command for {assistant_type}: {command}")
-            response = await process_ai_command(
+            response = await self.process_ai_command(
                 self.company_id,
                 self.user_email,
                 command,
@@ -162,3 +128,10 @@ class AIAssistantConsumer(AsyncWebsocketConsumer):
             logger.error(f"Error during disconnect: {str(e)}")
         finally:
             logger.info(f"WebSocket disconnected with code {close_code}")
+    
+    @database_sync_to_async
+    def process_ai_command(self, company_id, user_email, command, assistant_type):
+        """Wrapper for synchronous AI processing"""
+        # Import inside the function to avoid circular imports
+        from .ai_processor import process_ai_command
+        return process_ai_command(company_id, user_email, command, assistant_type)
