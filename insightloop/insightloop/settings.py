@@ -181,7 +181,7 @@ LOGOUT_REDIRECT_URL = '/'
 # Add Google OAuth2 credentials (replace with your actual values)
 GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', 'your-client-id.apps.googleusercontent.com')
 GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', 'your-client-secret')
-GOOGLE_REDIRECT_URI = 'http://localhost:8000/auth/google/callback/'
+GOOGLE_REDIRECT_URI = 'https://insightloop.onrender.com/auth/google/callback/'
 
 
 GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID', 'Ov23lie47Unq7dFbrukD')
