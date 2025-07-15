@@ -5,19 +5,17 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 
-# Add this to include your apps in the Python path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, '..'))
 
-# Now import your routing
 from dashboard.routing import websocket_urlpatterns
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AllowedHostsOriginValidator(  # Add this
-        AuthMiddlewareStack(
+    "websocket": AllowedHostsOriginValidator(
+        AuthMiddlewareStack(  # Correctly wrapped now
             URLRouter(websocket_urlpatterns)
         )
     ),
