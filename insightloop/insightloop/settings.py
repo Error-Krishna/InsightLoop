@@ -9,6 +9,8 @@ from mongoengine import connect
 import os
 from dotenv import load_dotenv
 import redis
+
+
 load_dotenv()
 
 connect(
@@ -222,3 +224,7 @@ LOGGING = {
         },
     },
 }
+
+if not DEBUG:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
