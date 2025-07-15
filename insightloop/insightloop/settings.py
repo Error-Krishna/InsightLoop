@@ -221,6 +221,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'aiexport': {  # Add this logger for AI Export module
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Set to DEBUG for detailed logs
+            'propagate': False,
+        },
     },
 }
 
