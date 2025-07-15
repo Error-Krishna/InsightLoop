@@ -19,6 +19,7 @@ def upload(request):
     
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
+        records_created = 0  # Track if any records were created
         
         if form_type == 'csv' and 'csv_file' in request.FILES:
             csv_file = request.FILES['csv_file']
@@ -37,7 +38,6 @@ def upload(request):
                     messages.error(request, f'Missing required columns: {", ".join(missing)}')
                     return redirect('upload')
                 
-                records_created = 0
                 for row_num, row in enumerate(reader, 1):
                     try:
                         BusinessData.objects.create(
@@ -55,7 +55,10 @@ def upload(request):
                     except Exception as e:
                         messages.warning(request, f'Row {row_num}: {str(e)}')
                 
-                messages.success(request, f'Successfully imported {records_created} records!')
+                if records_created > 0:
+                    messages.success(request, f'Successfully imported {records_created} records!')
+                else:
+                    messages.info(request, 'No records were imported from CSV')
             except Exception as e:
                 messages.error(request, f'Error processing CSV: {str(e)}')
         
@@ -74,6 +77,7 @@ def upload(request):
                         region=form.cleaned_data['region'],
                         customer_type=form.cleaned_data['customer_type']
                     )
+                    records_created = 1  # Mark that a record was created
                     messages.success(request, 'Data added successfully!')
                 except Exception as e:
                     messages.error(request, f'Error saving data: {str(e)}')
@@ -82,12 +86,17 @@ def upload(request):
                     for error in errors:
                         messages.error(request, f"{field.capitalize()}: {error}")
         
-        try:
-            call_command('process_uploaded_data', company_id=request.company_id)  # Added company_id
-            messages.success(request, 'Data processed successfully! Dashboard updated.')
-        except Exception as e:
-            messages.error(request, f'Error processing data: {str(e)}')
-        
-        return redirect('upload')
+        # Only process data if new records were added
+        if records_created > 0:
+            try:
+                call_command('process_uploaded_data', company_id=request.company_id)
+                messages.success(request, 'Data processed successfully! Dashboard updated.')
+            except Exception as e:
+                if "min()" in str(e) and "empty" in str(e):
+                    messages.error(request, "Error: No data available to process. Please upload data first.")
+                else:
+                    messages.error(request, f'Error processing data: {str(e)}')
+        else:
+            messages.info(request, "No new records added. Processing skipped.")
     
     return render(request, 'upload/DataUpload.html')

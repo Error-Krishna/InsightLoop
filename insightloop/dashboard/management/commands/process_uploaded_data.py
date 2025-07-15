@@ -19,6 +19,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Data processing completed successfully!"))
 
     def generate_financial_summaries(self, company_id):
+        # Check if any data exists first
+        if not BusinessData.objects(company_id=company_id):
+            self.stdout.write(self.style.WARNING("No data available to process. Skipping summary generation."))
+            return
+        
         # Delete existing summaries for this company
         FinancialSummary.objects(company_id=company_id).delete()
         
