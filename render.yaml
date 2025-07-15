@@ -4,9 +4,14 @@ services:
     env: python
     buildCommand: |
       pip install -r requirements.txt
-      python manage.py collectstatic --noinput || echo "No static files to collect"
-    startCommand: >
-      cd insightloop && 
-      daphne insightloop.asgi:application 
-      --port $PORT 
-      --bind 0.0.0.0
+      python manage.py collectstatic --noinput
+    startCommand: |
+      cd insightloop &&
+      daphne insightloop.asgi:application --port $PORT --bind 0.0.0.0
+    envVars:
+      - key: DISABLE_COLLECTSTATIC
+        value: 0
+      - key: RENDER_EXTERNAL_HOSTNAME
+        value: ${RENDER_EXTERNAL_HOSTNAME}
+      - key: PYTHONPATH
+        value: /opt/render/project/src
