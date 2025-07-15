@@ -3,7 +3,7 @@ import json
 from aiexport import apps
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .ai_processor import process_ai_command
-from asgiref.sync import database_sync_to_async
+from channels.db import database_sync_to_async
 
 class AIAssistantConsumer(AsyncWebsocketConsumer):
     async def connect(self):
