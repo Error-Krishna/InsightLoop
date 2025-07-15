@@ -1,21 +1,21 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-
-from django.conf import settings  # Correct import for settings
-
+from django.conf import settings
 from .models import BusinessData
 from .forms import ManualDataForm
 import csv
 from io import TextIOWrapper
 from datetime import datetime
-from django.core.management import call_command
+from dashboard.management.commands.process_uploaded_data import generate_financial_summaries  # Import directly
 from insightloop.auth_utils import is_authenticated
-
 
 def upload(request):
     if not is_authenticated(request):
         return redirect(f'{settings.LOGIN_URL}?next={request.path}')
+    
+    # Convert company_id to string for consistency
+    company_id = str(request.company_id)
     
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
@@ -40,8 +40,8 @@ def upload(request):
                 
                 for row_num, row in enumerate(reader, 1):
                     try:
-                        BusinessData.objects.create(
-                            company_id=request.company_id,  # Added company_id
+                        BusinessData(
+                            company_id=company_id,
                             date=datetime.strptime(row['date'], '%Y-%m-%d').date(),
                             product=row['product'],
                             category=row.get('category', ''),
@@ -50,7 +50,7 @@ def upload(request):
                             selling_price=float(row['selling_price']),
                             region=row['region'],
                             customer_type=row['customer_type']
-                        )
+                        ).save()  # Explicit save
                         records_created += 1
                     except Exception as e:
                         messages.warning(request, f'Row {row_num}: {str(e)}')
@@ -66,8 +66,9 @@ def upload(request):
             form = ManualDataForm(request.POST)
             if form.is_valid():
                 try:
-                    BusinessData.objects.create(
-                        company_id=request.company_id,  # Added company_id
+                    # Create and save document immediately
+                    BusinessData(
+                        company_id=company_id,
                         date=form.cleaned_data['date'],
                         product=form.cleaned_data['product'],
                         category=form.cleaned_data['category'],
@@ -76,8 +77,8 @@ def upload(request):
                         selling_price=form.cleaned_data['selling_price'],
                         region=form.cleaned_data['region'],
                         customer_type=form.cleaned_data['customer_type']
-                    )
-                    records_created = 1  # Mark that a record was created
+                    ).save()  # Explicit save
+                    records_created = 1
                     messages.success(request, 'Data added successfully!')
                 except Exception as e:
                     messages.error(request, f'Error saving data: {str(e)}')
@@ -89,13 +90,11 @@ def upload(request):
         # Only process data if new records were added
         if records_created > 0:
             try:
-                call_command('process_uploaded_data', company_id=request.company_id)
+                # Direct function call instead of management command
+                generate_financial_summaries(company_id)
                 messages.success(request, 'Data processed successfully! Dashboard updated.')
             except Exception as e:
-                if "min()" in str(e) and "empty" in str(e):
-                    messages.error(request, "Error: No data available to process. Please upload data first.")
-                else:
-                    messages.error(request, f'Error processing data: {str(e)}')
+                messages.error(request, f'Error processing data: {str(e)}')
         else:
             messages.info(request, "No new records added. Processing skipped.")
     
