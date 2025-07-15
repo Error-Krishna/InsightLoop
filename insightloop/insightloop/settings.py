@@ -140,10 +140,11 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get('redis-10823.c8.us-east-1-4.ec2.redns.redis-cloud.com:10823', 'redis://localhost:6379')],
+            "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379')],
         },
     },
 }
+
 
 ASGI_APPLICATION = 'insightloop.asgi.application'
 
