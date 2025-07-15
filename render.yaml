@@ -4,9 +4,11 @@ services:
     env: python
     buildCommand: |
       pip install -r requirements.txt
-      python insightloop/manage.py collectstatic --no-input
+      cd insightloop
+      python manage.py collectstatic --noinput
     startCommand: |
-      cd insightloop && daphne -b 0.0.0.0 -p $PORT insightloop.asgi:application
+      cd insightloop
+      daphne -b 0.0.0.0 -p $PORT insightloop.asgi:application
     envVars:
       - key: DISABLE_COLLECTSTATIC
         value: 0
