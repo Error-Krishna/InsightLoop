@@ -226,5 +226,14 @@ LOGGING = {
 }
 
 if not DEBUG:
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    # Ensure WhiteNoise is properly configured
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # Add directory traversal support
+    WHITENOISE_ROOT = os.path.join(BASE_DIR, 'staticfiles', 'root')
+    
+    # Enable directory index for better file discovery
+    WHITENOISE_INDEX_FILE = True
+    
+    # Add support for immutable files
+    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True
