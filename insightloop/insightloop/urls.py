@@ -13,7 +13,8 @@ urlpatterns = [
     path('distribution/', include('worker.urls')),
     path('aiexport/', include('aiexport.urls')),
     path('user/', include('misc.urls')),
+]
 
-
-
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

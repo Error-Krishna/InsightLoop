@@ -4,6 +4,7 @@ from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
+from whitenoise import WhiteNoise
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, '..'))
@@ -20,3 +21,5 @@ application = ProtocolTypeRouter({
         )
     ),
 })
+
+application = WhiteNoise(application, root=os.path.join(BASE_DIR, 'staticfiles'))
