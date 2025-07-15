@@ -186,7 +186,7 @@ GOOGLE_REDIRECT_URI = 'https://insightloop.onrender.com/auth/google/callback/'
 
 GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID', 'Ov23lie47Unq7dFbrukD')
 GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET', '8cf6c61835a647d419b90cd63cf1b653d33813a8')
-GITHUB_REDIRECT_URI = 'http://localhost:8000/auth/github/callback/'
+GITHUB_REDIRECT_URI = 'https://insightloop.onrender.com/auth/github/callback/'
 
 
 
