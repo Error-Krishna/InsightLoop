@@ -1249,7 +1249,14 @@
       // Initialize JARVIS
       jarvis.init();
       
-      // Theme toggle
+      
+      // Mobile menu toggle
+      document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+        document.getElementById('mobileMenu').classList.toggle('hidden');
+      });
+    });
+
+    // Theme toggle
       const themeToggle = document.getElementById('themeToggle');
       const lightIcon = document.getElementById('lightIcon');
       const darkIcon = document.getElementById('darkIcon');
@@ -1273,11 +1280,6 @@
         setTheme(isNowDark);
       });
       
-      // Mobile menu toggle
-      document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-        document.getElementById('mobileMenu').classList.toggle('hidden');
-      });
-    });
   </script>
 </body>
 </html>
