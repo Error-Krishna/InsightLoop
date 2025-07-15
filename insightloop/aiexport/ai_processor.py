@@ -1,12 +1,11 @@
 import json
-import asyncio
 from datetime import datetime
 from django.core.files.storage import default_storage
 from django.urls import reverse
 from dashboard.utils import generate_export_file
 from insights.utils import get_insight_data
 
-async def process_ai_command(company_id, user_email, command, assistant_type):
+def process_ai_command(company_id, user_email, command, assistant_type):
     command = command.lower()
     response = {
         "assistant": assistant_type,
@@ -60,7 +59,7 @@ async def process_ai_command(company_id, user_email, command, assistant_type):
         # Data query commands
         elif any(kw in command for kw in ["show", "display", "what is", "how much"]):
             if any(kw in command for kw in ["revenue", "income", "sales"]):
-                data = await get_insight_data(company_id, "revenue_trends")
+                data = get_insight_data(company_id, "revenue_trends")
                 response.update({
                     "action": "display",
                     "content": json.dumps({
@@ -69,7 +68,7 @@ async def process_ai_command(company_id, user_email, command, assistant_type):
                     })
                 })
             elif any(kw in command for kw in ["profit", "earnings", "margin"]):
-                data = await get_insight_data(company_id, "profit_analysis")
+                data = get_insight_data(company_id, "profit_analysis")
                 response.update({
                     "action": "display",
                     "content": json.dumps({
@@ -78,7 +77,7 @@ async def process_ai_command(company_id, user_email, command, assistant_type):
                     })
                 })
             elif any(kw in command for kw in ["worker", "staff", "labor", "productivity"]):
-                data = await get_insight_data(company_id, "worker_performance")
+                data = get_insight_data(company_id, "worker_performance")
                 response.update({
                     "action": "display",
                     "content": json.dumps({

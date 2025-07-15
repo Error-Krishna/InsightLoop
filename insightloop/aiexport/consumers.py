@@ -76,7 +76,9 @@ class AIAssistantConsumer(AsyncWebsocketConsumer):
                 
             # Process command with AI
             logger.info(f"Processing command for {assistant_type}: {command}")
-            response = await self.process_ai_command(
+            
+            # Get the actual response data (not coroutine)
+            response_data = await self.process_ai_command(
                 self.company_id,
                 self.user_email,
                 command,
@@ -88,7 +90,7 @@ class AIAssistantConsumer(AsyncWebsocketConsumer):
                 self.group_name,
                 {
                     "type": "ai_response",
-                    "response": response,
+                    "response": response_data,  # Use the resolved data, not coroutine
                     "assistant": assistant_type
                 }
             )
@@ -134,4 +136,6 @@ class AIAssistantConsumer(AsyncWebsocketConsumer):
         """Wrapper for synchronous AI processing"""
         # Import inside the function to avoid circular imports
         from .ai_processor import process_ai_command
+        
+        # Call the synchronous function and return its result
         return process_ai_command(company_id, user_email, command, assistant_type)
