@@ -6,6 +6,7 @@ from django.contrib.staticfiles.views import serve as static_serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/v1/', include('insightloop.api_urls')),
     path('', include('landing.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('insights/', include('insights.urls')),

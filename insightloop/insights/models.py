@@ -1,6 +1,11 @@
 from mongoengine import Document, fields
 from datetime import datetime, timedelta
 
+
+def default_expiry():
+    return datetime.now() + timedelta(days=30)
+
+
 class Insight(Document):
     company_id = fields.StringField(required=True)  # Added company_id
     title = fields.StringField(required=True, max_length=255)
@@ -9,7 +14,7 @@ class Insight(Document):
     data_points = fields.ListField(fields.FloatField(), default=list)
     note = fields.StringField()
     created_at = fields.DateTimeField(auto_now_add=True)
-    expires_at = fields.DateTimeField(default=datetime.now() + timedelta(days=30))
+    expires_at = fields.DateTimeField(default=default_expiry)
     
     meta = {
         'collection': 'insights',

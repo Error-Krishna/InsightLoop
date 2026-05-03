@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
-from dashboard.models import FinancialSummary
 from upload.models import BusinessData
 from worker.models import MaterialAssignment, PayRecord, Worker
 
-async def get_insight_data(company_id, insight_type):
+def get_insight_data(company_id, insight_type):
     # Calculate date ranges
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)

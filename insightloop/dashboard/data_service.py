@@ -1,10 +1,10 @@
-from .models import FinancialSummary
-from upload.models import BusinessData
 from datetime import datetime, timedelta
 from decimal import Decimal
 from django.utils import timezone
+from .models import FinancialSummary
+from upload.models import BusinessData
 from worker.models import Worker
-from worker.views import get_worker_total_payments
+from worker.models import PayRecord
 
 def process_uploaded_data(company_id):  # Added company_id parameter
     """Process raw business data into financial summaries"""
@@ -39,7 +39,7 @@ def process_uploaded_data(company_id):  # Added company_id parameter
     result = next(monthly_data, None)
     
     # Calculate worker payments
-    worker_payments = get_worker_total_payments(month_start, now, company_id)  # Pass company_id
+    worker_payments = get_worker_total_payments(month_start, now, company_id)
     
     # Calculate gross profit (revenue - cost)
     gross_profit = Decimal(result['total_revenue'] - result['total_cost']) if result else Decimal(0)
@@ -48,15 +48,16 @@ def process_uploaded_data(company_id):  # Added company_id parameter
     net_profit = gross_profit - Decimal(worker_payments)
     
     # Create/update financial summary
-    FinancialSummary.objects.update_or_create(
-        company_id=company_id,  # Set company_id
+    FinancialSummary.objects(
+        company_id=company_id,
         timestamp=month_start,
-        defaults={
-            'total_revenue': Decimal(result['total_revenue']) if result else Decimal(0),
-            'total_profit': net_profit,
-            'worker_payments': Decimal(worker_payments),
-            'active_workers': get_active_workers_count(company_id)  # Pass company_id
-        }
+    ).modify(
+        upsert=True,
+        new=True,
+        set__total_revenue=Decimal(str(result['total_revenue'])) if result else Decimal("0"),
+        set__total_profit=net_profit,
+        set__worker_payments=Decimal(str(worker_payments)),
+        set__active_workers=get_active_workers_count(company_id),
     )
 
 def get_summary_data(company_id):  # Added company_id parameter
@@ -139,3 +140,30 @@ def get_workers_change(company_id):  # Added company_id parameter
         return float(round(((new - old) / old) * 100, 1))
     
     return calc_change(prev_count, current_count)
+
+
+def get_worker_total_payments(month_start, month_end, company_id):
+    """Aggregate total worker payouts for a company and date range."""
+    pipeline = [
+        {
+            "$match": {
+                "company_id": company_id,
+                "date": {
+                    "$gte": month_start,
+                    "$lte": month_end,
+                },
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "total_payments": {
+                    "$sum": {"$multiply": ["$units_produced", "$rate_per_unit"]}
+                },
+            }
+        },
+    ]
+
+    result = next(PayRecord._get_collection().aggregate(pipeline), None)
+    total = result["total_payments"] if result else 0
+    return float(total or 0)

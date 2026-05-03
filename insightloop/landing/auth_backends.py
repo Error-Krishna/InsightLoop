@@ -1,12 +1,9 @@
 from django.contrib.auth.backends import BaseBackend
 from .mongo_models import User, Company
 from django.utils.crypto import get_random_string
-from django.contrib.auth.hashers import make_password
 from datetime import datetime
-from django.core.files.uploadedfile import InMemoryUploadedFile
 import requests
 from io import BytesIO
-from django.core.files import File
 
 class MongoAuthBackend(BaseBackend):
     def create_user_from_social(self, email, name, company_name, phone, 
@@ -29,23 +26,14 @@ class MongoAuthBackend(BaseBackend):
         # Handle profile picture
         profile_pic = None
         if profile_pic_url and not profile_pic_file:
-            # Download social profile picture
             try:
-                response = requests.get(profile_pic_url)
+                response = requests.get(profile_pic_url, timeout=10)
                 if response.status_code == 200:
                     img_data = BytesIO(response.content)
                     img_name = f"{username}_{provider}_profile.jpg"
-                    if profile_pic_url and not profile_pic_file:
-                        try:
-                            response = requests.get(profile_pic_url)
-                            if response.status_code == 200:
-                                img_data = BytesIO(response.content)
-                                img_name = f"{username}_{provider}_profile.jpg"
-                                # Use Django's ContentFile
-                                from django.core.files.base import ContentFile
-                                profile_pic = ContentFile(img_data.getvalue(), name=img_name)
-                        except Exception as e:
-                            print(f"Error downloading profile picture: {e}")
+                    from django.core.files.base import ContentFile
+
+                    profile_pic = ContentFile(img_data.getvalue(), name=img_name)
             except Exception as e:
                 print(f"Error downloading profile picture: {e}")
         elif profile_pic_file:

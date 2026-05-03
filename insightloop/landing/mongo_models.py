@@ -1,15 +1,34 @@
-from django.forms import FileField
 from mongoengine import Document, StringField, EmailField, ReferenceField, DictField, DateTimeField
 from django.contrib.auth.hashers import make_password, check_password
 import uuid
 from datetime import datetime
 from mongoengine import FileField
 
+
+def default_notifications():
+    return {
+        "comments": True,
+        "weekly_summary": False,
+        "updates": True,
+    }
+
 class Company(Document):
     company_id = StringField(required=True, default=lambda: str(uuid.uuid4()))
     name = StringField(required=True, max_length=100)
     business_type = StringField(max_length=100, default="Data & Insights Platform")
+    address = StringField(required=False)
+    email = EmailField(required=False)
+    phone = StringField(max_length=20, required=False)
+    gst_number = StringField(max_length=50, required=False)
+    logo_url = StringField(required=False)
+    stamp_url = StringField(required=False)
+    signature_url = StringField(required=False)
+    bank_account_number = StringField(required=False)
+    ifsc_code = StringField(required=False)
+    bank_name = StringField(required=False)
+    branch_name = StringField(required=False)
     created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
 
 class User(Document):
     company = ReferenceField(Company, required=True)
@@ -22,11 +41,7 @@ class User(Document):
     created_at = DateTimeField(default=datetime.now)
     last_login = DateTimeField(default=datetime.now)
     subscription = StringField(default="Pro Plan (₹499/mo)")
-    notifications = DictField(default={
-        "comments": True,
-        "weekly_summary": False,
-        "updates": True
-    })
+    notifications = DictField(default=default_notifications)
     profile_pic = FileField(collection_name='profile_pics', null=True, blank=True)
 
     def set_password(self, raw_password):

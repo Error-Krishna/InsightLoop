@@ -1,18 +1,14 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-import mongoengine
-
 from django.conf import settings  # Correct import for settings
 
 from .models import Worker, MaterialAssignment, PayRecord
 from datetime import datetime
-from bson import ObjectId, errors
+from bson import ObjectId
 import json
 import logging
 from mongoengine.errors import DoesNotExist
-from django.db.models import Sum, F
 from bson.dbref import DBRef
-from django.contrib.auth.decorators import login_required
 from insightloop.auth_utils import is_authenticated
 
 logger = logging.getLogger(__name__)
@@ -553,11 +549,27 @@ def update_paid_amount(request, record_id):
         'message': 'Invalid request method'
     }, status=405)
 
-def get_worker_total_payments(month_start, month_end):
-    result = PayRecord.objects.filter(
-        date__gte=month_start,
-        date__lte=month_end
-    ).aggregate(
-        total_payments=Sum(F('units_produced') * F('rate_per_unit'))
-    )
-    return float(result['total_payments'] or 0)
+def get_worker_total_payments(month_start, month_end, company_id=None):
+    match_filter = {
+        "date": {
+            "$gte": month_start,
+            "$lte": month_end,
+        }
+    }
+    if company_id:
+        match_filter["company_id"] = company_id
+
+    pipeline = [
+        {"$match": match_filter},
+        {
+            "$group": {
+                "_id": None,
+                "total_payments": {
+                    "$sum": {"$multiply": ["$units_produced", "$rate_per_unit"]}
+                },
+            }
+        },
+    ]
+
+    result = next(PayRecord._get_collection().aggregate(pipeline), None)
+    return float((result or {}).get("total_payments", 0) or 0)

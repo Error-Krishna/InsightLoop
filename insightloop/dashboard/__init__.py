@@ -1,1 +1,1 @@
-from . import utils
+"""Dashboard app package."""
