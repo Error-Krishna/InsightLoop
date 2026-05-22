@@ -87,6 +87,7 @@ class AIAssistantConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_add(self.group_name, self.channel_name)
                 self.authenticated = True
                 await self.send(json.dumps({"type": "session_status", "authenticated": True}))
+                return
             except TokenError as exc:
                 logger.warning("JWT auth failed in receive: %s", exc)
                 await self.send(json.dumps({"type": "error", "content": "Invalid or expired token.", "assistant": "system"}))

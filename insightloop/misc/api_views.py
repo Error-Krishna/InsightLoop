@@ -14,12 +14,8 @@ def _save_upload(company_id, upload_file, prefix):
 
 
 def _get_profile_pic_url(user):
-    try:
-        pic = user.profile_pic
-        if pic and hasattr(pic, "grid_id") and pic.grid_id:
-            return f"/api/v1/profile/pic/{str(pic.grid_id)}/"
-    except Exception:
-        pass
+    # TODO: Implement GridFS profile pic endpoint
+    # For now, return None until route /api/v1/profile/pic/<id>/ is implemented
     return None
 
 

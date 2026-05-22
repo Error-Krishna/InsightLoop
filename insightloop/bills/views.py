@@ -1,5 +1,6 @@
 from bson import ObjectId
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from rest_framework.viewsets import ViewSet
@@ -79,6 +80,8 @@ def _build_bill_payload(data, bill_type, existing=None):
 
 
 class BillViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
+
     def _company_id(self, request):
         return getattr(request, "company_id", None) or getattr(request.user, "company_id", None)
 

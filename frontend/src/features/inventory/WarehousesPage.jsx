@@ -10,7 +10,7 @@ export default function WarehousesPage() {
   const [editingId, setEditingId] = useState(null);
 
   async function load() {
-    const [warehousesResponse, summaryResponse] = await Promise.all([api.get("/inventory/warehouses/"), api.get("/inventory/warehouse-summary/")]);
+    const [warehousesResponse, summaryResponse] = await Promise.all([api.get("/inventory/warehouses/"), api.get("/inventory/meta/warehouse-summary/")]); 
     setWarehouses(warehousesResponse.data);
     setSummary(summaryResponse.data);
   }

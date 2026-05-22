@@ -1,5 +1,6 @@
 from bson import ObjectId
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from rest_framework.viewsets import ViewSet
@@ -41,6 +42,7 @@ def _serialize_item(item):
 
 class BaseInventoryViewSet(ViewSet):
     item_type = None
+    permission_classes = [IsAuthenticated]
 
     def _company_id(self, request):
         return getattr(request, "company_id", None) or getattr(request.user, "company_id", None)
@@ -94,6 +96,8 @@ class RawInventoryViewSet(BaseInventoryViewSet):
 
 
 class WarehouseViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
+
     def _company_id(self, request):
         return getattr(request, "company_id", None) or getattr(request.user, "company_id", None)
 
@@ -125,6 +129,8 @@ class WarehouseViewSet(ViewSet):
 
 
 class InventoryMetaViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
+
     def _company_id(self, request):
         return getattr(request, "company_id", None) or getattr(request.user, "company_id", None)
 
@@ -150,4 +156,4 @@ router = DefaultRouter()
 router.register("inventory/finished", FinishedInventoryViewSet, basename="inventory-finished")
 router.register("inventory/raw", RawInventoryViewSet, basename="inventory-raw")
 router.register("inventory/warehouses", WarehouseViewSet, basename="inventory-warehouses")
-router.register("inventory", InventoryMetaViewSet, basename="inventory-meta")
+router.register("inventory/meta", InventoryMetaViewSet, basename="inventory-meta")

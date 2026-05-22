@@ -78,7 +78,8 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    const socket = new WebSocket(buildWsUrl("/ws/ai-assistant/"));
+    const token = getAccessToken();
+    const socket = new WebSocket(buildWsUrl(`/ws/ai-assistant/?token=${token}`));
     socketRef.current = socket;
 
     socket.onopen = () => setConnected(true);

@@ -173,3 +173,11 @@ class MarkPaidApiView(AuthenticatedAPIView):
         payment.updated_at = datetime.now()
         payment.save()
         return Response(_serialize_payment(payment))
+
+
+class WorkerDetailApiView(AuthenticatedAPIView):
+    def delete(self, request, worker_id):
+        company_id = get_company_id(request)
+        worker = Worker.objects.get(id=ObjectId(worker_id), company_id=company_id)
+        worker.delete()
+        return Response(status=204)

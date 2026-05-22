@@ -82,7 +82,8 @@ export default function DashboardPage() {
     function connectSocket() {
       const companyId = getCompanyId();
       if (!companyId) return;
-      const url = buildWsUrl(`/ws/dashboard/${companyId}/`);
+      const token = getAccessToken();
+      const url = buildWsUrl(`/ws/dashboard/${companyId}/?token=${token}`);
       socket = new WebSocket(url);
       socket.onmessage = (event) => {
         try {
