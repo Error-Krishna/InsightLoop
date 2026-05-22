@@ -3,25 +3,72 @@ import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
 
+const initialValues = {
+  name: "",
+  company_name: "",
+  address: "",
+  company_email: "",
+  company_phone: "",
+  gst_number: "",
+  bank_account_number: "",
+  ifsc_code: "",
+  bank_name: "",
+  branch_name: "",
+};
+
+const initialFiles = {
+  logo: null,
+  stamp: null,
+  signature: null,
+};
+
 export default function ProfilePage() {
-  const [form, setForm] = useState(new FormDataState());
+  const [values, setValues] = useState(initialValues);
+  const [files, setFiles] = useState(initialFiles);
 
   useEffect(() => {
-    api.get("/profile/").then(({ data }) => setForm(new FormDataState(data))).catch(() => toast.error("Failed to load profile"));
+    api
+      .get("/profile/")
+      .then(({ data }) => {
+        setValues({
+          name: data.user?.name || "",
+          company_name: data.company?.name || "",
+          address: data.company?.address || "",
+          company_email: data.company?.email || "",
+          company_phone: data.company?.phone || "",
+          gst_number: data.company?.gst_number || "",
+          bank_account_number: data.company?.bank_account_number || "",
+          ifsc_code: data.company?.ifsc_code || "",
+          bank_name: data.company?.bank_name || "",
+          branch_name: data.company?.branch_name || "",
+        });
+      })
+      .catch(() => toast.error("Failed to load profile"));
   }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
     const payload = new FormData();
-    Object.entries(form.values).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) payload.append(key, value);
+    Object.entries(values).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        payload.append(key, value);
+      }
     });
-    Object.entries(form.files).forEach(([key, value]) => {
-      if (value) payload.append(key, value);
+    Object.entries(files).forEach(([key, file]) => {
+      if (file) {
+        payload.append(key, file);
+      }
     });
 
-    await api.put("/profile/", payload, { headers: { "Content-Type": "multipart/form-data" } });
-    toast.success("Profile updated");
+    try {
+      await api.put("/profile/", payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Profile updated");
+      setFiles(initialFiles);
+    } catch {
+      toast.error("Failed to update profile");
+    }
   }
 
   return (
@@ -42,9 +89,14 @@ export default function ProfilePage() {
         ].map(([key, label]) => (
           <label key={key} className="text-sm font-medium text-slate-700">
             {label}
-            <input value={form.values[key] || ""} onChange={(event) => form.setValue(setForm, key, event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3" />
+            <input
+              value={values[key] || ""}
+              onChange={(event) => setValues((current) => ({ ...current, [key]: event.target.value }))}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3"
+            />
           </label>
         ))}
+
         {[
           ["logo", "Company Logo"],
           ["stamp", "Stamp"],
@@ -52,49 +104,18 @@ export default function ProfilePage() {
         ].map(([key, label]) => (
           <label key={key} className="text-sm font-medium text-slate-700">
             {label}
-            <input type="file" onChange={(event) => form.setFile(setForm, key, event.target.files?.[0] || null)} className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3" />
+            <input
+              type="file"
+              onChange={(event) => setFiles((current) => ({ ...current, [key]: event.target.files?.[0] || null }))}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3"
+            />
           </label>
         ))}
+
         <button type="submit" className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
           Save Profile
         </button>
       </form>
     </Card>
   );
-}
-
-class FormDataState {
-  constructor(payload = {}) {
-    this.values = {
-      name: payload.user?.name || "",
-      company_name: payload.company?.name || "",
-      address: payload.company?.address || "",
-      company_email: payload.company?.email || "",
-      company_phone: payload.company?.phone || "",
-      gst_number: payload.company?.gst_number || "",
-      bank_account_number: payload.company?.bank_account_number || "",
-      ifsc_code: payload.company?.ifsc_code || "",
-      bank_name: payload.company?.bank_name || "",
-      branch_name: payload.company?.branch_name || "",
-    };
-    this.files = { logo: null, stamp: null, signature: null };
-  }
-
-  setValue(setter, key, value) {
-    setter((current) => {
-      const next = new FormDataState();
-      next.values = { ...current.values, [key]: value };
-      next.files = current.files;
-      return next;
-    });
-  }
-
-  setFile(setter, key, value) {
-    setter((current) => {
-      const next = new FormDataState();
-      next.values = current.values;
-      next.files = { ...current.files, [key]: value };
-      return next;
-    });
-  }
 }

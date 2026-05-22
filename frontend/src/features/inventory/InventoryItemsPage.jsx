@@ -108,7 +108,16 @@ export default function InventoryItemsPage({ itemType, title }) {
                   type="button"
                   onClick={() => {
                     setEditingId(item.id);
-                    setForm(item);
+                    setForm({
+                      name: item.name || "",
+                      unit: item.unit || "pcs",
+                      quantity: item.quantity || 0,
+                      selling_price: item.selling_price || 0,
+                      cost_price: item.cost_price || 0,
+                      reorder_level: item.reorder_level || 0,
+                      warehouse_id: item.warehouse_id || "",
+                      image_url: item.image_url || "",
+                    });
                   }}
                   className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700"
                 >

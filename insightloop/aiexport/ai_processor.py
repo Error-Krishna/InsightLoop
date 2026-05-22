@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 from django.core.files.storage import default_storage
-from django.urls import reverse
 from dashboard.utils import generate_export_file
 from insights.utils import get_insight_data
 
@@ -43,17 +42,32 @@ def process_ai_command(company_id, user_email, command, assistant_type):
         elif any(kw in command for kw in ["dashboard", "home", "overview"]):
             response.update({
                 "action": "navigate",
-                "url": reverse("dashboard")
+                "url": "/dashboard"
             })
         elif any(kw in command for kw in ["insight", "analysis", "findings"]):
             response.update({
                 "action": "navigate",
-                "url": reverse("insights")
+                "url": "/insights"
             })
         elif any(kw in command for kw in ["upload", "import", "data"]):
             response.update({
                 "action": "navigate",
-                "url": reverse("upload")
+                "url": "/upload"
+            })
+        elif any(kw in command for kw in ["workers", "staff"]):
+            response.update({
+                "action": "navigate",
+                "url": "/workers"
+            })
+        elif any(kw in command for kw in ["bills", "invoice"]):
+            response.update({
+                "action": "navigate",
+                "url": "/bills/pakka"
+            })
+        elif any(kw in command for kw in ["inventory", "stock"]):
+            response.update({
+                "action": "navigate",
+                "url": "/inventory/finished"
             })
         
         # Data query commands

@@ -13,6 +13,16 @@ def _save_upload(company_id, upload_file, prefix):
     return default_storage.url(filename)
 
 
+def _get_profile_pic_url(user):
+    try:
+        pic = user.profile_pic
+        if pic and hasattr(pic, "grid_id") and pic.grid_id:
+            return f"/api/v1/profile/pic/{str(pic.grid_id)}/"
+    except Exception:
+        pass
+    return None
+
+
 def _serialize_profile(user):
     company = user.company
     return {
@@ -22,7 +32,7 @@ def _serialize_profile(user):
             "phone": user.phone,
             "location": user.location,
             "username": user.username,
-            "profile_pic": serialize_value(user.profile_pic.url) if getattr(user.profile_pic, "url", None) else None,
+            "profile_pic": _get_profile_pic_url(user),
         },
         "company": {
             "company_id": str(company.company_id),
@@ -78,5 +88,6 @@ class ProfileApiView(AuthenticatedAPIView):
         company.updated_at = datetime.now()
         company.save()
         user.save()
+        user.reload()
 
         return Response(_serialize_profile(user))

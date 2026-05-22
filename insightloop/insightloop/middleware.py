@@ -17,6 +17,23 @@ class CompanyMiddleware:
         return response
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class ApiCsrfExemptMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.path.startswith("/api/v1/"):
+            request._dont_enforce_csrf_checks = True
+            request.csrf_processing_done = True
+            logger.debug("ApiCsrfExemptMiddleware: exempting CSRF for %s", request.path)
+        return self.get_response(request)
+
+
 class PathBasedUrlconfMiddleware:
     API_URLCONFS = {
         "/api/v1/auth/": "insightloop.api_auth_urls",

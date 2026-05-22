@@ -72,6 +72,16 @@ class WorkersCollectionApiView(AuthenticatedAPIView):
 
     def post(self, request):
         company_id = get_company_id(request)
+        raw_date = request.data.get("joining_date")
+        joining_date = None
+        if raw_date:
+            try:
+                joining_date = datetime.strptime(raw_date[:10], "%Y-%m-%d")
+            except Exception:
+                joining_date = datetime.now()
+        else:
+            joining_date = datetime.now()
+
         worker = Worker(
             company_id=company_id,
             name=request.data.get("name"),
@@ -79,9 +89,7 @@ class WorkersCollectionApiView(AuthenticatedAPIView):
             address=request.data.get("address"),
             phone=request.data.get("phone"),
             image_url=request.data.get("image_url"),
-            joining_date=datetime.strptime(request.data["joining_date"], "%Y-%m-%d")
-            if request.data.get("joining_date")
-            else datetime.now(),
+            joining_date=joining_date,
         )
         worker.save()
         return Response(_serialize_worker(worker, company_id), status=201)
@@ -97,15 +105,22 @@ class WorkerMaterialsApiView(AuthenticatedAPIView):
     def post(self, request, worker_id):
         company_id = get_company_id(request)
         worker = Worker.objects.get(id=ObjectId(worker_id), company_id=company_id)
+        raw_date = request.data.get("date")
+        if raw_date:
+            try:
+                assignment_date = datetime.strptime(raw_date[:10], "%Y-%m-%d")
+            except Exception:
+                assignment_date = datetime.now()
+        else:
+            assignment_date = datetime.now()
+
         item = MaterialAssignment(
             company_id=company_id,
             worker=worker,
             material_name=request.data.get("material_name"),
             quantity=int(request.data.get("quantity", 0)),
             price_per_unit=float(request.data.get("price_per_unit", 0)),
-            assignment_date=datetime.strptime(request.data.get("date"), "%Y-%m-%d")
-            if request.data.get("date")
-            else datetime.now(),
+            assignment_date=assignment_date,
             notes=request.data.get("notes", ""),
             batches=request.data.get("batches", []),
         )
@@ -126,6 +141,15 @@ class WorkerPaymentsApiView(AuthenticatedAPIView):
         units = int(request.data.get("units_produced", 0))
         rate = float(request.data.get("rate_per_unit", 0))
         amount_paid = float(request.data.get("amount_paid", 0))
+        raw_date = request.data.get("date")
+        if raw_date:
+            try:
+                payment_date = datetime.strptime(raw_date[:10], "%Y-%m-%d")
+            except Exception:
+                payment_date = datetime.now()
+        else:
+            payment_date = datetime.now()
+
         payment = PayRecord(
             company_id=company_id,
             worker=worker,
@@ -134,9 +158,7 @@ class WorkerPaymentsApiView(AuthenticatedAPIView):
             rate_per_unit=rate,
             amount_paid=amount_paid,
             paid=amount_paid >= units * rate,
-            date=datetime.strptime(request.data.get("date"), "%Y-%m-%d")
-            if request.data.get("date")
-            else datetime.now(),
+            date=payment_date,
         )
         payment.save()
         return Response(_serialize_payment(payment), status=201)

@@ -1,141 +1,129 @@
 import json
 import logging
-from channels.generic.websocket import AsyncWebsocketConsumer
+from urllib.parse import parse_qs
+
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import AccessToken
 
 logger = logging.getLogger(__name__)
 
+
 class AIAssistantConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # Initialize attributes
         self.authenticated = False
         self.company_id = None
         self.user_email = None
         self.group_name = None
-        
-        # Get session from scope
-        session = self.scope.get("session")
-        if not session:
-            logger.warning("No session found in WebSocket scope")
-            await self.close(code=4001)
-            return
-            
-        # Get session data
-        self.company_id = session.get("company_id")
-        self.user_email = session.get("user_email")
-        
-        if not self.company_id or not self.user_email:
-            logger.warning("Missing company_id or user_email in session")
-            await self.close(code=4001)
-            return
-            
-        # Create group name
-        self.group_name = f'ai_assistant_{self.company_id}'
-        
-        # Add to channel group
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
-        
-        self.authenticated = True
+
+        # Try JWT auth from query string. If absent, accept connection
+        # but require the client to send token in the first message.
+        qs = parse_qs(self.scope.get("query_string", b"").decode())
+        token_list = qs.get("token", [])
+        if token_list:
+            try:
+                payload = AccessToken(token_list[0])
+                self.company_id = payload.get("company_id")
+                self.user_email = payload.get("email")
+                if self.company_id and self.user_email:
+                    self.group_name = f"ai_assistant_{self.company_id}"
+                    await self.channel_layer.group_add(self.group_name, self.channel_name)
+                    self.authenticated = True
+            except TokenError as exc:
+                logger.warning("JWT auth failed in connect: %s", exc)
+
+        # Accept the socket regardless — frontend may send token in first message
         await self.accept()
-        
-        # Send authentication success
         await self.send(json.dumps({
             "type": "session_status",
-            "authenticated": True,
-            "message": "Authenticated successfully"
+            "authenticated": self.authenticated,
+            "message": "Connected to AI Assistant",
         }))
-        logger.info(f"Authenticated user {self.user_email} from company {self.company_id}")
+        logger.info("AI WS connected – user=%s company=%s auth=%s", self.user_email, self.company_id, self.authenticated)
+
+    @database_sync_to_async
+    def _authenticate(self):
+        """Try JWT query-param first, then session."""
+        # 1. JWT from ?token=...
+        qs = parse_qs(self.scope.get("query_string", b"").decode())
+        token_list = qs.get("token", [])
+        if token_list:
+            try:
+                payload = AccessToken(token_list[0])
+                self.company_id = payload.get("company_id")
+                self.user_email = payload.get("email")
+                if self.company_id and self.user_email:
+                    return True
+            except TokenError as exc:
+                logger.warning("JWT auth failed: %s", exc)
+
+        # 2. Session fallback (Django template pages)
+        session = self.scope.get("session", {})
+        self.company_id = session.get("company_id")
+        self.user_email = session.get("user_email")
+        return bool(self.company_id and self.user_email)
 
     async def receive(self, text_data):
+        # If not yet authenticated, expect the first message to provide token
+        if not self.authenticated:
+            try:
+                data = json.loads(text_data)
+            except json.JSONDecodeError:
+                await self.send(json.dumps({"type": "error", "content": "Authentication required: send JSON with {token: <jwt>}.", "assistant": "system"}))
+                return
+            token = data.get("token")
+            if not token:
+                await self.send(json.dumps({"type": "error", "content": "Authentication required: missing token.", "assistant": "system"}))
+                return
+            try:
+                payload = AccessToken(token)
+                self.company_id = payload.get("company_id")
+                self.user_email = payload.get("email")
+                if not (self.company_id and self.user_email):
+                    await self.send(json.dumps({"type": "error", "content": "Invalid token payload.", "assistant": "system"}))
+                    return
+                self.group_name = f"ai_assistant_{self.company_id}"
+                await self.channel_layer.group_add(self.group_name, self.channel_name)
+                self.authenticated = True
+                await self.send(json.dumps({"type": "session_status", "authenticated": True}))
+            except TokenError as exc:
+                logger.warning("JWT auth failed in receive: %s", exc)
+                await self.send(json.dumps({"type": "error", "content": "Invalid or expired token.", "assistant": "system"}))
+                await self.close(code=4001)
+                return
         try:
-            if not self.authenticated:
-                logger.warning("Received message before authentication")
-                await self.send(json.dumps({
-                    "type": "error",
-                    "content": "Not authenticated",
-                    "assistant": "system"
-                }))
-                return
-                
             data = json.loads(text_data)
-            logger.debug(f"Received WebSocket message: {data}")
-            
-            command = data.get("command")
+            # Normal command handling
+            command = data.get("command", "").strip()
             assistant_type = data.get("assistant", "jarvis")
-            
             if not command:
-                await self.send(json.dumps({
-                    "type": "error",
-                    "content": "Missing command",
-                    "assistant": assistant_type
-                }))
+                await self.send(json.dumps({"type": "error", "content": "Missing command", "assistant": assistant_type}))
                 return
-                
-            # Process command with AI
-            logger.info(f"Processing command for {assistant_type}: {command}")
-            
-            # Get the actual response data (not coroutine)
-            response_data = await self.process_ai_command(
-                self.company_id,
-                self.user_email,
-                command,
-                assistant_type
-            )
-            
-            # Send response to appropriate UI
+
+            response_data = await self._process_command(self.company_id, self.user_email, command, assistant_type)
             await self.channel_layer.group_send(
                 self.group_name,
-                {
-                    "type": "ai_response",
-                    "response": response_data,  # Use the resolved data, not coroutine
-                    "assistant": assistant_type
-                }
+                {"type": "ai_response", "response": response_data, "assistant": assistant_type},
             )
-            
         except json.JSONDecodeError:
-            await self.send(json.dumps({
-                "type": "error",
-                "content": "Invalid message format",
-                "assistant": "system"
-            }))
-        except Exception as e:
-            logger.error(f"Error processing message: {str(e)}", exc_info=True)
-            await self.send(json.dumps({
-                "type": "error",
-                "content": f"Internal error: {str(e)}",
-                "assistant": "system"
-            }))
+            await self.send(json.dumps({"type": "error", "content": "Invalid JSON", "assistant": "system"}))
+        except Exception as exc:
+            logger.exception("Error processing WS message: %s", exc)
+            await self.send(json.dumps({"type": "error", "content": f"Internal error: {exc}", "assistant": "system"}))
 
     async def ai_response(self, event):
-        """Send AI response to client"""
         try:
             await self.send(text_data=json.dumps(event["response"]))
-            logger.debug("Sent AI response to client")
-        except Exception as e:
-            logger.error(f"Error sending response: {str(e)}")
+        except Exception as exc:
+            logger.error("Error sending AI response: %s", exc)
 
     async def disconnect(self, close_code):
-        """Clean up on disconnect"""
-        try:
-            if self.group_name:
-                await self.channel_layer.group_discard(
-                    self.group_name, 
-                    self.channel_name
-                )
-                logger.info(f"Disconnected from group {self.group_name}")
-        except Exception as e:
-            logger.error(f"Error during disconnect: {str(e)}")
-        finally:
-            logger.info(f"WebSocket disconnected with code {close_code}")
-    
+        if self.group_name:
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        logger.info("AI WS disconnected – code=%s", close_code)
+
     @database_sync_to_async
-    def process_ai_command(self, company_id, user_email, command, assistant_type):
-        """Wrapper for synchronous AI processing"""
-        # Import inside the function to avoid circular imports
+    def _process_command(self, company_id, user_email, command, assistant_type):
         from .ai_processor import process_ai_command
-        
-        # Call the synchronous function and return its result
         return process_ai_command(company_id, user_email, command, assistant_type)

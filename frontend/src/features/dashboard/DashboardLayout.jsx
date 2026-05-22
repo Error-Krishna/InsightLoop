@@ -4,15 +4,18 @@ import {
   Boxes,
   ChartNoAxesCombined,
   ChevronDown,
+  ChevronRight,
   FileSpreadsheet,
   LayoutDashboard,
   LogOut,
+  Menu,
   PackageSearch,
   ReceiptIndianRupee,
   Settings,
   UserCircle2,
   Users,
   Warehouse,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -64,95 +67,174 @@ export default function DashboardLayout() {
   const user = getCurrentUser();
   const location = useLocation();
   const navigate = useNavigate();
-  const [openGroups, setOpenGroups] = useState({ Bills: true, Inventory: true });
+  const [openGroups, setOpenGroups] = useState({ Bills: true, Inventory: false });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const title = pageTitles[location.pathname] || "InsightLoop";
   const breadcrumbs = useMemo(() => location.pathname.split("/").filter(Boolean), [location.pathname]);
+
+  const initials = (user?.name || "IU").slice(0, 2).toUpperCase();
 
   function handleLogout() {
     clearSession();
     navigate("/login", { replace: true });
   }
 
+  const sidebarContent = (
+    <>
+      {/* Logo */}
+      <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/20">
+          <Boxes className="h-5 w-5 text-teal-300" />
+        </div>
+        <div>
+          <p className="text-[15px] font-bold text-white">InsightLoop</p>
+          <p className="text-[10px] tracking-widest text-slate-400">OPS + ANALYTICS</p>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        {navGroups.map((group) =>
+          group.children ? (
+            <div key={group.label}>
+              <button
+                type="button"
+                onClick={() => setOpenGroups((c) => ({ ...c, [group.label]: !c[group.label] }))}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+              >
+                <span className="flex items-center gap-3">
+                  <group.icon className="h-4 w-4 text-slate-400" />
+                  {group.label}
+                </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-slate-500 transition-transform ${openGroups[group.label] ? "rotate-180" : ""}`}
+                />
+              </button>
+              {openGroups[group.label] && (
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
+                  {group.children.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+                          isActive
+                            ? "bg-blue-500/20 font-medium text-blue-300"
+                            : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                        }`
+                      }
+                    >
+                      <ChevronRight className="h-3 w-3 opacity-50" />
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <NavLink
+              key={group.to}
+              to={group.to}
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-blue-600/20 text-blue-300 ring-1 ring-blue-500/30"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`
+              }
+            >
+              <group.icon className="h-4 w-4" />
+              {group.label}
+            </NavLink>
+          ),
+        )}
+      </nav>
+
+      {/* User */}
+      <div className="border-t border-white/10 p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">{user?.name || "User"}</p>
+            <p className="truncate text-xs text-slate-400">{user?.company_name || "Company"}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Log out"
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-rose-400"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-64 flex-col bg-slate-900 text-slate-200 md:flex">
-        <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/20 text-teal-300">
-            <Boxes className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-white">InsightLoop</p>
-            <p className="text-xs text-slate-400">Ops + Analytics</p>
-          </div>
+      {/* Desktop sidebar */}
+      <aside className="hidden w-64 flex-col bg-slate-900 md:flex">{sidebarContent}</aside>
+
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col bg-slate-900">
+            {sidebarContent}
+          </aside>
         </div>
+      )}
 
-        <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-5">
-          {navGroups.map((group) =>
-            group.children ? (
-              <div key={group.label}>
-                <button
-                  type="button"
-                  onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !current[group.label] }))}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-slate-200 hover:bg-white/5"
-                >
-                  <span className="flex items-center gap-3">
-                    <group.icon className="h-4 w-4 text-slate-400" />
-                    {group.label}
-                  </span>
-                  <ChevronDown className={`h-4 w-4 transition ${openGroups[group.label] ? "rotate-180" : ""}`} />
-                </button>
-                {openGroups[group.label] && (
-                  <div className="mt-1 space-y-1 border-l border-slate-800 pl-3">
-                    {group.children.map((item) => (
-                      <SidebarLink key={item.to} to={item.to} label={item.label} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <SidebarLink key={group.to} to={group.to} label={group.label} icon={group.icon} />
-            ),
-          )}
-        </nav>
-
-        <div className="border-t border-slate-800 p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-semibold text-white">
-              {(user?.name || "IU").slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{user?.name}</p>
-              <p className="truncate text-xs text-slate-400">{user?.company_name}</p>
-            </div>
-            <button type="button" onClick={handleLogout} className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white">
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </aside>
-
+      {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Header */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm md:px-6">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">{title}</h1>
-            <p className="mt-0.5 text-xs text-slate-500">{breadcrumbs.join(" / ") || "overview"}</p>
-          </div>
           <div className="flex items-center gap-3">
-            <button className="rounded-lg border border-slate-200 p-2 text-slate-500">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-base font-semibold text-slate-900">{title}</h1>
+              <nav aria-label="breadcrumb">
+                <ol className="flex items-center gap-1 text-xs text-slate-400">
+                  {breadcrumbs.map((crumb, i) => (
+                    <li key={crumb} className="flex items-center gap-1">
+                      {i > 0 && <ChevronRight className="h-3 w-3" />}
+                      <span className="capitalize">{crumb.replace("-", " ")}</span>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50">
               <Bell className="h-4 w-4" />
             </button>
-            <div className="hidden items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 md:flex">
-              <UserCircle2 className="h-4 w-4 text-slate-500" />
-              <span className="text-sm text-slate-700">{user?.name}</span>
+            <div className="hidden items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 md:flex">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                {initials}
+              </div>
+              <span className="text-sm font-medium text-slate-700">{user?.name}</span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-6 pb-24 md:pb-6">
+        <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-6">
           <Outlet />
         </main>
       </div>
 
+      {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-slate-200 bg-white px-2 py-2 md:hidden">
         {[
           { label: "Home", to: "/dashboard", icon: LayoutDashboard },
@@ -161,30 +243,24 @@ export default function DashboardLayout() {
           { label: "AI", to: "/ai-assistant", icon: Bot },
           { label: "Settings", to: "/settings", icon: Settings },
         ].map((item) => (
-          <NavLink key={item.to} to={item.to} className="flex flex-col items-center gap-1 rounded-lg px-3 py-1 text-xs text-slate-600">
-            <item.icon className="h-4 w-4" />
-            {item.label}
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] transition ${
+                isActive ? "text-blue-600" : "text-slate-500"
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <item.icon className={`h-4 w-4 ${isActive ? "stroke-[2.5]" : ""}`} />
+                {item.label}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
     </div>
-  );
-}
-
-function SidebarLink({ to, label, icon: Icon }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `flex items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-sm font-medium transition ${
-          isActive
-            ? "border-blue-400 bg-blue-600/20 text-blue-400"
-            : "border-transparent text-slate-300 hover:bg-white/5 hover:text-white"
-        }`
-      }
-    >
-      {Icon ? <Icon className="h-4 w-4" /> : <span className="h-4 w-4" />}
-      {label}
-    </NavLink>
   );
 }

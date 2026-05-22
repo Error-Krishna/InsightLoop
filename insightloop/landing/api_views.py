@@ -1,5 +1,8 @@
 from datetime import datetime
+import logging
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +12,8 @@ from insightloop.api_utils import serialize_value
 from .auth_backends import MongoAuthBackend
 from .authentication import issue_tokens_for_user
 from .mongo_models import Company, User
+
+logger = logging.getLogger(__name__)
 
 
 def _auth_response(user):
@@ -24,6 +29,7 @@ def _auth_response(user):
     }
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class SignupApiView(APIView):
     permission_classes = [AllowAny]
 
@@ -55,10 +61,12 @@ class SignupApiView(APIView):
         return Response(_auth_response(user), status=201)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class LoginApiView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        logger.debug("LoginApiView.post reached for path %s", request.path)
         email = (request.data.get("email") or "").strip().lower()
         password = request.data.get("password") or ""
 

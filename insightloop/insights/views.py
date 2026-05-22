@@ -165,12 +165,14 @@ def analyze_sales_data(company_id):
     insights_list = []
     end_date = datetime.now().date()
     start_date = end_date - timedelta(days=90)
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
     
     # Query business data for the company
     biz_data = BusinessData.objects(
-        company_id=company_id,  # Filter by company_id
-        date__gte=start_date,
-        date__lte=end_date
+        company_id=company_id,
+        date__gte=start_dt,
+        date__lte=end_dt
     ).only('date', 'product', 'quantity', 'selling_price')
     
     if not biz_data:

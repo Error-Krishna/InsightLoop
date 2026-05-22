@@ -1,6 +1,3 @@
-date,product,category,sales,profit,region,customer_type
-2023-01-15,Wireless Headphones,Electronics,150,45.99,North America,Retail
-2023-01-16,Office Chair,Furniture,30,89.50,Europe,Online
-2023-01-17,Coffee Maker,Home & Kitchen,80,22.75,Asia,Wholesale
-2023-01-18,Running Shoes,Sports,120,35.20,South America,Retail
-2023-01-19,Bluetooth Speaker,Electronics,90,28.40,Africa,Online
+date,product,category,quantity,production_cost,selling_price,region,customer_type
+2024-01-15,Laptop,Electronics,10,12000,18000,North India,Retail
+2024-01-16,Chair,Furniture,5,2000,3500,South India,Wholesale

@@ -3,10 +3,11 @@ from datetime import datetime
 from mongoengine import Document, fields
 
 
-def generate_invoice_number():
+def generate_invoice_number(company_id):
+    """Generate a company-scoped invoice number with year prefix."""
     year = datetime.now().year
     prefix = f"INV-{year}-"
-    latest = Bill.objects(invoice_number__startswith=prefix).order_by("-created_at").first()
+    latest = Bill.objects(company_id=company_id, invoice_number__startswith=prefix).order_by("-invoice_number").first()
     if latest and latest.invoice_number:
         try:
             sequence = int(latest.invoice_number.split("-")[-1]) + 1
@@ -14,7 +15,12 @@ def generate_invoice_number():
             sequence = 1
     else:
         sequence = 1
-    return f"{prefix}{sequence:04d}"
+    candidate = f"{prefix}{sequence:05d}"
+    # Ensure uniqueness by incrementing if already exists
+    while Bill.objects(company_id=company_id, invoice_number=candidate).count() > 0:
+        sequence += 1
+        candidate = f"{prefix}{sequence:05d}"
+    return candidate
 
 
 class Bill(Document):
@@ -27,7 +33,7 @@ class Bill(Document):
     gst_amount = fields.FloatField(default=0)
     discount = fields.FloatField(default=0)
     grand_total = fields.FloatField(required=True, default=0)
-    invoice_number = fields.StringField(required=True, unique=True)
+    invoice_number = fields.StringField(required=True)
     created_at = fields.DateTimeField(default=datetime.now)
     updated_at = fields.DateTimeField(default=datetime.now)
 
@@ -42,6 +48,6 @@ class Bill(Document):
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
-            self.invoice_number = generate_invoice_number()
+            self.invoice_number = generate_invoice_number(self.company_id)
         self.updated_at = datetime.now()
         return super().save(*args, **kwargs)

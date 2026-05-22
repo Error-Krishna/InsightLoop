@@ -6,7 +6,7 @@ from rest_framework.viewsets import ViewSet
 
 from insightloop.api_utils import serialize_value
 
-from .models import Bill
+from .models import Bill, generate_invoice_number
 
 
 def _serialize_bill(bill):
@@ -106,6 +106,11 @@ class BillViewSet(ViewSet):
         bill.delete()
         return Response(status=204)
 
+    def retrieve(self, request, pk=None):
+        company_id = self._company_id(request)
+        bill = Bill.objects.get(id=ObjectId(pk), company_id=company_id)
+        return Response(_serialize_bill(bill))
+
     @action(detail=False, methods=["post"], url_path="kacha")
     def create_kacha(self, request):
         return self._create_bill(request, "kacha")
@@ -128,7 +133,9 @@ class BillViewSet(ViewSet):
     def _create_bill(self, request, bill_type):
         company_id = self._company_id(request)
         payload = _build_bill_payload(request.data, bill_type)
-        bill = Bill(company_id=company_id, invoice_number="", **payload)
+        # Generate company-scoped invoice number to reduce race window
+        invoice_number = generate_invoice_number(company_id)
+        bill = Bill(company_id=company_id, invoice_number=invoice_number, **payload)
         bill.save()
         return Response(_serialize_bill(bill), status=201)
 
