@@ -8,12 +8,17 @@ export default function WarehousesPage() {
   const [summary, setSummary] = useState([]);
   const [form, setForm] = useState({ name: "", location: "" });
   const [editingId, setEditingId] = useState(null);
+  const emptyForm = { name: "", location: "" };
 
   async function load() {
-    const [warehousesResponse, summaryResponse] = await Promise.all([api.get("/inventory/warehouses/"), api.get("/inventory/meta/warehouse-summary/")]); 
+    const [warehousesResponse, summaryResponse] = await Promise.all([api.get("/inventory/warehouses/"), api.get("/inventory/meta/warehouse-summary/")]);
     setWarehouses(warehousesResponse.data);
     setSummary(summaryResponse.data);
   }
+
+  const totalItems = summary.reduce((sum, item) => sum + Number(item.items_count || 0), 0);
+  const totalQuantity = summary.reduce((sum, item) => sum + Number(item.total_quantity || 0), 0);
+  const totalStockValue = summary.reduce((sum, item) => sum + Number(item.stock_value || 0), 0);
 
   useEffect(() => {
     load().catch(() => toast.error("Failed to load warehouse data"));
@@ -21,20 +26,30 @@ export default function WarehousesPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (editingId) {
-      await api.put(`/inventory/warehouses/${editingId}/`, form);
-      toast.success("Warehouse updated");
-    } else {
-      await api.post("/inventory/warehouses/", form);
-      toast.success("Warehouse created");
+    try {
+      if (editingId) {
+        await api.put(`/inventory/warehouses/${editingId}/`, form);
+        toast.success("Warehouse updated");
+      } else {
+        await api.post("/inventory/warehouses/", form);
+        toast.success("Warehouse created");
+      }
+      setForm(emptyForm);
+      setEditingId(null);
+      await load();
+    } catch {
+      toast.error("Unable to save warehouse");
     }
-    setForm({ name: "", location: "" });
-    setEditingId(null);
-    load();
   }
 
   return (
     <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label="Warehouses" value={warehouses.length} />
+        <StatCard label="Tracked Items" value={totalItems} />
+        <StatCard label="Stock Value" value={`₹${Number(totalStockValue).toLocaleString("en-IN")}`} />
+      </div>
+
       <Card className="p-6">
         <h2 className="text-xl font-semibold text-slate-900">Warehouses</h2>
         <form onSubmit={handleSubmit} className="mt-6 flex flex-wrap gap-4">
@@ -72,9 +87,17 @@ export default function WarehousesPage() {
                 <button
                   type="button"
                   onClick={async () => {
-                    await api.delete(`/inventory/warehouses/${item.warehouse.id}/`);
-                    toast.success("Warehouse deleted");
-                    load();
+                    try {
+                      await api.delete(`/inventory/warehouses/${item.warehouse.id}/`);
+                      toast.success("Warehouse deleted");
+                      if (editingId === item.warehouse.id) {
+                        setEditingId(null);
+                        setForm(emptyForm);
+                      }
+                      await load();
+                    } catch {
+                      toast.error("Unable to delete warehouse");
+                    }
                   }}
                   className="rounded-lg border border-rose-200 px-3 py-2 text-sm text-rose-600"
                 >
@@ -89,8 +112,18 @@ export default function WarehousesPage() {
             </div>
           </Card>
         ))}
+        {summary.length === 0 && <Card className="p-6 text-sm text-slate-400">Create a warehouse to start organizing inventory by location.</Card>}
       </div>
     </div>
+  );
+}
+
+function StatCard({ label, value }) {
+  return (
+    <Card className="p-5">
+      <p className="text-sm text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+    </Card>
   );
 }
 

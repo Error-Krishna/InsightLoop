@@ -29,6 +29,8 @@ def _serialize_worker(worker, company_id):
         "material_assigned": sum(item.quantity for item in assignments),
         "material_delivered": sum(item.delivered_quantity for item in assignments),
         "pending_amount": round(pending_amount, 2),
+        "created_at": serialize_value(worker.created_at),
+        "updated_at": serialize_value(worker.updated_at),
     }
 
 
@@ -176,6 +178,34 @@ class MarkPaidApiView(AuthenticatedAPIView):
 
 
 class WorkerDetailApiView(AuthenticatedAPIView):
+    def get(self, request, worker_id):
+        company_id = get_company_id(request)
+        worker = Worker.objects.get(id=ObjectId(worker_id), company_id=company_id)
+        return Response(_serialize_worker(worker, company_id))
+
+    def put(self, request, worker_id):
+        company_id = get_company_id(request)
+        worker = Worker.objects.get(id=ObjectId(worker_id), company_id=company_id)
+
+        raw_date = request.data.get("joining_date")
+        if raw_date:
+            try:
+                worker.joining_date = datetime.strptime(raw_date[:10], "%Y-%m-%d")
+            except Exception:
+                pass
+
+        worker.name = request.data.get("name", worker.name)
+        worker.age = int(request.data["age"]) if request.data.get("age") else worker.age
+        worker.address = request.data.get("address", worker.address)
+        worker.phone = request.data.get("phone", worker.phone)
+        worker.image_url = request.data.get("image_url", worker.image_url)
+        if "is_active" in request.data:
+            is_active = request.data.get("is_active")
+            worker.is_active = is_active if isinstance(is_active, bool) else str(is_active).strip().lower() in {"1", "true", "yes", "on"}
+        worker.updated_at = datetime.now()
+        worker.save()
+        return Response(_serialize_worker(worker, company_id))
+
     def delete(self, request, worker_id):
         company_id = get_company_id(request)
         worker = Worker.objects.get(id=ObjectId(worker_id), company_id=company_id)

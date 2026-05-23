@@ -32,6 +32,7 @@ def _auth_response(user):
 @method_decorator(csrf_exempt, name="dispatch")
 class SignupApiView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         name = (request.data.get("name") or "").strip()
@@ -64,6 +65,7 @@ class SignupApiView(APIView):
 @method_decorator(csrf_exempt, name="dispatch")
 class LoginApiView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         logger.debug("LoginApiView.post reached for path %s", request.path)

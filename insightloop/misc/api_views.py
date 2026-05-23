@@ -5,7 +5,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from insightloop.api_utils import AuthenticatedAPIView, serialize_value
-from landing.mongo_models import User
+from landing.mongo_models import User, default_workspace_settings
 
 
 def _save_upload(company_id, upload_file, prefix):
@@ -48,6 +48,20 @@ def _serialize_profile(user):
     }
 
 
+def _serialize_workspace_settings(company):
+    defaults = default_workspace_settings()
+    current = company.workspace_settings or {}
+    return {key: bool(current.get(key, defaults[key])) for key in defaults}
+
+
+def _to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
 class ProfileApiView(AuthenticatedAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -87,3 +101,43 @@ class ProfileApiView(AuthenticatedAPIView):
         user.reload()
 
         return Response(_serialize_profile(user))
+
+
+class WorkspaceSettingsApiView(AuthenticatedAPIView):
+    def get(self, request):
+        user = User.objects.get(email=request.user.email)
+        company = user.company
+        return Response(
+            {
+                "workspace_settings": _serialize_workspace_settings(company),
+                "notifications": user.notifications or {},
+            }
+        )
+
+    def put(self, request):
+        user = User.objects.get(email=request.user.email)
+        company = user.company
+
+        defaults = default_workspace_settings()
+        current = company.workspace_settings or {}
+        company.workspace_settings = {
+            key: _to_bool(request.data.get(key, current.get(key, defaults[key])))
+            for key in defaults
+        }
+
+        notifications = user.notifications or {}
+        for key in ["comments", "weekly_summary", "updates"]:
+            if key in request.data:
+                notifications[key] = _to_bool(request.data.get(key))
+        user.notifications = notifications
+
+        company.updated_at = datetime.now()
+        company.save()
+        user.save()
+
+        return Response(
+            {
+                "workspace_settings": _serialize_workspace_settings(company),
+                "notifications": user.notifications or {},
+            }
+        )

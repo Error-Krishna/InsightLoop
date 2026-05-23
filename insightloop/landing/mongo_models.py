@@ -12,6 +12,15 @@ def default_notifications():
         "updates": True,
     }
 
+
+def default_workspace_settings():
+    return {
+        "realtime_dashboard_refresh": True,
+        "jwt_session_authentication": True,
+        "ai_assistant_enabled": True,
+        "inventory_workspace_mode": True,
+    }
+
 class Company(Document):
     company_id = StringField(required=True, default=lambda: str(uuid.uuid4()))
     name = StringField(required=True, max_length=100)
@@ -27,6 +36,7 @@ class Company(Document):
     ifsc_code = StringField(required=False)
     bank_name = StringField(required=False)
     branch_name = StringField(required=False)
+    workspace_settings = DictField(default=default_workspace_settings)
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
 

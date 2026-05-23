@@ -6,7 +6,7 @@ from .api_views import LoginApiView, SignupApiView
 
 
 class CsrfExemptTokenRefreshView(TokenRefreshView):
-    pass
+    authentication_classes = []
 
 
 urlpatterns = [

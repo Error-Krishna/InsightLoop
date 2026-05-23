@@ -13,6 +13,32 @@ const STARTER_PROMPTS = [
   "Export complete analytics",
 ];
 
+function formatAssistantMessage(payload) {
+  if (payload.action !== "display" || !payload.content) {
+    return payload.content || payload.message || "Done.";
+  }
+
+  try {
+    const parsed = JSON.parse(payload.content);
+    const typeLabel = parsed.type?.replaceAll("_", " ") || "analysis";
+    const data = parsed.data;
+
+    if (data?.labels && data?.profit) {
+      return `Here is your ${typeLabel}: ${data.labels.map((label, index) => `${label}: ${Number(data.profit[index] || 0).toLocaleString("en-IN")}`).join(", ")}`;
+    }
+    if (data?.labels && data?.revenue) {
+      return `Here is your ${typeLabel}: ${data.labels.map((label, index) => `${label}: revenue ₹${Number(data.revenue[index] || 0).toLocaleString("en-IN")}, expenses ₹${Number(data.expenses?.[index] || 0).toLocaleString("en-IN")}`).join(" | ")}`;
+    }
+    if (Array.isArray(data)) {
+      return `${typeLabel}: ${data.slice(0, 5).map((item) => JSON.stringify(item)).join(" | ")}`;
+    }
+  } catch {
+    // Fall back to the raw message below.
+  }
+
+  return payload.content || payload.message || "Done.";
+}
+
 function MessageBubble({ message }) {
   const isUser = message.role === "user";
   const isError = message.type === "error";
@@ -79,6 +105,11 @@ export default function ChatPage() {
 
   useEffect(() => {
     const token = getAccessToken();
+    if (!token) {
+      toast.error("Please sign in again to use the AI assistant");
+      return undefined;
+    }
+
     const socket = new WebSocket(buildWsUrl(`/ws/ai-assistant/?token=${token}`));
     socketRef.current = socket;
 
@@ -99,7 +130,7 @@ export default function ChatPage() {
           ...prev,
           {
             role: "assistant",
-            content: payload.content || payload.message || "Done.",
+            content: formatAssistantMessage(payload),
             type: payload.type,
             action: payload.action,
             timestamp: ts,

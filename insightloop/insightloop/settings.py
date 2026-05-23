@@ -2,6 +2,7 @@
 Django settings for insightloop project.
 """
 
+import hashlib
 import logging
 import os
 from pathlib import Path
@@ -53,6 +54,7 @@ SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
     "django-insecure-local-dev-key-change-me",
 )
+JWT_SIGNING_KEY = SECRET_KEY if len(SECRET_KEY) >= 32 else hashlib.sha256(SECRET_KEY.encode("utf-8")).hexdigest()
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
 ALLOWED_HOSTS = env_list(
@@ -253,6 +255,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "SIGNING_KEY": JWT_SIGNING_KEY,
 }
 
 GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -332,5 +335,7 @@ if USE_S3_STORAGE:
 
 if not DEBUG:
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    WHITENOISE_ROOT = BASE_DIR / "staticfiles" / "root"
+    _whitenoise_root = BASE_DIR / "staticfiles" / "root"
+    if _whitenoise_root.exists():
+        WHITENOISE_ROOT = _whitenoise_root
     WHITENOISE_INDEX_FILE = True

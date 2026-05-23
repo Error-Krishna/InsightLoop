@@ -6,6 +6,7 @@ import api from "../../lib/api";
 export default function UploadPage() {
   const [csvFile, setCsvFile] = useState(null);
   const [manual, setManual] = useState({ date: "", product: "", category: "", quantity: "", production_cost: "", selling_price: "", region: "", customer_type: "Retail" });
+  const emptyManual = { date: "", product: "", category: "", quantity: "", production_cost: "", selling_price: "", region: "", customer_type: "Retail" };
 
   return (
     <div className="grid gap-6 xl:grid-cols-2">
@@ -17,10 +18,19 @@ export default function UploadPage() {
           <button
             type="button"
             onClick={async () => {
-              const formData = new FormData();
-              formData.append("file", csvFile);
-              await api.post("/upload/csv/", formData, { headers: { "Content-Type": "multipart/form-data" } });
-              toast.success("CSV uploaded successfully");
+              if (!csvFile) {
+                toast.error("Please choose a CSV file first");
+                return;
+              }
+              try {
+                const formData = new FormData();
+                formData.append("file", csvFile);
+                const { data } = await api.post("/upload/csv/", formData, { headers: { "Content-Type": "multipart/form-data" } });
+                setCsvFile(null);
+                toast.success(`CSV uploaded successfully${typeof data?.created === "number" ? ` (${data.created} rows)` : ""}`);
+              } catch (error) {
+                toast.error(error.response?.data?.detail || "CSV upload failed");
+              }
             }}
             className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
           >
@@ -34,8 +44,13 @@ export default function UploadPage() {
         <form
           onSubmit={async (event) => {
             event.preventDefault();
-            await api.post("/upload/manual/", manual);
-            toast.success("Manual record saved");
+            try {
+              await api.post("/upload/manual/", manual);
+              toast.success("Manual record saved");
+              setManual(emptyManual);
+            } catch (error) {
+              toast.error(error.response?.data?.detail || "Failed to save manual record");
+            }
           }}
           className="mt-6 grid gap-4 md:grid-cols-2"
         >
