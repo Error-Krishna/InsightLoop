@@ -23,8 +23,10 @@ wheels/
 MANIFEST
 *.pot
 db.sqlite3
+*.sqlite3
 *.log
 *.log.*
+importtime.log
 
 # Django static & media
 staticfiles/
@@ -37,6 +39,7 @@ media/
 # Virtual environments
 venv/
 .venv/
+.venv_backup/
 env/
 ENV/
 env.bak/
@@ -66,7 +69,8 @@ yarn-error.log.*
 frontend/.vite/
 frontend/dist/
 frontend/.env.local
-
+frontend/node_modules/
+.venv312/
 # IDE
 .vscode/
 .idea/
@@ -100,14 +104,14 @@ htmlcov/
 *.temp
 *.pid
 *.seed
+folder_structure.txt
 
 # Sensitive files
 client_secret_*.json
-credentials*.json
-*secret*
-*password*
-*api*key*
-*token*
+
+
+
+
 
 # Development
 .env.development
@@ -117,3 +121,5 @@ credentials*.json
 
 # Staging area for files flagged as stale/dead code during cleanup passes
 _stale_files_safe_to_delete/
+
+
