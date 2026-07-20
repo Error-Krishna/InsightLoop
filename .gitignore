@@ -114,3 +114,6 @@ credentials*.json
 .env.development.local
 .env.production
 .env.production.local
+
+# Staging area for files flagged as stale/dead code during cleanup passes
+_stale_files_safe_to_delete/

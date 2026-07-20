@@ -5,6 +5,7 @@ Django settings for insightloop project.
 import hashlib
 import logging
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 
@@ -41,6 +42,17 @@ def env_list(name, default=""):
 
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/InsightLoop")
 MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "InsightLoop")
+# When running `manage.py test`, use a separate, disposable database rather
+# than whatever MONGODB_DB_NAME normally points to. MongoEngine documents
+# aren't part of Django's ORM, so Django's usual test-database
+# creation/rollback machinery doesn't apply to them -- without this, test
+# runs write directly into (and must manually clean up from) the real
+# configured database, which risks leftover data if a test run is
+# interrupted, and makes concurrent or shared-environment test runs unsafe.
+# This keeps that risk contained to a dedicated, clearly-named database
+# that's safe to wipe entirely.
+if "test" in sys.argv:
+    MONGODB_DB_NAME = os.getenv("MONGODB_TEST_DB_NAME", f"{MONGODB_DB_NAME}_test")
 MONGODB_CONNECT_ON_INIT = env_bool("MONGODB_CONNECT_ON_INIT", False)
 MONGODB_CONNECTION_ERROR = None
 try:
@@ -50,12 +62,23 @@ except Exception as exc:  # pragma: no cover - environment dependent
     logger.warning("MongoDB connection setup deferred: %s", exc)
 
 
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+_INSECURE_SECRET_PLACEHOLDERS = {
+    "",
+    "change-me-in-production",
     "django-insecure-local-dev-key-change-me",
-)
+}
+if not SECRET_KEY or SECRET_KEY.strip().lower() in _INSECURE_SECRET_PLACEHOLDERS:
+    raise RuntimeError(
+        "DJANGO_SECRET_KEY is not set (or is still a placeholder). "
+        "Generate a real secret, e.g.: "
+        "python -c \"import secrets; print(secrets.token_urlsafe(50))\" "
+        "and set it in your .env file before starting the server."
+    )
 JWT_SIGNING_KEY = SECRET_KEY if len(SECRET_KEY) >= 32 else hashlib.sha256(SECRET_KEY.encode("utf-8")).hexdigest()
-DEBUG = env_bool("DJANGO_DEBUG", True)
+# Defaults to False: an unset env var in production must never silently enable
+# DEBUG (which leaks stack traces, settings, and SQL to anyone who hits an error).
+DEBUG = env_bool("DJANGO_DEBUG", False)
 
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
@@ -264,6 +287,74 @@ GOOGLE_REDIRECT_URI = os.getenv(
     "GOOGLE_REDIRECT_URI",
     "https://insightloop.onrender.com/auth/google/callback/",
 )
+
+# ==========================================
+# WhatsApp Business Cloud API
+# ==========================================
+# All values are env-driven placeholders until real Meta credentials are
+# available. WHATSAPP_ENABLED reflects whether real credentials are present
+# (i.e. not left as the placeholder values) -- the share feature checks this
+# and returns a clear "not configured" error instead of silently failing or
+# sending to Meta's API with garbage credentials.
+WHATSAPP_API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v21.0")
+WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "REPLACE_WITH_PHONE_NUMBER_ID")
+WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN", "REPLACE_WITH_ACCESS_TOKEN")
+WHATSAPP_BUSINESS_ACCOUNT_ID = os.getenv("WHATSAPP_BUSINESS_ACCOUNT_ID", "REPLACE_WITH_BUSINESS_ACCOUNT_ID")
+# Meta requires a pre-approved message template to open a conversation with a
+# customer who hasn't messaged you in the last 24 hours. Create a template
+# named (by default) "bill_share" in Meta Business Manager with one document
+# parameter and one text parameter (invoice number), then set this if you
+# name it differently.
+WHATSAPP_BILL_TEMPLATE_NAME = os.getenv("WHATSAPP_BILL_TEMPLATE_NAME", "bill_share")
+WHATSAPP_BILL_TEMPLATE_LANGUAGE = os.getenv("WHATSAPP_BILL_TEMPLATE_LANGUAGE", "en_US")
+# Set to true only if your approved template's body has a SECOND text
+# variable for the company name (e.g. "Your invoice {{1}} from {{2}} is
+# attached."). Defaults to false since the documented template above has
+# just one variable -- sending an extra parameter Meta doesn't expect would
+# make the send fail with a parameter-count mismatch.
+WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR = env_bool("WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR", False)
+
+_WHATSAPP_PLACEHOLDER_VALUES = {
+    "",
+    "REPLACE_WITH_PHONE_NUMBER_ID",
+    "REPLACE_WITH_ACCESS_TOKEN",
+    "REPLACE_WITH_BUSINESS_ACCOUNT_ID",
+}
+WHATSAPP_ENABLED = (
+    WHATSAPP_PHONE_NUMBER_ID not in _WHATSAPP_PLACEHOLDER_VALUES
+    and WHATSAPP_ACCESS_TOKEN not in _WHATSAPP_PLACEHOLDER_VALUES
+)
+
+# ------------------------------------------------------------------
+# TEMPORARY: OpenWA bridge, for development/testing only
+# ------------------------------------------------------------------
+# Real Meta WhatsApp Business Cloud API credentials aren't available yet.
+# Until they are, bill-sharing over WhatsApp is routed through a
+# self-hosted OpenWA server instead, so the feature can actually be tested
+# end-to-end with a real WhatsApp account in the meantime. The full
+# confirmed request contract (auth header, session lookup, send-document
+# payload shape) is documented in bills/whatsapp_openwa.py's docstring.
+#
+# WHATSAPP_PROVIDER controls which client bills/views.py's share_whatsapp
+# action uses:
+#   "meta"    -> bills/whatsapp.py (the real, permanent implementation --
+#                see WHATSAPP_ENABLED above)
+#   "openwa"  -> bills/whatsapp_openwa.py (temporary, see that module's
+#                docstring)
+#
+# TO REMOVE ONCE REAL META CREDENTIALS ARE ADDED:
+#   1. Delete bills/whatsapp_openwa.py
+#   2. Remove the WHATSAPP_PROVIDER / OPENWA_* settings below
+#   3. Remove OPENWA_API_KEY / OPENWA_BASE_URL / WHATSAPP_PROVIDER from .env
+#   4. In bills/views.py, remove the WHATSAPP_PROVIDER branch in
+#      share_whatsapp() so it always calls bills/whatsapp.py's share_bill_pdf
+#   5. Set the real WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_ACCESS_TOKEN /
+#      WHATSAPP_BUSINESS_ACCOUNT_ID env vars (WHATSAPP_ENABLED will then be
+#      True automatically)
+WHATSAPP_PROVIDER = os.getenv("WHATSAPP_PROVIDER", "openwa" if not WHATSAPP_ENABLED else "meta")
+OPENWA_BASE_URL = os.getenv("OPENWA_BASE_URL", "http://localhost:2785")
+OPENWA_API_KEY = os.getenv("OPENWA_API_KEY", "")
+OPENWA_ENABLED = bool(OPENWA_API_KEY)
 
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
