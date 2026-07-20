@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page {
+        size: A4;
+        margin: 18mm 16mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        color: #1e293b;
+        margin: 0;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 2px solid #1d4ed8;
+        padding-bottom: 12px;
+        margin-bottom: 18px;
+    }
+    .company-name {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1d4ed8;
+        margin: 0 0 4px 0;
+    }
+    .company-meta {
+        font-size: 10px;
+        color: #475569;
+        line-height: 1.5;
+    }
+    .logo {
+        max-height: 56px;
+        max-width: 160px;
+    }
+    .invoice-title {
+        text-align: right;
+    }
+    .invoice-title h1 {
+        font-size: 22px;
+        margin: 0;
+        letter-spacing: 1px;
+        color: #0f172a;
+    }
+    .invoice-title .badge {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 2px 10px;
+        border-radius: 10px;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .badge.pakka { background: #dcfce7; color: #15803d; }
+    .badge.kacha { background: #fef3c7; color: #b45309; }
+    .meta-grid {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 18px;
+    }
+    .meta-block h3 {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+        margin: 0 0 4px 0;
+    }
+    .meta-block p {
+        margin: 0;
+        line-height: 1.5;
+    }
+    .meta-block.right { text-align: right; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 18px;
+    }
+    thead th {
+        background: #1d4ed8;
+        color: #fff;
+        text-align: left;
+        padding: 7px 8px;
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    thead th.num { text-align: right; }
+    tbody td {
+        padding: 7px 8px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 10.5px;
+    }
+    tbody td.num { text-align: right; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    .totals {
+        width: 260px;
+        margin-left: auto;
+    }
+    .totals table { margin-bottom: 0; }
+    .totals td {
+        padding: 4px 8px;
+        border: none;
+        font-size: 11px;
+    }
+    .totals td.label { color: #475569; }
+    .totals td.value { text-align: right; font-weight: 600; }
+    .totals tr.grand td {
+        border-top: 2px solid #1d4ed8;
+        font-size: 13px;
+        font-weight: 700;
+        color: #1d4ed8;
+        padding-top: 8px;
+    }
+    .footer {
+        margin-top: 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+    .bank-details h3, .signature h3 {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+        margin: 0 0 4px 0;
+    }
+    .bank-details p { margin: 0; line-height: 1.5; }
+    .signature { text-align: center; }
+    .signature img { max-height: 50px; display: block; margin: 0 auto 4px auto; }
+    .signature .line { border-top: 1px solid #475569; padding-top: 4px; width: 140px; }
+    .note {
+        margin-top: 20px;
+        font-size: 9px;
+        color: #94a3b8;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            {% if company.logo_url %}<img class="logo" src="{{ company.logo_url }}" alt="logo">{% endif %}
+            <p class="company-name">{{ company.name }}</p>
+            <div class="company-meta">
+                {% if company.address %}{{ company.address }}<br>{% endif %}
+                {% if company.gst_number %}GSTIN: {{ company.gst_number }}<br>{% endif %}
+                {% if company.phone %}Ph: {{ company.phone }}{% endif %}
+                {% if company.email %} &middot; {{ company.email }}{% endif %}
+            </div>
+        </div>
+        <div class="invoice-title">
+            <h1>{% if bill.bill_type == "pakka" %}TAX INVOICE{% else %}BILL{% endif %}</h1>
+            <span class="badge {{ bill.bill_type }}">{{ bill.bill_type }}</span>
+        </div>
+    </div>
+
+    <div class="meta-grid">
+        <div class="meta-block">
+            <h3>Billed To</h3>
+            <p><strong>{{ bill.buyer.name|default:"—" }}</strong></p>
+            {% if bill.buyer.address %}<p>{{ bill.buyer.address }}</p>{% endif %}
+            {% if bill.buyer.gst_number %}<p>GSTIN: {{ bill.buyer.gst_number }}</p>{% endif %}
+            {% if bill.buyer.phone %}<p>Ph: {{ bill.buyer.phone }}</p>{% endif %}
+        </div>
+        <div class="meta-block right">
+            <h3>Invoice Details</h3>
+            <p><strong>{{ bill.invoice_number }}</strong></p>
+            <p>Date: {{ bill.created_at|date:"d M Y" }}</p>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 34px;">#</th>
+                <th>Item</th>
+                <th class="num" style="width: 60px;">Qty</th>
+                <th style="width: 44px;">Unit</th>
+                <th class="num" style="width: 80px;">Rate</th>
+                <th class="num" style="width: 90px;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in bill.products %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ product.name }}{% if product.description %}<br><span style="color:#94a3b8;">{{ product.description }}</span>{% endif %}</td>
+                <td class="num">{{ product.quantity|floatformat:2 }}</td>
+                <td>{{ product.unit }}</td>
+                <td class="num">{{ product.rate|floatformat:2 }}</td>
+                <td class="num">{{ product.total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td class="label">Subtotal</td>
+                <td class="value">{{ bill.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% if bill.discount %}
+            <tr>
+                <td class="label">Discount</td>
+                <td class="value">-{{ bill.discount|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            {% if bill.bill_type == "pakka" %}
+            <tr>
+                <td class="label">GST ({{ bill.gst_percentage|floatformat:0 }}%)</td>
+                <td class="value">{{ bill.gst_amount|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            <tr class="grand">
+                <td class="label">Grand Total</td>
+                <td class="value">&#8377;{{ bill.grand_total|floatformat:2 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <div class="bank-details">
+            {% if company.bank_account_number %}
+            <h3>Payment Details</h3>
+            <p>{{ company.bank_name }}{% if company.branch_name %}, {{ company.branch_name }}{% endif %}</p>
+            <p>A/C No: {{ company.bank_account_number }}</p>
+            {% if company.ifsc_code %}<p>IFSC: {{ company.ifsc_code }}</p>{% endif %}
+            {% endif %}
+        </div>
+        <div class="signature">
+            {% if company.signature_url %}<img src="{{ company.signature_url }}" alt="signature">{% endif %}
+            {% if company.stamp_url %}<img src="{{ company.stamp_url }}" alt="stamp" style="position: relative; top: -50px; opacity: 0.85;">{% endif %}
+            <div class="line">Authorized Signatory</div>
+        </div>
+    </div>
+
+    {% if bill.bill_type == "kacha" %}
+    <p class="note">This is an informal bill and does not carry GST liability.</p>
+    {% endif %}
+
+</body>
+</html>

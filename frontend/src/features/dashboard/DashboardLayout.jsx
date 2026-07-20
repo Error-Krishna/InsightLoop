@@ -36,6 +36,7 @@ const navGroups = [
     icon: Warehouse,
     children: [
       { label: "Finished Goods", to: "/inventory/finished" },
+      { label: "Work in Progress", to: "/inventory/semi-finished" },
       { label: "Raw Materials", to: "/inventory/raw" },
       { label: "Warehouses", to: "/inventory/warehouses" },
     ],
@@ -53,6 +54,7 @@ const pageTitles = {
   "/bills/kacha": "Kacha Bills",
   "/bills/pakka": "Pakka Bills",
   "/inventory/finished": "Finished Inventory",
+  "/inventory/semi-finished": "Work in Progress Inventory",
   "/inventory/raw": "Raw Inventory",
   "/inventory/warehouses": "Warehouses",
   "/insights": "Insights",
@@ -63,13 +65,18 @@ const pageTitles = {
   "/settings": "Settings",
 };
 
+function resolvePageTitle(pathname) {
+  if (pathname.startsWith("/bills/order/")) return "Order Details";
+  return pageTitles[pathname] || "InsightLoop";
+}
+
 export default function DashboardLayout() {
   const user = getCurrentUser();
   const location = useLocation();
   const navigate = useNavigate();
   const [openGroups, setOpenGroups] = useState({ Bills: true, Inventory: false });
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const title = pageTitles[location.pathname] || "InsightLoop";
+  const title = resolvePageTitle(location.pathname);
   const breadcrumbs = useMemo(() => location.pathname.split("/").filter(Boolean), [location.pathname]);
 
   const initials = (user?.name || "IU").slice(0, 2).toUpperCase();
