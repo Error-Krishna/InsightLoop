@@ -1,6 +1,15 @@
 from django.urls import path
 
-from .api_views import MarkPaidApiView, WorkerDetailApiView, WorkerMaterialsApiView, WorkerPaymentsApiView, WorkersCollectionApiView
+from .api_views import (
+    MarkPaidApiView,
+    MaterialBatchApiView,
+    MaterialCompleteApiView,
+    RecordPartialPaymentApiView,
+    WorkerDetailApiView,
+    WorkerMaterialsApiView,
+    WorkerPaymentsApiView,
+    WorkersCollectionApiView,
+)
 
 
 urlpatterns = [
@@ -9,4 +18,7 @@ urlpatterns = [
     path("<str:worker_id>/materials/", WorkerMaterialsApiView.as_view(), name="api-worker-materials"),
     path("<str:worker_id>/payments/", WorkerPaymentsApiView.as_view(), name="api-worker-payments"),
     path("payments/<str:payment_id>/mark-paid/", MarkPaidApiView.as_view(), name="api-worker-payment-mark-paid"),
+    path("payments/<str:payment_id>/record-payment/", RecordPartialPaymentApiView.as_view(), name="api-worker-payment-record"),
+    path("materials/<str:assignment_id>/batches/", MaterialBatchApiView.as_view(), name="api-material-batch"),
+    path("materials/<str:assignment_id>/complete/", MaterialCompleteApiView.as_view(), name="api-material-complete"),
 ]

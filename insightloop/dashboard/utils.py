@@ -74,21 +74,28 @@ def get_worker_payments(company_id):
             worker_name = record.worker.name
         except DoesNotExist:
             worker_name = "Deleted Worker"
+        total_owed = record.units_produced * record.rate_per_unit
+        is_paid = record.paid or record.amount_paid >= total_owed
         results.append({
             "name": worker_name,
             "month": record.date.strftime("%B %Y"),
-            "amount": float(record.units_produced * record.rate_per_unit),
-            "status": "Paid" if record.paid else "Pending",
+            "amount": float(total_owed),
+            "amount_paid": float(record.amount_paid or 0),
+            "balance_due": float(max(total_owed - (record.amount_paid or 0), 0)),
+            "status": "Paid" if is_paid else ("Partial" if record.amount_paid else "Pending"),
         })
     return results
 
 
 def get_top_workers(company_id):
+    """Top workers by actual amount paid, not theoretical production value
+    -- a worker with a large unpaid balance shouldn't rank above one who's
+    actually been paid more, since this reflects real cash outflow."""
     pipeline = [
         {"$match": {"company_id": company_id}},
         {"$group": {
             "_id": "$worker",
-            "total_payout": {"$sum": {"$multiply": ["$units_produced", "$rate_per_unit"]}},
+            "total_payout": {"$sum": "$amount_paid"},
             "payment_count": {"$sum": 1},
             "latest_payment": {"$max": "$date"},
         }},
@@ -112,11 +119,13 @@ def get_top_workers(company_id):
 
 
 def get_worker_total_payments(company_id):
+    """Actual amount paid per worker (amount_paid), not theoretical
+    production value."""
     pipeline = [
         {"$match": {"company_id": company_id}},
         {"$group": {
             "_id": "$worker",
-            "total_amount": {"$sum": {"$multiply": ["$units_produced", "$rate_per_unit"]}},
+            "total_amount": {"$sum": "$amount_paid"},
         }},
         {"$lookup": {"from": "workers", "localField": "_id", "foreignField": "_id", "as": "worker_info"}},
         {"$unwind": "$worker_info"},

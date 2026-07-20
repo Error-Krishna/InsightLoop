@@ -110,6 +110,13 @@ export default function WarehousesPage() {
               <Stat label="Quantity" value={item.total_quantity} />
               <Stat label="Stock Value" value={`₹${Number(item.stock_value || 0).toLocaleString()}`} />
             </div>
+            {item.by_type && (
+              <div className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-xs">
+                <TypeBreakdown label="Raw Material" data={item.by_type.raw} />
+                <TypeBreakdown label="Work in Progress" data={item.by_type.semi_finished} />
+                <TypeBreakdown label="Ready to Ship" data={item.by_type.finished} />
+              </div>
+            )}
           </Card>
         ))}
         {summary.length === 0 && <Card className="p-6 text-sm text-slate-400">Create a warehouse to start organizing inventory by location.</Card>}
@@ -132,6 +139,23 @@ function Stat({ label, value }) {
     <div className="rounded-xl bg-slate-50 p-4">
       <p className="text-slate-400">{label}</p>
       <p className="mt-2 text-lg font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function TypeBreakdown({ label, data }) {
+  const count = data?.items_count || 0;
+  return (
+    <div className="rounded-lg bg-slate-50 p-2.5">
+      <p className="text-slate-400">{label}</p>
+      {count === 0 ? (
+        <p className="mt-1 text-slate-400">None here</p>
+      ) : (
+        <>
+          <p className="mt-1 font-semibold text-slate-900">{data.total_quantity} units</p>
+          <p className="text-slate-400">₹{Number(data.stock_value || 0).toLocaleString("en-IN")}</p>
+        </>
+      )}
     </div>
   );
 }

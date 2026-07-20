@@ -8,7 +8,26 @@ from urllib.parse import parse_qs
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import TokenError
 
+from landing.mongo_models import User
+
 logger = logging.getLogger(__name__)
+
+
+def _lookup_company_id(email):
+    """Resolve company_id from the live user record, not the JWT claim.
+
+    Trusting a company_id claim baked into the token would let a stale or
+    forged token join another company's dashboard group. The email claim is
+    only used to look up the current user; the company_id actually used for
+    scoping always comes from that user's live database record.
+    """
+    if not email:
+        return None
+    try:
+        mongo_user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return None
+    return str(mongo_user.company.company_id)
 
 
 class DashboardConsumer(AsyncWebsocketConsumer):
@@ -23,9 +42,15 @@ class DashboardConsumer(AsyncWebsocketConsumer):
 
             try:
                 payload = AccessToken(token_list[0])
-                self.company_id = payload.get("company_id")
             except TokenError as exc:
                 logger.error("Invalid JWT token: %s", exc)
+                await self.close(code=4001)
+                return
+
+            email = payload.get("email")
+            self.company_id = await database_sync_to_async(_lookup_company_id)(email)
+            if not self.company_id:
+                logger.error("WebSocket auth failed: no user found for token email")
                 await self.close(code=4001)
                 return
 
