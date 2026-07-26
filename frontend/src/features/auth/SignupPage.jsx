@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import api from "../../lib/api";
 import { setSession } from "../../lib/auth";
+import GoogleSignInButton from "./GoogleSignInButton";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -59,6 +60,9 @@ export default function SignupPage() {
         >
           {loading ? "Creating account..." : "Create Account"}
         </button>
+        <div className="mt-6">
+          <GoogleSignInButton onSuccess={() => navigate("/dashboard", { replace: true })} />
+        </div>
         <p className="mt-6 text-center text-sm text-slate-500">
           Already using InsightLoop?{" "}
           <Link to="/login" className="font-semibold text-blue-600">

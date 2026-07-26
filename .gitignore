@@ -35,6 +35,8 @@ media/
 /insightloop/static/
 /insightloop/media/
 /insightloop/uploads/
+insightloop/db.sqlite3
+*.sqlite3
 
 # Virtual environments
 venv/
@@ -50,9 +52,12 @@ venv.bak/
 .env.local
 .env.*.local
 *.env
+frontend/.env
+insightloop/.env
 
 # Redis
 dump.rdb
+*.rdb
 
 # Node / Frontend / Vite
 node_modules/
@@ -104,10 +109,12 @@ htmlcov/
 *.temp
 *.pid
 *.seed
+insightloop/import.log
 folder_structure.txt
 
 # Sensitive files
 client_secret_*.json
+insightloop/client_secret_*.json
 
 
 
@@ -121,5 +128,4 @@ client_secret_*.json
 
 # Staging area for files flagged as stale/dead code during cleanup passes
 _stale_files_safe_to_delete/
-
 

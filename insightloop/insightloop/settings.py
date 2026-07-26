@@ -40,6 +40,8 @@ def env_list(name, default=""):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "").strip()
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/InsightLoop")
 MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "InsightLoop")
 # When running `manage.py test`, use a separate, disposable database rather
@@ -84,10 +86,22 @@ ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
     "127.0.0.1,localhost,testserver,insightloop.onrender.com",
 )
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS + [RENDER_EXTERNAL_HOSTNAME]))
+# IMPORTANT for a Vercel (frontend) + Render (backend) split deployment:
+# set DJANGO_ALLOWED_HOSTS, DJANGO_CSRF_TRUSTED_ORIGINS, and
+# DJANGO_CORS_ALLOWED_ORIGINS in Render's environment variables to include
+# your actual Vercel domain (e.g. https://your-app.vercel.app and any
+# custom domain), or every API call from the deployed frontend will be
+# rejected. The defaults below only cover local development and the
+# original Render-only domain -- they will NOT work for a Vercel frontend
+# unless overridden.
 CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
     "https://insightloop.onrender.com",
 )
+if FRONTEND_ORIGIN:
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS + [FRONTEND_ORIGIN]))
 if DEBUG:
     CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS + [
         "http://localhost:5173",
@@ -244,6 +258,10 @@ CORS_ALLOWED_ORIGINS = env_list(
     "DJANGO_CORS_ALLOWED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000",
 )
+if FRONTEND_ORIGIN:
+    CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS + [FRONTEND_ORIGIN]))
+# See the note above CSRF_TRUSTED_ORIGINS -- this MUST include your Vercel
+# domain(s) in production, set via the DJANGO_CORS_ALLOWED_ORIGINS env var.
 if DEBUG:
     CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS + [
         "http://localhost:5173",
