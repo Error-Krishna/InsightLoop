@@ -301,6 +301,12 @@ SIMPLE_JWT = {
 
 GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+# GOOGLE_REDIRECT_URI is no longer used for actual sign-in: Google auth now
+# goes through landing.api_views.GoogleLoginApiView, which verifies an ID
+# token the frontend already obtained via Google Identity Services' JS SDK
+# (no server-side redirect/callback dance needed). Kept only in case
+# something still references it; safe to remove entirely along with this
+# comment if nothing does.
 GOOGLE_REDIRECT_URI = os.getenv(
     "GOOGLE_REDIRECT_URI",
     "https://insightloop.onrender.com/auth/google/callback/",

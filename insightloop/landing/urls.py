@@ -1,18 +1,24 @@
-from django.urls import path, include
+from django.urls import path
+from django.conf import settings
+from django.http import JsonResponse
+from django.shortcuts import redirect
 from . import views
 
+
+def root_redirect(request):
+    """This backend is API-only now (the real frontend is the separate
+    React app on Vercel) -- redirect anyone landing on the bare backend
+    URL to the actual product instead of showing a raw Django page.
+
+    Falls back to a small JSON health-check response if FRONTEND_ORIGIN
+    isn't configured, so this never 500s even if that env var is missing.
+    """
+    if settings.FRONTEND_ORIGIN:
+        return redirect(settings.FRONTEND_ORIGIN)
+    return JsonResponse({"status": "ok", "service": "InsightLoop API"})
+
+
 urlpatterns = [
-    path('', views.home, name='home'),
-    path('features', views.features, name='features'),
-    path('pricing', views.pricing, name='pricing'),
-    path('faq', views.faq, name='faq'),
+    path('', root_redirect, name='home'),
     path('contact', views.contact_view, name='contact'),
-    path('login', views.login_view, name='login'),
-    path('signup', views.signup_view, name='signup'),
-    path('logout', views.logout_view, name='logout'),  # New logout path
-    path('auth/google/', views.google_auth, name='google_auth'),
-    path('auth/google/callback/', views.google_callback, name='google_callback'),
-    path('auth/github/', views.github_auth, name='github_auth'),
-    path('auth/github/callback/', views.github_callback, name='github_callback'),
-    path('auth/social/signup/company/', views.social_signup_company, name='social_signup_company'),
 ]
