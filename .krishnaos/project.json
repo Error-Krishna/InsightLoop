@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "project-insightloop",
+  "name": "InsightLoop",
+  "description": "A full-stack business management and analytics platform focused on operational visibility.",
+  "visibility": {
+    "showInKrishnaOS": true
+  },
+  "runtime": {
+    "type": "remote",
+    "url": "https://insightloop.onrender.com/"
+  }
+}
