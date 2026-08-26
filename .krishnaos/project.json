@@ -3,6 +3,14 @@
   "id": "project-insightloop",
   "name": "InsightLoop",
   "description": "A full-stack business management and analytics platform focused on operational visibility.",
+  "role": "Full-Stack Developer",
+  "stack": [
+    "React.js",
+    "Node.js",
+    "Express.js",
+    "MongoDB",
+    "WebSockets"
+  ],
   "visibility": {
     "showInKrishnaOS": true
   },
