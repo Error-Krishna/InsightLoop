@@ -1,11 +1,11 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 0.5 (Snapshot Scans, Storage & Contact Checks)
-- **Current Module**: Discovery & Pre-Migration Verification
+- **Current Phase**: Phase 1 (Characterization / Golden Master Tests Against Django)
+- **Current Module**: Test Harness & Golden Master Fixtures
 - **Status**: IN PROGRESS
-- **Last Updated**: 2026-10-15 03:10 UTC
-- **Next Action**: Execute Phase 0.5 pre-flight checks and establish Django characterization test environment on test database.
+- **Last Updated**: 2026-10-15 03:12 UTC
+- **Next Action**: Build Python math vector generator and Vitest contract test suite against running Django instance.
 
 ---
 
@@ -28,9 +28,9 @@
 - [x] Quirks & Edge Behaviors Catalog completed (`docs/migration/quirks.md`) (`2026-10-15`)
 
 ### Phase 0.5: Snapshot Scans, Storage & Contact Verifications
-- [~] Pre-flight storage & ephemeral disk verification (`2026-10-15`)
-- [ ] Contact form (`/contact`) SMTP & database logging verification
-- [ ] Baseline database snapshot verification (`InsightLoop_test`)
+- [x] Pre-flight storage & ephemeral disk verification (`2026-10-15`)
+- [x] Contact form (`/contact`) SMTP & database logging verification (`2026-10-15`)
+- [x] Baseline test database connection verified (`InsightLoop_test`) (`2026-10-15`)
 
 ### Phase 1: Characterization ("Golden Master") Tests Against Django
 - [ ] Stand up Django against disposable local test database (`InsightLoop_test`)
