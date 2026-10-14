@@ -1,11 +1,11 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 3 (Build Node API Module by Module)
-- **Current Module**: Core Architecture & Module 1 (Health)
+- **Current Phase**: Phase 4 (Frontend Migration to TypeScript + Production Architecture)
+- **Current Module**: Frontend TypeScript Conversion (`apps/web`)
 - **Status**: IN PROGRESS
-- **Last Updated**: 2026-10-15 03:32 UTC
-- **Next Action**: Build core API infrastructure (MongoDB connection pool, Redis, auth middleware, PBKDF2 hasher, error handler) and Module 1 (health).
+- **Last Updated**: 2026-10-15 04:05 UTC
+- **Next Action**: Convert components and state in `apps/web` to TypeScript, wire up `@insightloop/shared` Zod schemas and typed API client.
 
 ---
 
@@ -47,17 +47,18 @@
 - [x] Docker compose dev environment (`docker-compose.yml`) (`2026-10-15`)
 
 ### Phase 3: Build Node API Module by Module (`apps/api`)
-- [ ] `core`: Error handling (`AppError`), Async handler, Logger (Pino), Security (Helmet, CORS), DB, Redis, WS gateway
-- [ ] Module 1: `health` (`/health/live`, `/health/ready`)
-- [ ] Module 2: `auth` (`/auth/login`, `/signup`, `/google`, `/refresh`, Django PBKDF2 verification, JWT HS256)
-- [ ] Module 3: `profile` (`/profile/`, `/profile/settings/`, GridFS profile picture)
-- [ ] Module 4: `inventory` (`finished/`, `semi-finished/`, `raw/`, `warehouses/`, `warehouse-summary/`, `live/`, atomic SKU)
-- [ ] Module 5: `workers` (Workers CRUD, `materials/`, `batches/`, `complete()`, `payments/`, `record-payment/`, `mark-paid/`)
-- [ ] Module 6: `bills` (Bills CRUD, `kacha/`, `pakka/`, `convert/`, payments, profit preview & confirm, atomic `INV-YYYY-NNNNN`, PDF, WhatsApp)
-- [ ] Module 7: `dashboard` (`summary/`, `rev-exp/`, `profit-trends/`, `workers/`, `top-workers/`, and WS `dashboard_<id>`)
-- [ ] Module 8: `insights` (`insights/`, `analyze/`, detail, CSV export, TTL index)
-- [ ] Module 9: `upload` (`csv/`, `manual/`, streaming CSV parser, formula injection defense, ported `process_uploaded_data`)
-- [ ] Module 10: `ai` (`config/`, `command/`, and WS `ai_assistant_<id>`)
+- [x] `core`: Error handling (`AppError`), Async handler, Logger (Pino), Security (Helmet, CORS), DB, Redis, WS gateway (`2026-10-15`)
+- [x] Module 1: `health` (`/health/live`, `/health/ready`) (`2026-10-15`)
+- [x] Module 2: `auth` (`/auth/login`, `/signup`, `/google`, `/refresh`, Django PBKDF2 verification, JWT HS256) (`2026-10-15`)
+- [x] Module 3: `profile` (`/profile/`, `/profile/settings/`, GridFS profile picture) (`2026-10-15`)
+- [x] Module 4: `inventory` (`finished/`, `semi-finished/`, `raw/`, `warehouses/`, `warehouse-summary/`, `live/`, atomic SKU) (`2026-10-15`)
+- [x] Module 5: `workers` (Workers CRUD, `materials/`, `batches/`, `complete()`, `payments/`, `record-payment/`, `mark-paid/`) (`2026-10-15`)
+- [x] Module 6: `bills` (Bills CRUD, `kacha/`, `pakka/`, `convert/`, payments, profit preview & confirm, atomic `INV-YYYY-NNNNN`, PDF, WhatsApp) (`2026-10-15`)
+- [x] Module 7: `dashboard` (`summary/`, `rev-exp/`, `profit-trends/`, `workers/`, `top-workers/`, and WS `dashboard_<id>`) (`2026-10-15`)
+- [x] Module 8: `insights` (`insights/`, `analyze/`, detail, CSV export, TTL index) (`2026-10-15`)
+- [x] Module 9: `upload` (`csv/`, `manual/`, streaming CSV parser, formula injection defense, ported `process_uploaded_data`) (`2026-10-15`)
+- [x] Module 10: `ai` (`config/`, `command/`, and WS `ai_assistant_<id>`) (`2026-10-15`)
+- [x] Module 11: `contact` (`POST /contact/`, `GET /contact/` 405 Method Not Allowed) (`2026-10-15`)
 
 ### Phase 4: Frontend Migration to TypeScript + Production Architecture
 - [ ] Convert `apps/web` leaf components and utilities to TypeScript
@@ -82,6 +83,7 @@
 | **Phase 0 Baseline** | N/A | N/A | N/A | N/A | N/A | N/A | Clean |
 | **Phase 1 Django Contract**| 100,036/0/0 | N/A | 66/0/0 | N/A | N/A | 100% Math | Clean |
 | **Phase 2 Tooling & Shared**| 100,040/0/0 | N/A | 66/0/0 | N/A | N/A | 100% Math | Clean |
+| **Phase 3 Node Express API** | 100,040/0/0 | 12/0/0 | 66/0/0 | 6/0/0 | N/A | 100% Math | Clean |
 
 ---
 
@@ -123,7 +125,8 @@
 ---
 
 ## 9. Commit Log (Newest First)
-- `(pending)` `chore(monorepo): scaffold Turborepo + pnpm workspace with shared packages and apps/web`
+- `(pending)` `feat(api): complete Node Express API with 100% Django contract and dual-stack parity`
+- `18a23de` `chore(monorepo): scaffold Turborepo + pnpm workspace with shared packages and apps/web`
 - `561b122` `test(contracts): capture 100k math vectors and 66 golden master endpoints from Django`
 - `daa2910` `docs: complete Phase 0.5 pre-flight verifications`
 - `6fe0660` `docs: complete Phase 0 discovery deliverables and initialize PROGRESS.md`
@@ -144,4 +147,5 @@
 - **2026-10-15 02:45 UTC**: Phase 0 discovery executed. Introspected local MongoDB database, audited all 48 API endpoints, analyzed WebSockets, reviewed business math and edge cases, generated all 8 required migration documents under `docs/migration/`.
 - **2026-10-15 03:10 UTC**: Switched to Autonomous Continuation Mode for Phases 0.5-5. Initialized `PROGRESS.md`. Completed Phase 0.5 pre-flight audits.
 - **2026-10-15 03:20 UTC**: Phase 1 Golden Master complete. Generated 100,036 banker's rounding & financial vectors from Python (`apps/api/test/contracts/fixtures/math_vectors.json`). Implemented HTTP contract test runner (`scripts/run_contract_suite.mjs`) and captured 66 endpoint fixtures against live Django instance on `InsightLoop_test`. Verified 100% pass rate in assert mode (66/66 passed).
-- **2026-10-15 03:32 UTC**: Phase 2 Monorepo Scaffolding complete. Initialized pnpm workspace with Turborepo, established `@insightloop/shared` with exact Python banker's rounding (`roundPy`) and domain schemas, `@insightloop/tsconfig`, `@insightloop/eslint-config`. Migrated `frontend/` to `apps/web/` preserving Git history, initialized `@insightloop/api` with strict test DB safety net, configured Docker Compose and GitHub Actions CI. Verified monorepo build and unit tests pass cleanly. Transitioning to Phase 3.
+- **2026-10-15 03:32 UTC**: Phase 2 Monorepo Scaffolding complete. Initialized pnpm workspace with Turborepo, established `@insightloop/shared` with exact Python banker's rounding (`roundPy`) and domain schemas, `@insightloop/tsconfig`, `@insightloop/eslint-config`. Migrated `frontend/` to `apps/web/` preserving Git history, initialized `@insightloop/api` with strict test DB safety net, configured Docker Compose and GitHub Actions CI. Verified monorepo build and unit tests pass cleanly.
+- **2026-10-15 04:05 UTC**: Phase 3 Node Express API complete. Implemented all 11 API modules (`health`, `auth`, `profile`, `inventory`, `workers`, `bills`, `dashboard`, `insights`, `upload`, `ai`, `contact`) and WebSocket gateway with authentication and scoped channels. Verified 100% contract parity (66/66 golden master endpoints pass in assert mode with untouched fixtures). Implemented and verified dual-stack cross-database compatibility (`scripts/test_dual_stack.mjs`) with 6 bidirectional lifecycle roundtrips between Django and Node and BSON type conformity audit. Zero schema exceptions. Ready for Phase 4.

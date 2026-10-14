@@ -1,82 +1,90 @@
 import { Decimal } from 'decimal.js';
 
-Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN, precision: 60 });
+// Configure Decimal.js to use Banker's Rounding (ROUND_HALF_EVEN)
+Decimal.set({
+  precision: 40,
+  rounding: Decimal.ROUND_HALF_EVEN,
+});
 
 /**
- * Exact binary expansion of a 64-bit IEEE 754 float into its decimal representation.
- * Mirrors Python's internal dtoa representation for bit-perfect banker's rounding.
+ * Converts an IEEE-754 double precision float to its exact mathematical decimal representation.
  */
-function floatToExactDecimal(num: number): string {
-  if (num === 0) return '0';
+function floatToExactDecimal(num: number): Decimal {
+  if (!Number.isFinite(num)) {
+    return new Decimal(num);
+  }
+  if (num === 0) {
+    return new Decimal(0);
+  }
+
   const buf = new ArrayBuffer(8);
   const f64 = new Float64Array(buf);
-  const u64 = new BigInt64Array(buf);
+  const u64 = new BigUint64Array(buf);
+
   f64[0] = num;
   const bits = u64[0];
 
-  const sign = bits < 0n ? '-' : '';
-  const exp = Number((bits >> 52n) & 0x7ffn);
-  const mantissa = bits & 0xfffffffffffffn;
+  const sign = bits >> 63n;
+  const rawExponent = (bits >> 52n) & 0x7ffn;
+  const rawMantissa = bits & 0xfffffffffffffn;
 
-  if (exp === 0x7ff) return num.toString();
+  let mantissa: bigint;
+  let exponent: number;
 
-  if (exp === 0) {
-    // subnormal
-    const m = mantissa;
-    const e = -1022 - 52;
-    const p5 = 5n ** BigInt(-e);
-    const numerator = (m * p5).toString();
-    const numDigits = -e;
-    const s = numerator.padStart(numDigits + 1, '0');
-    const intPart = s.slice(0, s.length - numDigits) || '0';
-    const fracPart = s.slice(s.length - numDigits).replace(/0+$/, '');
-    return sign + intPart + (fracPart ? '.' + fracPart : '');
+  if (rawExponent === 0n) {
+    mantissa = rawMantissa;
+    exponent = 1 - 1023 - 52;
   } else {
-    const m = mantissa | (1n << 52n);
-    const e = exp - 1023 - 52;
-    if (e >= 0) {
-      return sign + (m * (2n ** BigInt(e))).toString();
-    } else {
-      const p5 = 5n ** BigInt(-e);
-      const numerator = (m * p5).toString();
-      const numDigits = -e;
-      const s = numerator.padStart(numDigits + 1, '0');
-      const intPart = s.slice(0, s.length - numDigits) || '0';
-      const fracPart = s.slice(s.length - numDigits).replace(/0+$/, '');
-      return sign + intPart + (fracPart ? '.' + fracPart : '');
-    }
+    mantissa = rawMantissa | (1n << 52n);
+    exponent = Number(rawExponent) - 1023 - 52;
   }
+
+  let dec = new Decimal(mantissa.toString());
+  if (exponent > 0) {
+    dec = dec.mul(new Decimal(2).pow(exponent));
+  } else if (exponent < 0) {
+    dec = dec.div(new Decimal(2).pow(-exponent));
+  }
+
+  return sign === 1n ? dec.neg() : dec;
 }
 
 /**
- * Python-equivalent round-half-to-even (banker's rounding).
- * Proven against 100,036 golden test vectors with 0 mismatches.
+ * Exact Python round() equivalent using banker's rounding (round half to even).
  */
-export function roundPy(val: number, digits: number = 0): number {
-  if (val === 0 || !Number.isFinite(val)) return 0;
-  const str = floatToExactDecimal(val);
-  const d = new Decimal(str);
-  const rounded = d.toDecimalPlaces(digits, Decimal.ROUND_HALF_EVEN);
+export function roundPy(val: number, n: number = 0): number {
+  if (isNaN(val) || !isFinite(val)) return val;
+  const d = floatToExactDecimal(val);
+  const rounded = d.toDecimalPlaces(n, Decimal.ROUND_HALF_EVEN);
   return rounded.toNumber();
 }
 
 /**
- * Standard monetary rounding helper (2 decimal places).
+ * Exact Python round for currency (2 decimal places).
  */
 export function roundCurrency(val: number): number {
   return roundPy(val, 2);
 }
 
 export interface BillProductInput {
-  name: string;
-  description?: string;
-  quantity: number;
-  rate: number;
+  name?: string;
+  product_name?: string;
+  quantity?: number;
+  rate?: number;
+  price?: number;
+  unit_price?: number;
   unit?: string;
+  description?: string;
   inventory_item_id?: string | null;
+  [key: string]: any;
 }
 
 export interface CalculatedProduct extends BillProductInput {
+  name: string;
+  quantity: number;
+  rate: number;
+  unit: string;
+  description: string;
   total: number;
 }
 
@@ -100,11 +108,18 @@ export function calculateBillTotals(
 ): BillTotals {
   let subtotal = 0;
   const products: CalculatedProduct[] = rawProducts.map(p => {
-    const total = roundPy(p.quantity * p.rate, 2);
+    const qty = Number(p.quantity || 0);
+    const rate = Number(p.rate ?? p.price ?? p.unit_price ?? 0);
+    const total = roundPy(qty * rate, 2);
     subtotal += total;
     return {
       ...p,
+      name: p.name || p.product_name || '',
+      quantity: qty,
+      rate,
       unit: p.unit || 'pcs',
+      description: p.description || '',
+      inventory_item_id: p.inventory_item_id || null,
       total,
     };
   });
@@ -136,53 +151,66 @@ export interface BillPaymentItem {
 export interface BillDerivedStatus {
   amount_received: number;
   balance_due: number;
-  over_received: number;
-  payment_status: 'unpaid' | 'partial' | 'paid' | 'over_received';
-  order_status: 'pending' | 'partially_delivered' | 'delivered' | 'closed';
+  over_received: boolean;
+  payment_status: 'unpaid' | 'partial' | 'paid';
+  payment_fraction: number;
+  order_status: 'draft' | 'confirmed' | 'in_production' | 'ready_to_ship' | 'shipped' | 'closed';
 }
 
 /**
- * Computes derived payment status and order status from bill financial state.
+ * Computes derived payment status and order status from bill financial state matching Django model properties.
  */
 export function calculateBillDerived(
   grandTotal: number,
   payments: BillPaymentItem[] = [],
   profitConfirmed: boolean = false,
-  readyToDeliverQty: number = 0,
-  totalOrderedQty: number = 0,
-  shipmentConfirmed: boolean = false
+  billType: string = 'kacha',
+  shipmentConfirmed: boolean = false,
+  assignments: Array<{ status: string }> = []
 ): BillDerivedStatus {
   let amount_received = 0;
   for (const p of payments) {
-    amount_received += p.amount || 0;
+    amount_received += Number(p.amount) || 0;
   }
   amount_received = roundPy(amount_received, 2);
 
   let balance_due = 0;
-  let over_received = 0;
-  let payment_status: 'unpaid' | 'partial' | 'paid' | 'over_received' = 'unpaid';
+  let payment_status: 'unpaid' | 'partial' | 'paid' = 'unpaid';
+  let payment_fraction = 0;
 
-  if (amount_received >= grandTotal) {
+  if (grandTotal <= 0) {
+    payment_status = 'paid';
     balance_due = 0;
-    over_received = roundPy(amount_received - grandTotal, 2);
-    payment_status = over_received > 0 ? 'over_received' : 'paid';
+    payment_fraction = 0.0;
+  } else if (amount_received >= grandTotal) {
+    balance_due = 0;
+    payment_status = 'paid';
+    payment_fraction = 1.0;
   } else if (amount_received > 0) {
     balance_due = roundPy(grandTotal - amount_received, 2);
-    over_received = 0;
     payment_status = 'partial';
+    payment_fraction = roundPy(amount_received / grandTotal, 4);
   } else {
     balance_due = grandTotal;
-    over_received = 0;
     payment_status = 'unpaid';
+    payment_fraction = 0.0;
   }
 
-  let order_status: 'pending' | 'partially_delivered' | 'delivered' | 'closed' = 'pending';
-  if (profitConfirmed && (payment_status === 'paid' || payment_status === 'over_received')) {
+  const over_received = amount_received > grandTotal;
+
+  let order_status: 'draft' | 'confirmed' | 'in_production' | 'ready_to_ship' | 'shipped' | 'closed' = 'draft';
+  if (profitConfirmed && payment_status === 'paid') {
     order_status = 'closed';
   } else if (shipmentConfirmed) {
-    order_status = 'delivered';
-  } else if (readyToDeliverQty > 0) {
-    order_status = readyToDeliverQty >= totalOrderedQty ? 'delivered' : 'partially_delivered';
+    order_status = 'shipped';
+  } else if (billType === 'kacha') {
+    order_status = 'draft';
+  } else if (!assignments || assignments.length === 0) {
+    order_status = 'confirmed';
+  } else if (assignments.every(a => a.status === 'completed')) {
+    order_status = 'ready_to_ship';
+  } else {
+    order_status = 'in_production';
   }
 
   return {
@@ -190,6 +218,7 @@ export function calculateBillDerived(
     balance_due,
     over_received,
     payment_status,
+    payment_fraction,
     order_status,
   };
 }
@@ -214,13 +243,10 @@ export function calculateSuggestedProfit(
 }
 
 /**
- * Computes month-over-month or period-over-period percentage change matching Python logic.
+ * Calculates metric percentage change between current and previous values.
  */
 export function calcPercentageChange(current: number, previous: number): number {
-  if (previous === 0) {
-    return current === 0 ? 0.0 : 100.0;
-  }
-  const diff = current - previous;
-  const pct = (diff / Math.abs(previous)) * 100;
-  return roundPy(pct, 1);
+  if (previous === 0 && current === 0) return 0.0;
+  if (previous === 0) return current > 0 ? 100.0 : -100.0;
+  return Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10;
 }

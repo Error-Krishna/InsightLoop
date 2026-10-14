@@ -38,6 +38,19 @@ describe('Mathematical Compatibility Engine', () => {
   });
 
   it('matches Python bill derived calculations and profit logic', () => {
+    const raw = fs.readFileSync(VECTORS_PATH, 'utf-8');
+    const data = JSON.parse(raw);
+    const derivedVectors = data.bill_derived_properties;
+
+    for (const v of derivedVectors) {
+      const derived = calculateBillDerived(v.grand_total, v.payments);
+      expect(derived.amount_received).toBe(v.expected.amount_received);
+      expect(derived.balance_due).toBe(v.expected.balance_due);
+      expect(derived.over_received).toBe(v.expected.over_received);
+      expect(derived.payment_status).toBe(v.expected.payment_status);
+      expect(derived.payment_fraction).toBe(v.expected.payment_fraction);
+    }
+
     const billTotals = calculateBillTotals(
       [
         { name: 'Desk', quantity: 2, rate: 5000, unit: 'pcs' },
@@ -53,11 +66,11 @@ describe('Mathematical Compatibility Engine', () => {
     expect(billTotals.gst_amount).toBe(2574);
     expect(billTotals.grand_total).toBe(16874);
 
-    const derived = calculateBillDerived(billTotals.grand_total, [{ amount: 10000 }], false);
+    const derived = calculateBillDerived(billTotals.grand_total, [{ amount: 10000 }], false, 'kacha');
     expect(derived.amount_received).toBe(10000);
     expect(derived.balance_due).toBe(6874);
     expect(derived.payment_status).toBe('partial');
-    expect(derived.order_status).toBe('pending');
+    expect(derived.order_status).toBe('draft');
 
     const profit = calculateSuggestedProfit(10000, 8000, 16874);
     expect(profit.payment_fraction).toBe(0.5926);
