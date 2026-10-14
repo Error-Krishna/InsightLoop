@@ -10,6 +10,10 @@
     "test": "turbo run test",
     "test:contracts": "node scripts/run_contract_suite.mjs --assert",
     "test:contracts:record": "node scripts/run_contract_suite.mjs --record",
+    "test:dual-stack": "node scripts/test_dual_stack.mjs",
+    "test:tenancy": "node scripts/test_tenancy_security.mjs",
+    "test:chaos": "node scripts/test_chaos_resilience.mjs",
+    "test:benchmark": "node scripts/run_load_benchmark.mjs",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
