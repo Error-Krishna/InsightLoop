@@ -129,6 +129,7 @@
 ---
 
 ## 9. Commit Log (Newest First)
+- `dfa34b0` `feat(parity): complete Phase 5 verification, load benchmarks, chaos resilience, and tenancy security sweeps`
 - `11a29b1` `feat(web): complete frontend TypeScript migration with typed API client and refresh mutex`
 - `26f0bd5` `feat(api): complete Node Express API with 100% Django contract and dual-stack parity`
 - `18a23de` `chore(monorepo): scaffold Turborepo + pnpm workspace with shared packages and apps/web`
