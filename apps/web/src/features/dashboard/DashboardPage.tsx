@@ -19,7 +19,50 @@ import MetricCard from "../../components/MetricCard";
 import api from "../../lib/api";
 import { getAccessToken, getCompanyId } from "../../lib/auth";
 
-const EMPTY_DATA = {
+interface SummaryData {
+  total_revenue?: number;
+  total_profit?: number;
+  active_workers?: number;
+  revenue_change?: number;
+  profit_change?: number;
+  workers_change?: number;
+  [key: string]: any;
+}
+
+interface RevExpData {
+  labels: string[];
+  revenue: number[];
+  expenses: number[];
+}
+
+interface ProfitTrendsData {
+  labels: string[];
+  profit: number[];
+}
+
+interface WorkerPaymentItem {
+  name: string;
+  month: string;
+  amount: number;
+  status: string;
+}
+
+interface TopWorkerItem {
+  name: string;
+  total_payout: number;
+  units_produced?: number;
+}
+
+interface DashboardState {
+  summary: SummaryData | null;
+  revExp: RevExpData;
+  profitTrends: ProfitTrendsData;
+  workers: WorkerPaymentItem[];
+  topWorkers: TopWorkerItem[];
+  billsCount: number;
+}
+
+const EMPTY_DATA: DashboardState = {
   summary: null,
   revExp: { labels: [], revenue: [], expenses: [] },
   profitTrends: { labels: [], profit: [] },
@@ -28,13 +71,13 @@ const EMPTY_DATA = {
   billsCount: 0,
 };
 
-function EmptyState({ message }) {
+function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex h-48 items-center justify-center text-sm text-slate-400">{message}</div>
   );
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status }: { status: string }) {
   const isPaid = status === "Paid";
   return (
     <span
@@ -48,11 +91,11 @@ function StatusBadge({ status }) {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState(EMPTY_DATA);
+  const [data, setData] = useState<DashboardState>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let socket;
+    let socket: WebSocket | undefined;
 
     async function bootstrap() {
       try {
@@ -188,7 +231,7 @@ export default function DashboardPage() {
                   <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v) => [`₹${Number(v).toLocaleString("en-IN")}`, ""]} />
+                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, ""]} />
                   <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f97316" strokeWidth={2.5} dot={false} />
                 </LineChart>
@@ -216,7 +259,7 @@ export default function DashboardPage() {
                   <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v) => [`₹${Number(v).toLocaleString("en-IN")}`, "Profit"]} />
+                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, "Profit"]} />
                   <Area type="monotone" dataKey="value" stroke="#14b8a6" fill="url(#profitGrad)" strokeWidth={2.5} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -282,7 +325,7 @@ export default function DashboardPage() {
                     tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
                   />
                   <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <Tooltip formatter={(v) => [`₹${Number(v).toLocaleString("en-IN")}`, "Payout"]} />
+                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, "Payout"]} />
                   <Bar dataKey="total_payout" fill="#2563eb" radius={[0, 6, 6, 0]} maxBarSize={28} />
                 </BarChart>
               </ResponsiveContainer>

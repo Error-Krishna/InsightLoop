@@ -1,7 +1,21 @@
 import { Line, LineChart, ResponsiveContainer } from "recharts";
 import Card from "./Card";
 
-export default function MetricCard({ title, value, trend, data = [], color = "#2563eb" }) {
+export interface MetricCardProps {
+  title: string;
+  value: string | number;
+  trend?: number | string;
+  data?: Array<{ value: number; [key: string]: any }>;
+  color?: string;
+}
+
+export default function MetricCard({
+  title,
+  value,
+  trend,
+  data = [],
+  color = "#2563eb",
+}: MetricCardProps) {
   const positive = Number(trend || 0) >= 0;
 
   return (

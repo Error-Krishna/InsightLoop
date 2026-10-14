@@ -1,9 +1,22 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
 
-const initialValues = {
+interface ProfileValues {
+  name: string;
+  company_name: string;
+  address: string;
+  company_email: string;
+  company_phone: string;
+  gst_number: string;
+  bank_account_number: string;
+  ifsc_code: string;
+  bank_name: string;
+  branch_name: string;
+}
+
+const initialValues: ProfileValues = {
   name: "",
   company_name: "",
   address: "",
@@ -16,15 +29,21 @@ const initialValues = {
   branch_name: "",
 };
 
-const initialFiles = {
+interface ProfileFiles {
+  logo: File | null;
+  stamp: File | null;
+  signature: File | null;
+}
+
+const initialFiles: ProfileFiles = {
   logo: null,
   stamp: null,
   signature: null,
 };
 
 export default function ProfilePage() {
-  const [values, setValues] = useState(initialValues);
-  const [files, setFiles] = useState(initialFiles);
+  const [values, setValues] = useState<ProfileValues>(initialValues);
+  const [files, setFiles] = useState<ProfileFiles>(initialFiles);
 
   useEffect(() => {
     api
@@ -46,7 +65,7 @@ export default function ProfilePage() {
       .catch(() => toast.error("Failed to load profile"));
   }, []);
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const payload = new FormData();
     Object.entries(values).forEach(([key, value]) => {
@@ -71,22 +90,30 @@ export default function ProfilePage() {
     }
   }
 
+  const fields: Array<[keyof ProfileValues, string]> = [
+    ["name", "Contact Name"],
+    ["company_name", "Company Name"],
+    ["address", "Company Address"],
+    ["company_email", "Company Email"],
+    ["company_phone", "Company Phone"],
+    ["gst_number", "GST Number"],
+    ["bank_account_number", "Account Number"],
+    ["ifsc_code", "IFSC Code"],
+    ["bank_name", "Bank Name"],
+    ["branch_name", "Branch"],
+  ];
+
+  const fileFields: Array<[keyof ProfileFiles, string]> = [
+    ["logo", "Company Logo"],
+    ["stamp", "Stamp"],
+    ["signature", "Signature"],
+  ];
+
   return (
     <Card className="p-6">
       <h1 className="text-2xl font-semibold text-slate-900">Profile & Company Settings</h1>
       <form onSubmit={handleSubmit} className="mt-6 grid gap-4 md:grid-cols-2">
-        {[
-          ["name", "Contact Name"],
-          ["company_name", "Company Name"],
-          ["address", "Company Address"],
-          ["company_email", "Company Email"],
-          ["company_phone", "Company Phone"],
-          ["gst_number", "GST Number"],
-          ["bank_account_number", "Account Number"],
-          ["ifsc_code", "IFSC Code"],
-          ["bank_name", "Bank Name"],
-          ["branch_name", "Branch"],
-        ].map(([key, label]) => (
+        {fields.map(([key, label]) => (
           <label key={key} className="text-sm font-medium text-slate-700">
             {label}
             <input
@@ -97,11 +124,7 @@ export default function ProfilePage() {
           </label>
         ))}
 
-        {[
-          ["logo", "Company Logo"],
-          ["stamp", "Stamp"],
-          ["signature", "Signature"],
-        ].map(([key, label]) => (
+        {fileFields.map(([key, label]) => (
           <label key={key} className="text-sm font-medium text-slate-700">
             {label}
             <input

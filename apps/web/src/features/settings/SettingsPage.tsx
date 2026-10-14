@@ -9,18 +9,18 @@ const workspaceFields = [
   ["jwt_session_authentication", "JWT session authentication"],
   ["ai_assistant_enabled", "AI assistant enabled"],
   ["inventory_workspace_mode", "Inventory workspace mode"],
-];
+] as const;
 
 const notificationFields = [
   ["comments", "Comments and mentions"],
   ["weekly_summary", "Weekly summary email"],
   ["updates", "Product updates"],
-];
+] as const;
 
 export default function SettingsPage() {
   const user = getCurrentUser();
-  const [settings, setSettings] = useState({});
-  const [notifications, setNotifications] = useState({});
+  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [notifications, setNotifications] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -57,8 +57,8 @@ export default function SettingsPage() {
         <div className="mt-6 space-y-4 text-sm text-slate-600">
           <Setting label="Current Workspace" value={user?.company_name || "Not available"} />
           <Setting label="Authenticated User" value={user?.email || "Not available"} />
-          <Setting label="Frontend Stack" value="React 19 + Vite + Tailwind 4" />
-          <Setting label="Backend Stack" value="Django + MongoDB + WebSockets" />
+          <Setting label="Frontend Stack" value="React 19 + TypeScript + Vite + Tailwind 4" />
+          <Setting label="Backend Stack" value="Node Express (TypeScript) + MongoDB + WebSockets" />
         </div>
       </Card>
 
@@ -109,7 +109,14 @@ export default function SettingsPage() {
   );
 }
 
-function Toggle({ label, checked, onChange, disabled }) {
+interface ToggleProps {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+}
+
+function Toggle({ label, checked, onChange, disabled }: ToggleProps) {
   return (
     <label className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
       <span className="text-sm font-medium text-slate-700">{label}</span>
@@ -124,7 +131,7 @@ function Toggle({ label, checked, onChange, disabled }) {
   );
 }
 
-function Setting({ label, value }) {
+function Setting({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-slate-50 px-4 py-3">
       <p className="text-slate-400">{label}</p>

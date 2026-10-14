@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Bot, Send, Sparkles, Download, Navigation, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -13,7 +13,15 @@ const STARTER_PROMPTS = [
   "Export complete analytics",
 ];
 
-function formatAssistantMessage(payload) {
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  type?: string;
+  action?: string;
+  timestamp?: string;
+}
+
+function formatAssistantMessage(payload: any): string {
   if (payload.action !== "display" || !payload.content) {
     return payload.content || payload.message || "Done.";
   }
@@ -24,10 +32,10 @@ function formatAssistantMessage(payload) {
     const data = parsed.data;
 
     if (data?.labels && data?.profit) {
-      return `Here is your ${typeLabel}: ${data.labels.map((label, index) => `${label}: ${Number(data.profit[index] || 0).toLocaleString("en-IN")}`).join(", ")}`;
+      return `Here is your ${typeLabel}: ${data.labels.map((label: string, index: number) => `${label}: ${Number(data.profit[index] || 0).toLocaleString("en-IN")}`).join(", ")}`;
     }
     if (data?.labels && data?.revenue) {
-      return `Here is your ${typeLabel}: ${data.labels.map((label, index) => `${label}: revenue ₹${Number(data.revenue[index] || 0).toLocaleString("en-IN")}, expenses ₹${Number(data.expenses?.[index] || 0).toLocaleString("en-IN")}`).join(" | ")}`;
+      return `Here is your ${typeLabel}: ${data.labels.map((label: string, index: number) => `${label}: revenue ₹${Number(data.revenue[index] || 0).toLocaleString("en-IN")}, expenses ₹${Number(data.expenses?.[index] || 0).toLocaleString("en-IN")}`).join(" | ")}`;
     }
     if (Array.isArray(data)) {
       return `${typeLabel}: ${data.slice(0, 5).map((item) => JSON.stringify(item)).join(" | ")}`;
@@ -39,7 +47,7 @@ function formatAssistantMessage(payload) {
   return payload.content || payload.message || "Done.";
 }
 
-function MessageBubble({ message }) {
+function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
   const isError = message.type === "error";
 
@@ -89,10 +97,10 @@ function MessageBubble({ message }) {
 
 export default function ChatPage() {
   const navigate = useNavigate();
-  const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-  const [messages, setMessages] = useState([
+  const socketRef = useRef<WebSocket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
       content: "Hi! I'm your AI assistant. Ask me to export reports, show analytics, or navigate to any section.",
@@ -157,7 +165,7 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function send(text) {
+  function send(text?: string) {
     const command = (text || input).trim();
     if (!command || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return;
     const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -167,7 +175,7 @@ export default function ChatPage() {
     socketRef.current.send(JSON.stringify({ command, assistant: "jarvis" }));
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();

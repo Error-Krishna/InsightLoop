@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRightLeft,
@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
+import type { Bill, BillItem, ProfitPreviewResponse } from "./types";
 
 const GST_RATES = [0, 5, 12, 18, 28];
 
@@ -27,15 +28,15 @@ const SORT_OPTIONS = [
   { value: "buyer_name:asc", label: "Buyer name (A-Z)" },
 ];
 
-/**
- * Full bill management table: search, sort, filter, and per-row actions
- * (download PDF, share via WhatsApp, edit, delete, and -- for kacha bills
- * only -- convert to pakka). Rendered beneath the bill builder on both the
- * kacha and pakka pages.
- */
-export default function BillManager({ billType, refreshKey, onChanged }) {
+interface BillManagerProps {
+  billType: "kacha" | "pakka";
+  refreshKey?: number;
+  onChanged?: () => void;
+}
+
+export default function BillManager({ billType, refreshKey, onChanged }: BillManagerProps) {
   const navigate = useNavigate();
-  const [bills, setBills] = useState([]);
+  const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("created_at:desc");
@@ -43,17 +44,17 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
   const [maxAmount, setMaxAmount] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [editingBill, setEditingBill] = useState(null);
-  const [convertingBill, setConvertingBill] = useState(null);
-  const [payingBill, setPayingBill] = useState(null);
-  const [confirmingBill, setConfirmingBill] = useState(null);
-  const [sharingId, setSharingId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
+  const [convertingBill, setConvertingBill] = useState<Bill | null>(null);
+  const [payingBill, setPayingBill] = useState<Bill | null>(null);
+  const [confirmingBill, setConfirmingBill] = useState<Bill | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
     try {
-      const { data } = await api.get(`/bills/?type=${billType}`);
+      const { data } = await api.get<Bill[]>(`/bills/?type=${billType}`);
       setBills(data);
     } catch {
       toast.error("Failed to load bills");
@@ -84,14 +85,15 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
       const matchesMin = min === null || amount >= min;
       const matchesMax = max === null || amount <= max;
       const createdAt = bill.created_at ? new Date(bill.created_at) : null;
-      const matchesFrom = !from || (createdAt && createdAt >= from);
-      const matchesTo = !to || (createdAt && createdAt <= new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1));
+      const matchesFrom = !from || (createdAt !== null && createdAt >= from);
+      const matchesTo = !to || (createdAt !== null && createdAt <= new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1));
       return matchesQuery && matchesMin && matchesMax && matchesFrom && matchesTo;
     });
 
     const [sortField, sortDir] = sort.split(":");
     result = [...result].sort((a, b) => {
-      let aVal, bVal;
+      let aVal: string | number = "";
+      let bVal: string | number = "";
       if (sortField === "buyer_name") {
         aVal = (a.buyer?.name || "").toLowerCase();
         bVal = (b.buyer?.name || "").toLowerCase();
@@ -102,8 +104,8 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
         aVal = Number(a.grand_total || 0);
         bVal = Number(b.grand_total || 0);
       } else {
-        aVal = (a[sortField] || "").toString().toLowerCase();
-        bVal = (b[sortField] || "").toString().toLowerCase();
+        aVal = ((a as any)[sortField] || "").toString().toLowerCase();
+        bVal = ((b as any)[sortField] || "").toString().toLowerCase();
       }
       if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
       if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
@@ -123,7 +125,7 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
 
   const filtersActive = search || minAmount !== "" || maxAmount !== "" || dateFrom || dateTo;
 
-  async function downloadBillPdf(bill) {
+  async function downloadBillPdf(bill: Bill) {
     try {
       const response = await api.get(`/bills/${bill.id}/pdf/`, { responseType: "blob" });
       const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
@@ -139,7 +141,7 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
     }
   }
 
-  async function shareBillOnWhatsApp(bill) {
+  async function shareBillOnWhatsApp(bill: Bill) {
     if (!bill.buyer?.phone) {
       toast.error("Add a phone number to this bill's buyer details first");
       return;
@@ -148,14 +150,14 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
     try {
       await api.post(`/bills/${bill.id}/share-whatsapp/`);
       toast.success(`Bill sent to ${bill.buyer.phone} on WhatsApp`);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to send via WhatsApp");
     } finally {
       setSharingId(null);
     }
   }
 
-  async function deleteBill(bill) {
+  async function deleteBill(bill: Bill) {
     if (!window.confirm(`Delete bill ${bill.invoice_number}? This cannot be undone and will restore any linked inventory stock.`)) {
       return;
     }
@@ -165,29 +167,27 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
       toast.success("Bill deleted");
       setBills((c) => c.filter((b) => b.id !== bill.id));
       onChanged?.();
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to delete bill");
     } finally {
       setDeletingId(null);
     }
   }
 
-  function handleSaved(updatedBill) {
+  function handleSaved(updatedBill: Bill) {
     setBills((c) => c.map((b) => (b.id === updatedBill.id ? updatedBill : b)));
     setEditingBill(null);
     onChanged?.();
   }
 
-  function handleConverted(updatedBill) {
-    // A converted bill is no longer a kacha bill, so it should disappear
-    // from this (kacha) list immediately rather than waiting for a reload.
+  function handleConverted(updatedBill: Bill) {
     setBills((c) => c.filter((b) => b.id !== updatedBill.id));
     setConvertingBill(null);
     onChanged?.();
     toast.success(`Converted to pakka bill ${updatedBill.invoice_number}`);
   }
 
-  function handleBillUpdated(updatedBill) {
+  function handleBillUpdated(updatedBill: Bill) {
     setBills((c) => c.map((b) => (b.id === updatedBill.id ? updatedBill : b)));
     onChanged?.();
   }
@@ -415,7 +415,15 @@ export default function BillManager({ billType, refreshKey, onChanged }) {
   );
 }
 
-function ActionButton({ title, onClick, disabled, tone = "slate", children }) {
+interface ActionButtonProps {
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: "slate" | "emerald" | "green" | "blue" | "rose";
+  children: React.ReactNode;
+}
+
+function ActionButton({ title, onClick, disabled, tone = "slate", children }: ActionButtonProps) {
   const toneClasses = {
     slate: "border-slate-200 text-slate-500 hover:bg-slate-50",
     emerald: "border-emerald-200 text-emerald-600 hover:bg-emerald-50",
@@ -436,14 +444,14 @@ function ActionButton({ title, onClick, disabled, tone = "slate", children }) {
   );
 }
 
-function PaymentStatusBadge({ bill }) {
+function PaymentStatusBadge({ bill }: { bill: Bill }) {
   const status = bill.payment_status || "unpaid";
-  const styles = {
+  const styles: Record<string, string> = {
     paid: "bg-emerald-50 text-emerald-700",
     partial: "bg-amber-50 text-amber-700",
     unpaid: "bg-slate-100 text-slate-500",
   };
-  const labels = {
+  const labels: Record<string, string> = {
     paid: "Paid in full",
     partial: `₹${Number(bill.balance_due || 0).toLocaleString("en-IN")} due`,
     unpaid: "Unpaid",
@@ -455,8 +463,8 @@ function PaymentStatusBadge({ bill }) {
   );
 }
 
-export function OrderStatusBadge({ status }) {
-  const styles = {
+export function OrderStatusBadge({ status }: { status?: string }) {
+  const styles: Record<string, string> = {
     draft: "bg-slate-100 text-slate-500",
     confirmed: "bg-blue-50 text-blue-600",
     in_production: "bg-amber-50 text-amber-700",
@@ -464,7 +472,7 @@ export function OrderStatusBadge({ status }) {
     shipped: "bg-teal-50 text-teal-700",
     closed: "bg-emerald-50 text-emerald-700",
   };
-  const labels = {
+  const labels: Record<string, string> = {
     draft: "Draft",
     confirmed: "Confirmed",
     in_production: "In production",
@@ -472,14 +480,22 @@ export function OrderStatusBadge({ status }) {
     shipped: "Shipped",
     closed: "Closed",
   };
+  const key = status || "draft";
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${styles[status] || styles.draft}`}>
-      {labels[status] || status}
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${styles[key] || styles.draft}`}>
+      {labels[key] || key}
     </span>
   );
 }
 
-function EditBillModal({ bill, billType, onClose, onSaved }) {
+interface EditBillModalProps {
+  bill: Bill;
+  billType: "kacha" | "pakka";
+  onClose: () => void;
+  onSaved: (bill: Bill) => void;
+}
+
+function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps) {
   const isPakka = billType === "pakka";
   const [form, setForm] = useState({
     buyer_name: bill.buyer?.name || "",
@@ -501,14 +517,14 @@ function EditBillModal({ bill, billType, onClose, onSaved }) {
   const gstAmount = isPakka ? (taxable * Number(form.gst_percentage || 0)) / 100 : 0;
   const grandTotal = taxable + gstAmount;
 
-  function updateProduct(index, field, value) {
+  function updateProduct(index: number, field: keyof BillItem, value: any) {
     setForm((c) => ({
       ...c,
       products: c.products.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
     }));
   }
 
-  function removeProduct(index) {
+  function removeProduct(index: number) {
     setForm((c) => {
       const next = c.products.filter((_, i) => i !== index);
       return { ...c, products: next.length ? next : [{ name: "", quantity: 1, rate: 0, unit: "pcs" }] };
@@ -530,10 +546,10 @@ function EditBillModal({ bill, billType, onClose, onSaved }) {
     }
     setSaving(true);
     try {
-      const { data } = await api.put(`/bills/${bill.id}/`, form);
+      const { data } = await api.put<Bill>(`/bills/${bill.id}/`, form);
       toast.success("Bill updated");
       onSaved(data);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to update bill");
     } finally {
       setSaving(false);
@@ -561,7 +577,7 @@ function EditBillModal({ bill, billType, onClose, onSaved }) {
                 <label className="mb-1 block text-sm font-medium text-slate-700">GST Rate</label>
                 <select
                   value={form.gst_percentage}
-                  onChange={(e) => setForm((c) => ({ ...c, gst_percentage: e.target.value }))}
+                  onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 >
                   {GST_RATES.map((r) => (
@@ -571,7 +587,7 @@ function EditBillModal({ bill, billType, onClose, onSaved }) {
               </div>
             </>
           )}
-          <ModalInput label="Discount (₹)" type="number" value={form.discount} onChange={(v) => setForm((c) => ({ ...c, discount: v }))} />
+          <ModalInput label="Discount (₹)" type="number" value={String(form.discount)} onChange={(v) => setForm((c) => ({ ...c, discount: Number(v) || 0 }))} />
         </div>
 
         <div className="mt-5">
@@ -585,8 +601,8 @@ function EditBillModal({ bill, billType, onClose, onSaved }) {
             {form.products.map((product, i) => (
               <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_32px] gap-2">
                 <ModalInput hideLabel value={product.name} onChange={(v) => updateProduct(i, "name", v)} placeholder="Product name" />
-                <ModalInput hideLabel type="number" value={product.quantity} onChange={(v) => updateProduct(i, "quantity", v)} placeholder="Qty" />
-                <ModalInput hideLabel type="number" value={product.rate} onChange={(v) => updateProduct(i, "rate", v)} placeholder="Rate" />
+                <ModalInput hideLabel type="number" value={String(product.quantity)} onChange={(v) => updateProduct(i, "quantity", Number(v) || 0)} placeholder="Qty" />
+                <ModalInput hideLabel type="number" value={String(product.rate)} onChange={(v) => updateProduct(i, "rate", Number(v) || 0)} placeholder="Rate" />
                 <ModalInput hideLabel value={product.unit} onChange={(v) => updateProduct(i, "unit", v)} placeholder="Unit" />
                 <button
                   type="button"
@@ -641,13 +657,13 @@ function EditBillModal({ bill, billType, onClose, onSaved }) {
   );
 }
 
-/**
- * Collects the mandatory pakka-only fields (GST number, GST percentage)
- * before allowing a kacha -> pakka conversion to proceed. The backend
- * independently enforces this requirement, so this modal is a UX
- * convenience, not the only safeguard.
- */
-function ConvertToPakkaModal({ bill, onClose, onConverted }) {
+interface ConvertToPakkaModalProps {
+  bill: Bill;
+  onClose: () => void;
+  onConverted: (bill: Bill) => void;
+}
+
+function ConvertToPakkaModal({ bill, onClose, onConverted }: ConvertToPakkaModalProps) {
   const [gstNumber, setGstNumber] = useState(bill.buyer?.gst_number || "");
   const [gstPercentage, setGstPercentage] = useState(18);
   const [converting, setConverting] = useState(false);
@@ -659,12 +675,12 @@ function ConvertToPakkaModal({ bill, onClose, onConverted }) {
     }
     setConverting(true);
     try {
-      const { data } = await api.post(`/bills/${bill.id}/convert/`, {
+      const { data } = await api.post<Bill>(`/bills/${bill.id}/convert/`, {
         gst_number: gstNumber.trim(),
         gst_percentage: gstPercentage,
       });
       onConverted(data);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to convert bill");
     } finally {
       setConverting(false);
@@ -724,10 +740,19 @@ function ConvertToPakkaModal({ bill, onClose, onConverted }) {
   );
 }
 
-function ModalInput({ label, hideLabel = false, value, onChange, type = "text", placeholder }) {
+interface ModalInputProps {
+  label?: string;
+  hideLabel?: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+}
+
+function ModalInput({ label, hideLabel = false, value, onChange, type = "text", placeholder }: ModalInputProps) {
   return (
     <div>
-      {!hideLabel && <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>}
+      {!hideLabel && label && <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>}
       <input
         type={type}
         value={value}
@@ -739,7 +764,13 @@ function ModalInput({ label, hideLabel = false, value, onChange, type = "text", 
   );
 }
 
-function RecordPaymentModal({ bill, onClose, onUpdated }) {
+interface RecordPaymentModalProps {
+  bill: Bill;
+  onClose: () => void;
+  onUpdated: (bill: Bill) => void;
+}
+
+function RecordPaymentModal({ bill, onClose, onUpdated }: RecordPaymentModalProps) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -747,27 +778,27 @@ function RecordPaymentModal({ bill, onClose, onUpdated }) {
 
   const payments = bill.payments || [];
 
-  async function handleAdd(event) {
+  async function handleAdd(event: React.FormEvent) {
     event.preventDefault();
     const value = Number(amount);
     if (!value || value <= 0) {
       toast.error("Enter how much the customer paid");
       return;
     }
-    if (value > bill.balance_due + 0.01) {
+    if (value > (bill.balance_due || 0) + 0.01) {
       const proceed = window.confirm(
-        `This is more than the outstanding balance of ₹${bill.balance_due.toFixed(2)}. Record it anyway?`,
+        `This is more than the outstanding balance of ₹${(bill.balance_due || 0).toFixed(2)}. Record it anyway?`,
       );
       if (!proceed) return;
     }
     setSaving(true);
     try {
-      const { data } = await api.post(`/bills/${bill.id}/record-payment/`, { amount: value, date, notes });
+      const { data } = await api.post<Bill>(`/bills/${bill.id}/record-payment/`, { amount: value, date, notes });
       toast.success(`₹${value.toLocaleString("en-IN")} recorded`);
       setAmount("");
       setNotes("");
       onUpdated(data);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to record payment");
     } finally {
       setSaving(false);
@@ -818,7 +849,7 @@ function RecordPaymentModal({ bill, onClose, onUpdated }) {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={`up to ${bill.balance_due}`}
+                placeholder={`up to ${bill.balance_due || 0}`}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
               />
             </div>
@@ -877,9 +908,15 @@ function RecordPaymentModal({ bill, onClose, onUpdated }) {
   );
 }
 
-function ProfitConfirmationModal({ bill, onClose, onConfirmed }) {
+interface ProfitConfirmationModalProps {
+  bill: Bill;
+  onClose: () => void;
+  onConfirmed: (bill: Bill) => void;
+}
+
+function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmationModalProps) {
   const [loading, setLoading] = useState(true);
-  const [suggestion, setSuggestion] = useState(null);
+  const [suggestion, setSuggestion] = useState<ProfitPreviewResponse | null>(null);
   const [override, setOverride] = useState("");
   const [useOverride, setUseOverride] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -889,9 +926,9 @@ function ProfitConfirmationModal({ bill, onClose, onConfirmed }) {
     async function loadPreview() {
       setLoading(true);
       try {
-        const { data } = await api.get(`/bills/${bill.id}/profit-preview/`);
+        const { data } = await api.get<ProfitPreviewResponse>(`/bills/${bill.id}/profit-preview/`);
         if (!cancelled) setSuggestion(data);
-      } catch (err) {
+      } catch (err: any) {
         if (!cancelled) toast.error(err.response?.data?.detail || "Failed to compute profit preview");
       } finally {
         if (!cancelled) setLoading(false);
@@ -907,10 +944,10 @@ function ProfitConfirmationModal({ bill, onClose, onConfirmed }) {
     setConfirming(true);
     try {
       const payload = useOverride && override !== "" ? { confirmed_amount: Number(override) } : {};
-      const { data } = await api.post(`/bills/${bill.id}/confirm-profit/`, payload);
+      const { data } = await api.post<Bill>(`/bills/${bill.id}/confirm-profit/`, payload);
       toast.success("Profit confirmed for this consignment");
       onConfirmed(data);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to confirm profit");
     } finally {
       setConfirming(false);

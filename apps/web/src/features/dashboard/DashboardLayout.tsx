@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   LayoutDashboard,
   LogOut,
+  LucideIcon,
   Menu,
   PackageSearch,
   ReceiptIndianRupee,
@@ -15,13 +16,24 @@ import {
   UserCircle2,
   Users,
   Warehouse,
-  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { clearSession, getCurrentUser } from "../../lib/auth";
 
-const navGroups = [
+interface NavItem {
+  label: string;
+  to: string;
+}
+
+interface NavGroup {
+  label: string;
+  to?: string;
+  icon: LucideIcon;
+  children?: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
   {
     label: "Bills",
@@ -49,7 +61,7 @@ const navGroups = [
   { label: "Settings", to: "/settings", icon: Settings },
 ];
 
-const pageTitles = {
+const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/bills/kacha": "Kacha Bills",
   "/bills/pakka": "Pakka Bills",
@@ -65,7 +77,7 @@ const pageTitles = {
   "/settings": "Settings",
 };
 
-function resolvePageTitle(pathname) {
+function resolvePageTitle(pathname: string): string {
   if (pathname.startsWith("/bills/order/")) return "Order Details";
   return pageTitles[pathname] || "InsightLoop";
 }
@@ -74,7 +86,7 @@ export default function DashboardLayout() {
   const user = getCurrentUser();
   const location = useLocation();
   const navigate = useNavigate();
-  const [openGroups, setOpenGroups] = useState({ Bills: true, Inventory: false });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Bills: true, Inventory: false });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const title = resolvePageTitle(location.pathname);
   const breadcrumbs = useMemo(() => location.pathname.split("/").filter(Boolean), [location.pathname]);
@@ -142,7 +154,7 @@ export default function DashboardLayout() {
           ) : (
             <NavLink
               key={group.to}
-              to={group.to}
+              to={group.to!}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${

@@ -6,26 +6,29 @@ import Card from "../../components/Card";
 import api from "../../lib/api";
 import InventoryItemsPage from "./InventoryItemsPage";
 
-/**
- * Work in Progress inventory is a hybrid view:
- *   1. "In Production" -- auto-derived, read-only rows built live from
- *      every open (not yet completed) worker material assignment. This is
- *      what actually reflects real production in progress; it can't drift
- *      out of sync because it's computed from the same data the worker
- *      completion flow already tracks, not a separately maintained number.
- *   2. Manually tracked WIP items -- the same add/edit/delete flow every
- *      other inventory category has, for WIP stock the business wants to
- *      track by hand rather than through a worker assignment.
- */
+interface InProductionItem {
+  id: string;
+  name: string;
+  location_label?: string;
+  assigned_quantity: number;
+  delivered_quantity: number;
+  balance_quantity: number;
+  order?: {
+    bill_id: string;
+    invoice_number: string;
+    buyer_name?: string;
+  } | null;
+}
+
 export default function SemiFinishedInventoryPage() {
   const navigate = useNavigate();
-  const [inProduction, setInProduction] = useState([]);
+  const [inProduction, setInProduction] = useState<InProductionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadInProduction() {
     setLoading(true);
     try {
-      const { data } = await api.get("/inventory/semi-finished/live/");
+      const { data } = await api.get<{ in_production: InProductionItem[] }>("/inventory/semi-finished/live/");
       setInProduction(data.in_production || []);
     } catch {
       toast.error("Failed to load in-production items");
@@ -76,7 +79,7 @@ export default function SemiFinishedInventoryPage() {
                 {row.order && (
                   <button
                     type="button"
-                    onClick={() => navigate(`/bills/order/${row.order.bill_id}`)}
+                    onClick={() => navigate(`/bills/order/${row.order!.bill_id}`)}
                     className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
                   >
                     Order {row.order.invoice_number} · {row.order.buyer_name || "—"}

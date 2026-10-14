@@ -1,7 +1,13 @@
-import { ArrowRight, Bot, Boxes, BriefcaseBusiness, ChartColumnBig, FileSpreadsheet, ReceiptIndianRupee, Warehouse } from "lucide-react";
+import { ArrowRight, Bot, BriefcaseBusiness, ChartColumnBig, FileSpreadsheet, LucideIcon, ReceiptIndianRupee, Warehouse } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const features = [
+interface Feature {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}
+
+const features: Feature[] = [
   { icon: ChartColumnBig, title: "Analytics Dashboard", description: "Real-time revenue, profit, worker, and trend analytics." },
   { icon: ReceiptIndianRupee, title: "Kacha/Pakka Bills", description: "Fast invoice creation for informal and GST-compliant billing." },
   { icon: Warehouse, title: "Inventory Management", description: "Track finished goods, raw stock, and warehouses in one place." },

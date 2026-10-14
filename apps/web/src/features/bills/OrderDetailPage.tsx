@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -15,6 +15,23 @@ import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
 import { OrderStatusBadge } from "./BillManager";
+import type { Bill, CostItem, InventoryItemRef, ReadyToDeliverBatch } from "./types";
+
+interface WorkerAssignment {
+  id: string;
+  worker_id?: string;
+  worker_name?: string;
+  material_name?: string;
+  quantity: number;
+  delivered_quantity?: number;
+  wage_amount?: number;
+  status?: string;
+}
+
+interface WorkerRef {
+  id: string;
+  name: string;
+}
 
 /**
  * The single-order lifecycle view: everything that happens to an order
@@ -25,29 +42,30 @@ import { OrderStatusBadge } from "./BillManager";
  * payment -> profit confirmation -> closed.
  */
 export default function OrderDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [bill, setBill] = useState(null);
-  const [assignments, setAssignments] = useState([]);
-  const [workers, setWorkers] = useState([]);
-  const [inventoryItems, setInventoryItems] = useState([]);
+  const [bill, setBill] = useState<Bill | null>(null);
+  const [assignments, setAssignments] = useState<WorkerAssignment[]>([]);
+  const [workers, setWorkers] = useState<WorkerRef[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItemRef[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function loadAll() {
+    if (!id) return;
     setLoading(true);
     try {
       const [billRes, assignmentsRes, workersRes, finishedRes, semiRes] = await Promise.all([
-        api.get(`/bills/${id}/`),
-        api.get(`/bills/${id}/assignments/`),
-        api.get("/workers/"),
-        api.get("/inventory/finished/"),
-        api.get("/inventory/semi-finished/"),
+        api.get<Bill>(`/bills/${id}/`),
+        api.get<WorkerAssignment[]>(`/bills/${id}/assignments/`),
+        api.get<WorkerRef[]>("/workers/"),
+        api.get<InventoryItemRef[]>("/inventory/finished/"),
+        api.get<InventoryItemRef[]>("/inventory/semi-finished/"),
       ]);
       setBill(billRes.data);
       setAssignments(assignmentsRes.data);
       setWorkers(workersRes.data);
       setInventoryItems([...finishedRes.data, ...semiRes.data]);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to load order");
     } finally {
       setLoading(false);
@@ -79,7 +97,7 @@ export default function OrderDetailPage() {
         Back to {bill.bill_type === "pakka" ? "Pakka" : "Kacha"} Bills
       </button>
 
-      <OrderHeader bill={bill} onChanged={loadAll} />
+      <OrderHeader bill={bill} />
 
       {!canManageProduction && (
         <Card className="p-5">
@@ -107,7 +125,7 @@ export default function OrderDetailPage() {
   );
 }
 
-function OrderHeader({ bill, onChanged }) {
+function OrderHeader({ bill }: { bill: Bill }) {
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
 
@@ -139,7 +157,7 @@ function OrderHeader({ bill, onChanged }) {
     try {
       await api.post(`/bills/${bill.id}/share-whatsapp/`);
       toast.success(`Bill sent to ${bill.buyer.phone} on WhatsApp`);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to send via WhatsApp");
     } finally {
       setSharing(false);
@@ -194,7 +212,7 @@ function OrderHeader({ bill, onChanged }) {
   );
 }
 
-function MiniStat({ label, value, tone = "slate" }) {
+function MiniStat({ label, value, tone = "slate" }: { label: string; value: string; tone?: "slate" | "emerald" | "amber" }) {
   const toneClasses = {
     slate: "text-slate-900",
     emerald: "text-emerald-600",
@@ -208,13 +226,14 @@ function MiniStat({ label, value, tone = "slate" }) {
   );
 }
 
-/**
- * Production tab: assign work to one or more workers for this specific
- * order, and see progress/wastage/wage cost as assignments complete. A
- * bill can have many linked assignments (different workers doing
- * different parts of the order).
- */
-function ProductionPanel({ bill, assignments, workers, onChanged }) {
+interface ProductionPanelProps {
+  bill: Bill;
+  assignments: WorkerAssignment[];
+  workers: WorkerRef[];
+  onChanged: () => void;
+}
+
+function ProductionPanel({ bill, assignments, workers, onChanged }: ProductionPanelProps) {
   const [showAssignForm, setShowAssignForm] = useState(false);
 
   return (
@@ -264,7 +283,7 @@ function ProductionPanel({ bill, assignments, workers, onChanged }) {
                   {a.worker_name} · {a.material_name}
                 </p>
                 <p className="text-sm text-slate-500">
-                  {a.delivered_quantity} / {a.quantity} returned
+                  {a.delivered_quantity ?? 0} / {a.quantity} returned
                 </p>
               </div>
               <div className="text-right">
@@ -293,7 +312,13 @@ function ProductionPanel({ bill, assignments, workers, onChanged }) {
   );
 }
 
-function AssignWorkerForm({ billId, workers, onAssigned }) {
+interface AssignWorkerFormProps {
+  billId: string;
+  workers: WorkerRef[];
+  onAssigned: () => void;
+}
+
+function AssignWorkerForm({ billId, workers, onAssigned }: AssignWorkerFormProps) {
   const [workerId, setWorkerId] = useState("");
   const [materialName, setMaterialName] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -301,7 +326,7 @@ function AssignWorkerForm({ billId, workers, onAssigned }) {
   const [wageAmount, setWageAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function handleAssign(event) {
+  async function handleAssign(event: React.FormEvent) {
     event.preventDefault();
     if (!workerId) {
       toast.error("Select a worker");
@@ -332,7 +357,7 @@ function AssignWorkerForm({ billId, workers, onAssigned }) {
       setWageAmount("");
       setWorkerId("");
       onAssigned();
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to assign work");
     } finally {
       setSaving(false);
@@ -408,18 +433,19 @@ function AssignWorkerForm({ billId, workers, onAssigned }) {
   );
 }
 
-/**
- * Ready-to-deliver tab: earmark finished-goods inventory for this order as
- * it's produced, then confirm shipment once it's all physically gone --
- * that confirmation is the moment the stock actually leaves inventory.
- */
-function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }) {
+interface ReadyToDeliverPanelProps {
+  bill: Bill;
+  inventoryItems: InventoryItemRef[];
+  onChanged: () => void;
+}
+
+function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }: ReadyToDeliverPanelProps) {
   const [itemId, setItemId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmingShipment, setConfirmingShipment] = useState(false);
 
-  async function handleAdd(event) {
+  async function handleAdd(event: React.FormEvent) {
     event.preventDefault();
     if (!itemId) {
       toast.error("Select an inventory item");
@@ -437,7 +463,7 @@ function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }) {
       setItemId("");
       setQuantity("");
       onChanged();
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to add batch");
     } finally {
       setSaving(false);
@@ -450,7 +476,7 @@ function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }) {
       toast.success("Shipment confirmed — stock removed from inventory");
       setConfirmingShipment(false);
       onChanged();
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to confirm shipment");
     }
   }
@@ -553,7 +579,7 @@ function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }) {
       )}
 
       <div className="mt-4 space-y-1.5">
-        {batches.map((batch, index) => (
+        {batches.map((batch: ReadyToDeliverBatch, index: number) => (
           <div key={index} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
             <span className="font-medium text-slate-700">
               {batch.item_name || "Item"} · {batch.quantity} units
@@ -566,12 +592,7 @@ function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }) {
   );
 }
 
-/**
- * Costs tab: transportation and miscellaneous costs, logged as running
- * lists since a large order can ship in more than one batch with separate
- * costs. Both feed directly into the bill's cost of goods.
- */
-function CostsPanel({ bill, onChanged }) {
+function CostsPanel({ bill, onChanged }: { bill: Bill; onChanged: () => void }) {
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2">
@@ -603,12 +624,19 @@ function CostsPanel({ bill, onChanged }) {
   );
 }
 
-function CostLog({ title, total, entries, onAdd }) {
+interface CostLogProps {
+  title: string;
+  total?: number;
+  entries?: CostItem[];
+  onAdd: (amount: number, notes?: string) => Promise<void>;
+}
+
+function CostLog({ title, total, entries, onAdd }: CostLogProps) {
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function handleAdd(event) {
+  async function handleAdd(event: React.FormEvent) {
     event.preventDefault();
     const value = Number(amount);
     if (!value || value <= 0) {
@@ -621,7 +649,7 @@ function CostLog({ title, total, entries, onAdd }) {
       toast.success(`${title} cost logged`);
       setAmount("");
       setNotes("");
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || `Failed to log ${title.toLowerCase()} cost`);
     } finally {
       setSaving(false);

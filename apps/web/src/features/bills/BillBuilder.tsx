@@ -4,14 +4,29 @@ import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
 import BillManager from "./BillManager";
+import type { BillItem, InventoryItemRef } from "./types";
 
-const emptyProduct = { name: "", quantity: 1, rate: 0, unit: "pcs", inventory_item_id: null };
+interface BillBuilderProps {
+  billType: "kacha" | "pakka";
+}
+
+interface BillFormData {
+  buyer_name: string;
+  buyer_address: string;
+  buyer_phone: string;
+  gst_number: string;
+  gst_percentage: number;
+  discount: number | string;
+  products: BillItem[];
+}
+
+const emptyProduct: BillItem = { name: "", quantity: 1, rate: 0, unit: "pcs", inventory_item_id: null };
 
 const GST_RATES = [0, 5, 12, 18, 28];
 
-export default function BillBuilder({ billType }) {
+export default function BillBuilder({ billType }: BillBuilderProps) {
   const isPakka = billType === "pakka";
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<BillFormData>({
     buyer_name: "",
     buyer_address: "",
     buyer_phone: "",
@@ -21,8 +36,8 @@ export default function BillBuilder({ billType }) {
     products: [{ ...emptyProduct }],
   });
   const [saving, setSaving] = useState(false);
-  const [inventoryItems, setInventoryItems] = useState([]);
-  const [quickAddIndex, setQuickAddIndex] = useState(null);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItemRef[]>([]);
+  const [quickAddIndex, setQuickAddIndex] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const subtotal = useMemo(
@@ -37,9 +52,9 @@ export default function BillBuilder({ billType }) {
   async function loadInventory() {
     try {
       const [finished, semiFinished, raw] = await Promise.all([
-        api.get("/inventory/finished/"),
-        api.get("/inventory/semi-finished/"),
-        api.get("/inventory/raw/"),
+        api.get<InventoryItemRef[]>("/inventory/finished/"),
+        api.get<InventoryItemRef[]>("/inventory/semi-finished/"),
+        api.get<InventoryItemRef[]>("/inventory/raw/"),
       ]);
       setInventoryItems([...finished.data, ...semiFinished.data, ...raw.data]);
     } catch {
@@ -52,14 +67,14 @@ export default function BillBuilder({ billType }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billType]);
 
-  function updateProduct(index, field, value) {
+  function updateProduct(index: number, field: keyof BillItem, value: any) {
     setForm((c) => ({
       ...c,
       products: c.products.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
     }));
   }
 
-  function selectInventoryItem(index, item) {
+  function selectInventoryItem(index: number, item: InventoryItemRef) {
     setForm((c) => ({
       ...c,
       products: c.products.map((p, i) =>
@@ -76,22 +91,20 @@ export default function BillBuilder({ billType }) {
     }));
   }
 
-  function clearInventoryLink(index) {
-    // Called when the user edits the name away from the linked item, so we
-    // don't silently keep charging/deducting against the old item.
+  function clearInventoryLink(index: number) {
     setForm((c) => ({
       ...c,
       products: c.products.map((p, i) => (i === index ? { ...p, inventory_item_id: null } : p)),
     }));
   }
 
-  function matchingInventoryItem(name) {
+  function matchingInventoryItem(name: string): InventoryItemRef | null {
     const trimmed = (name || "").trim().toLowerCase();
     if (!trimmed) return null;
     return inventoryItems.find((item) => item.name.trim().toLowerCase() === trimmed) || null;
   }
 
-  function handleItemAdded(index, item) {
+  function handleItemAdded(index: number, item: InventoryItemRef) {
     setInventoryItems((c) => [...c, item]);
     selectInventoryItem(index, item);
     setQuickAddIndex(null);
@@ -102,7 +115,7 @@ export default function BillBuilder({ billType }) {
     setForm((c) => ({ ...c, products: [...c.products, { ...emptyProduct }] }));
   }
 
-  function removeProduct(index) {
+  function removeProduct(index: number) {
     setForm((c) => {
       const next = c.products.filter((_, i) => i !== index);
       return { ...c, products: next.length ? next : [{ ...emptyProduct }] };
@@ -132,7 +145,7 @@ export default function BillBuilder({ billType }) {
         products: [{ ...emptyProduct }],
       });
       setRefreshKey((k) => k + 1);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to save bill");
     } finally {
       setSaving(false);
@@ -196,7 +209,7 @@ export default function BillBuilder({ billType }) {
                   <label className="mb-1 block text-sm font-medium text-slate-700">GST Rate</label>
                   <select
                     value={form.gst_percentage}
-                    onChange={(e) => setForm((c) => ({ ...c, gst_percentage: e.target.value }))}
+                    onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   >
                     {GST_RATES.map((r) => (
@@ -209,7 +222,7 @@ export default function BillBuilder({ billType }) {
             <FieldInput
               label="Discount (₹)"
               type="number"
-              value={form.discount}
+              value={String(form.discount)}
               onChange={(v) => setForm((c) => ({ ...c, discount: v }))}
               placeholder="0"
             />
@@ -262,16 +275,16 @@ export default function BillBuilder({ billType }) {
                         label="Qty"
                         hideLabel
                         type="number"
-                        value={product.quantity}
-                        onChange={(v) => updateProduct(i, "quantity", v)}
+                        value={String(product.quantity)}
+                        onChange={(v) => updateProduct(i, "quantity", Number(v) || 0)}
                         placeholder="1"
                       />
                       <FieldInput
                         label="Rate"
                         hideLabel
                         type="number"
-                        value={product.rate}
-                        onChange={(v) => updateProduct(i, "rate", v)}
+                        value={String(product.rate)}
+                        onChange={(v) => updateProduct(i, "rate", Number(v) || 0)}
                         placeholder="0.00"
                       />
                       <FieldInput
@@ -377,7 +390,16 @@ export default function BillBuilder({ billType }) {
   );
 }
 
-function FieldInput({ label, hideLabel = false, value, onChange, type = "text", placeholder }) {
+interface FieldInputProps {
+  label: string;
+  hideLabel?: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+}
+
+function FieldInput({ label, hideLabel = false, value, onChange, type = "text", placeholder }: FieldInputProps) {
   return (
     <div>
       {!hideLabel && <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>}
@@ -392,7 +414,14 @@ function FieldInput({ label, hideLabel = false, value, onChange, type = "text", 
   );
 }
 
-function ProductNameField({ value, inventoryItems, onChange, onSelectItem }) {
+interface ProductNameFieldProps {
+  value: string;
+  inventoryItems: InventoryItemRef[];
+  onChange: (value: string) => void;
+  onSelectItem: (item: InventoryItemRef) => void;
+}
+
+function ProductNameField({ value, inventoryItems, onChange, onSelectItem }: ProductNameFieldProps) {
   const [focused, setFocused] = useState(false);
 
   const suggestions = useMemo(() => {
@@ -437,11 +466,18 @@ function ProductNameField({ value, inventoryItems, onChange, onSelectItem }) {
   );
 }
 
-function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onAdded }) {
+interface QuickAddInventoryModalProps {
+  initialName: string;
+  initialQuantity?: number;
+  onClose: () => void;
+  onAdded: (item: InventoryItemRef) => void;
+}
+
+function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onAdded }: QuickAddInventoryModalProps) {
   const [name, setName] = useState(initialName);
   const [unit, setUnit] = useState("pcs");
-  const [sellingPrice, setSellingPrice] = useState(0);
-  const [quantity, setQuantity] = useState(initialQuantity);
+  const [sellingPrice, setSellingPrice] = useState<number | string>(0);
+  const [quantity, setQuantity] = useState<number | string>(initialQuantity);
   const [itemType, setItemType] = useState("finished");
   const [saving, setSaving] = useState(false);
 
@@ -452,14 +488,14 @@ function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onA
     }
     setSaving(true);
     try {
-      const { data } = await api.post(`/inventory/${itemType}/`, {
+      const { data } = await api.post<InventoryItemRef>(`/inventory/${itemType}/`, {
         name: name.trim(),
         unit,
         selling_price: Number(sellingPrice) || 0,
         quantity: Number(quantity) || 0,
       });
       onAdded(data);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to add item to inventory");
     } finally {
       setSaving(false);
@@ -497,19 +533,19 @@ function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onA
             <FieldInput
               label="Selling price (₹)"
               type="number"
-              value={sellingPrice}
+              value={String(sellingPrice)}
               onChange={setSellingPrice}
               placeholder="0.00"
             />
             <FieldInput
               label="Opening stock"
               type="number"
-              value={quantity}
+              value={String(quantity)}
               onChange={setQuantity}
               placeholder="0"
             />
           </div>
-          {initialQuantity > 0 && (
+          {Number(initialQuantity) > 0 && (
             <p className="-mt-1 text-xs text-slate-400">
               Pre-filled with the {initialQuantity} you're billing — adjust if your real stock is different.
             </p>
@@ -538,7 +574,7 @@ function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onA
   );
 }
 
-function SummaryRow({ label, value }) {
+function SummaryRow({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center justify-between text-sm text-slate-300">
       <span>{label}</span>

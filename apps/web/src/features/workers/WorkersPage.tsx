@@ -1,21 +1,76 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
 
-const tabs = ["Workers List", "Material Distribution", "Pay Records"];
+const tabs = ["Workers List", "Material Distribution", "Pay Records"] as const;
+type TabType = typeof tabs[number];
+
+export interface WorkerItem {
+  id: string;
+  name: string;
+  age?: number | string;
+  address?: string;
+  phone?: string;
+  joining_date?: string;
+  is_active?: boolean;
+  material_assigned?: number;
+  material_delivered?: number;
+  total_wasted?: number;
+  wastage_rate?: number;
+  pending_amount?: number;
+  created_at?: string;
+}
+
+export interface MaterialBatch {
+  quantity: number;
+  date?: string | null;
+  notes?: string;
+}
+
+export interface MaterialAssignmentItem {
+  id: string;
+  worker_id?: string | null;
+  material_name: string;
+  quantity: number;
+  price_per_unit: number;
+  assignment_date?: string | null;
+  notes?: string;
+  batches?: MaterialBatch[];
+  delivered_quantity: number;
+  balance_quantity: number;
+  total_value: number;
+  status: string;
+  completed_at?: string | null;
+  wastage_quantity?: number | null;
+  over_returned?: boolean;
+}
+
+export interface PayRecordItem {
+  id: string;
+  worker_id?: string | null;
+  worker_name?: string;
+  product_name: string;
+  units_produced: number;
+  rate_per_unit: number;
+  amount_paid: number;
+  total_amount?: number;
+  date?: string | null;
+  paid: boolean;
+}
+
 const emptyWorkerForm = { name: "", age: "", address: "", phone: "", joining_date: "", is_active: true };
 const emptyMaterialForm = { material_name: "", quantity: "", price_per_unit: "", date: "", notes: "" };
 const emptyPaymentForm = { product_name: "", units_produced: "", rate_per_unit: "", amount_paid: "", date: "" };
 
 export default function WorkersPage() {
-  const [activeTab, setActiveTab] = useState(tabs[0]);
-  const [workers, setWorkers] = useState([]);
+  const [activeTab, setActiveTab] = useState<TabType>(tabs[0]);
+  const [workers, setWorkers] = useState<WorkerItem[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState("");
-  const [materials, setMaterials] = useState([]);
-  const [payments, setPayments] = useState([]);
+  const [materials, setMaterials] = useState<MaterialAssignmentItem[]>([]);
+  const [payments, setPayments] = useState<PayRecordItem[]>([]);
   const [search, setSearch] = useState("");
-  const [editingWorkerId, setEditingWorkerId] = useState(null);
+  const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
   const [workerForm, setWorkerForm] = useState(emptyWorkerForm);
   const [materialForm, setMaterialForm] = useState(emptyMaterialForm);
   const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
@@ -35,7 +90,7 @@ export default function WorkersPage() {
   const totalWasted = useMemo(() => workers.reduce((sum, worker) => sum + Number(worker.total_wasted || 0), 0), [workers]);
 
   async function loadWorkers() {
-    const { data } = await api.get("/workers/");
+    const { data } = await api.get<WorkerItem[]>("/workers/");
     setWorkers(data);
     if (!selectedWorkerId && data[0]) {
       setSelectedWorkerId(data[0].id);
@@ -45,22 +100,25 @@ export default function WorkersPage() {
     }
   }
 
-  async function loadWorkerDetails(workerId) {
+  async function loadWorkerDetails(workerId: string) {
     if (!workerId) {
       setMaterials([]);
       setPayments([]);
       return;
     }
-    const [materialsResponse, paymentsResponse] = await Promise.all([api.get(`/workers/${workerId}/materials/`), api.get(`/workers/${workerId}/payments/`)]);
+    const [materialsResponse, paymentsResponse] = await Promise.all([
+      api.get<MaterialAssignmentItem[]>(`/workers/${workerId}/materials/`),
+      api.get<PayRecordItem[]>(`/workers/${workerId}/payments/`),
+    ]);
     setMaterials(materialsResponse.data);
     setPayments(paymentsResponse.data);
   }
 
-  function startEditing(worker) {
+  function startEditing(worker: WorkerItem) {
     setEditingWorkerId(worker.id);
     setWorkerForm({
       name: worker.name || "",
-      age: worker.age || "",
+      age: String(worker.age || ""),
       address: worker.address || "",
       phone: worker.phone || "",
       joining_date: worker.joining_date ? worker.joining_date.slice(0, 10) : "",
@@ -135,7 +193,7 @@ export default function WorkersPage() {
                   }
                   resetWorkerForm();
                   await loadWorkers();
-                } catch (error) {
+                } catch (error: any) {
                   toast.error(error.response?.data?.detail || "Failed to save worker");
                 }
               }}
@@ -192,7 +250,7 @@ export default function WorkersPage() {
                       <td className="px-6 py-4">{worker.material_assigned}</td>
                       <td className="px-6 py-4">{worker.material_delivered}</td>
                       <td className="px-6 py-4">
-                        {worker.total_wasted > 0 ? (
+                        {Number(worker.total_wasted || 0) > 0 ? (
                           <span className="font-medium text-amber-600">
                             {worker.total_wasted} <span className="text-xs text-amber-500">({worker.wastage_rate}%)</span>
                           </span>
@@ -221,7 +279,7 @@ export default function WorkersPage() {
                                   resetWorkerForm();
                                 }
                                 await loadWorkers();
-                              } catch (error) {
+                              } catch (error: any) {
                                 toast.error(error.response?.data?.detail || "Failed to delete worker");
                               }
                             }}
@@ -235,7 +293,7 @@ export default function WorkersPage() {
                   ))}
                   {filteredWorkers.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="px-6 py-8 text-center text-slate-400">
+                      <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
                         No workers match your search.
                       </td>
                     </tr>
@@ -289,7 +347,7 @@ export default function WorkersPage() {
                     setPaymentForm(emptyPaymentForm);
                     await loadWorkerDetails(selectedWorkerId);
                     await loadWorkers();
-                  } catch (error) {
+                  } catch (error: any) {
                     toast.error(error.response?.data?.detail || "Failed to save payment record");
                   }
                 }}
@@ -328,7 +386,7 @@ export default function WorkersPage() {
                     ))}
                     {payments.length === 0 && (
                       <tr>
-                        <td colSpan="9" className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                           No pay records yet.
                         </td>
                       </tr>
@@ -344,7 +402,14 @@ export default function WorkersPage() {
   );
 }
 
-function Field({ label, value, onChange, type = "text" }) {
+interface FieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}
+
+function Field({ label, value, onChange, type = "text" }: FieldProps) {
   return (
     <label className="text-sm font-medium text-slate-700">
       {label}
@@ -358,13 +423,24 @@ function Field({ label, value, onChange, type = "text" }) {
   );
 }
 
-function MetricCard({ label, value }) {
+function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card className="p-5">
       <p className="text-sm text-slate-400">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
     </Card>
   );
+}
+
+interface MaterialDistributionPanelProps {
+  selectedWorker?: WorkerItem;
+  selectedWorkerId: string;
+  materials: MaterialAssignmentItem[];
+  materialForm: typeof emptyMaterialForm;
+  setMaterialForm: React.Dispatch<React.SetStateAction<typeof emptyMaterialForm>>;
+  emptyMaterialForm: typeof emptyMaterialForm;
+  loadWorkerDetails: (id: string) => Promise<void>;
+  loadWorkers: () => Promise<void>;
 }
 
 function MaterialDistributionPanel({
@@ -376,7 +452,7 @@ function MaterialDistributionPanel({
   emptyMaterialForm,
   loadWorkerDetails,
   loadWorkers,
-}) {
+}: MaterialDistributionPanelProps) {
   async function refresh() {
     await loadWorkerDetails(selectedWorkerId);
     await loadWorkers();
@@ -398,7 +474,7 @@ function MaterialDistributionPanel({
             toast.success("Material assigned");
             setMaterialForm(emptyMaterialForm);
             await refresh();
-          } catch (error) {
+          } catch (error: any) {
             toast.error(error.response?.data?.detail || "Failed to assign material");
           }
         }}
@@ -423,7 +499,7 @@ function MaterialDistributionPanel({
   );
 }
 
-function AssignmentCard({ item, onChanged }) {
+function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onChanged: () => Promise<void> }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmingComplete, setConfirmingComplete] = useState(false);
 
@@ -457,7 +533,7 @@ function AssignmentCard({ item, onChanged }) {
       {isCompleted && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
           <span>
-            Wastage: {item.wastage_quantity} of {item.quantity} ({item.quantity ? Math.round((item.wastage_quantity / item.quantity) * 100) : 0}%)
+            Wastage: {item.wastage_quantity} of {item.quantity} ({item.quantity ? Math.round(((item.wastage_quantity || 0) / item.quantity) * 100) : 0}%)
           </span>
           {item.over_returned && (
             <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-600">More returned than assigned — check entries</span>
@@ -513,7 +589,7 @@ function AssignmentCard({ item, onChanged }) {
                           toast.success("Assignment marked complete");
                           setConfirmingComplete(false);
                           await onChanged();
-                        } catch (error) {
+                        } catch (error: any) {
                           toast.error(error.response?.data?.detail || "Failed to mark complete");
                         }
                       }}
@@ -539,13 +615,13 @@ function AssignmentCard({ item, onChanged }) {
   );
 }
 
-function AddBatchForm({ assignmentId, onAdded }) {
+function AddBatchForm({ assignmentId, onAdded }: { assignmentId: string; onAdded: () => Promise<void> }) {
   const [quantity, setQuantity] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function handleAdd(event) {
+  async function handleAdd(event: React.FormEvent) {
     event.preventDefault();
     const qty = Number(quantity);
     if (!qty || qty <= 0) {
@@ -559,7 +635,7 @@ function AddBatchForm({ assignmentId, onAdded }) {
       setQuantity("");
       setNotes("");
       await onAdded();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to log returned chunk");
     } finally {
       setSaving(false);
@@ -607,13 +683,7 @@ function AddBatchForm({ assignmentId, onAdded }) {
   );
 }
 
-/**
- * One row in the Pay Records table. Lets the user log a partial payment
- * (mirroring material batches and bill payments) or mark the whole record
- * paid in one shot. amount_paid accumulates across partial payments, and
- * the running balance/status reflect that in real time.
- */
-function PayRecordRow({ payment, onChanged }) {
+function PayRecordRow({ payment, onChanged }: { payment: PayRecordItem; onChanged: () => Promise<void> }) {
   const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -622,7 +692,7 @@ function PayRecordRow({ payment, onChanged }) {
   const balance = Math.max(totalOwed - paidSoFar, 0);
   const isFullyPaid = payment.paid || paidSoFar >= totalOwed;
 
-  async function handleRecordPartial(event) {
+  async function handleRecordPartial(event: React.FormEvent) {
     event.preventDefault();
     const value = Number(amount);
     if (!value || value <= 0) {
@@ -635,7 +705,7 @@ function PayRecordRow({ payment, onChanged }) {
       toast.success(`₹${value.toLocaleString("en-IN")} recorded`);
       setAmount("");
       await onChanged();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to record payment");
     } finally {
       setSaving(false);
@@ -647,7 +717,7 @@ function PayRecordRow({ payment, onChanged }) {
       await api.put(`/workers/payments/${payment.id}/mark-paid/`);
       toast.success("Payment marked as paid");
       await onChanged();
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to update payment");
     }
   }

@@ -1,30 +1,50 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
 
+interface WarehouseItem {
+  id: string;
+  name: string;
+  location?: string;
+}
+
+interface WarehouseSummaryItem {
+  warehouse: WarehouseItem;
+  items_count: number;
+  total_quantity: number;
+  stock_value: number;
+  by_type?: {
+    raw?: { items_count: number; total_quantity: number; stock_value: number };
+    semi_finished?: { items_count: number; total_quantity: number; stock_value: number };
+    finished?: { items_count: number; total_quantity: number; stock_value: number };
+  };
+}
+
 export default function WarehousesPage() {
-  const [warehouses, setWarehouses] = useState([]);
-  const [summary, setSummary] = useState([]);
+  const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
+  const [summary, setSummary] = useState<WarehouseSummaryItem[]>([]);
   const [form, setForm] = useState({ name: "", location: "" });
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const emptyForm = { name: "", location: "" };
 
   async function load() {
-    const [warehousesResponse, summaryResponse] = await Promise.all([api.get("/inventory/warehouses/"), api.get("/inventory/meta/warehouse-summary/")]);
+    const [warehousesResponse, summaryResponse] = await Promise.all([
+      api.get<WarehouseItem[]>("/inventory/warehouses/"),
+      api.get<WarehouseSummaryItem[]>("/inventory/meta/warehouse-summary/"),
+    ]);
     setWarehouses(warehousesResponse.data);
     setSummary(summaryResponse.data);
   }
 
   const totalItems = summary.reduce((sum, item) => sum + Number(item.items_count || 0), 0);
-  const totalQuantity = summary.reduce((sum, item) => sum + Number(item.total_quantity || 0), 0);
   const totalStockValue = summary.reduce((sum, item) => sum + Number(item.stock_value || 0), 0);
 
   useEffect(() => {
     load().catch(() => toast.error("Failed to load warehouse data"));
   }, []);
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     try {
       if (editingId) {
@@ -53,10 +73,14 @@ export default function WarehousesPage() {
       <Card className="p-6">
         <h2 className="text-xl font-semibold text-slate-900">Warehouses</h2>
         <form onSubmit={handleSubmit} className="mt-6 flex flex-wrap gap-4">
-          {["name", "location"].map((field) => (
+          {(["name", "location"] as const).map((field) => (
             <label key={field} className="block min-w-[240px] flex-1 text-sm font-medium text-slate-700">
               {field === "name" ? "Warehouse Name" : "Location"}
-              <input value={form[field]} onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3" />
+              <input
+                value={form[field]}
+                onChange={(event) => setForm((current) => ({ ...current, [field]: event.target.value }))}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3"
+              />
             </label>
           ))}
           <button type="submit" className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
@@ -78,7 +102,7 @@ export default function WarehousesPage() {
                   type="button"
                   onClick={() => {
                     setEditingId(item.warehouse.id);
-                    setForm({ name: item.warehouse.name, location: item.warehouse.location });
+                    setForm({ name: item.warehouse.name, location: item.warehouse.location || "" });
                   }}
                   className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 >
@@ -119,13 +143,17 @@ export default function WarehousesPage() {
             )}
           </Card>
         ))}
-        {summary.length === 0 && <Card className="p-6 text-sm text-slate-400">Create a warehouse to start organizing inventory by location.</Card>}
+        {summary.length === 0 && (
+          <Card className="p-6 text-sm text-slate-400">
+            Create a warehouse to start organizing inventory by location.
+          </Card>
+        )}
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value }) {
+function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card className="p-5">
       <p className="text-sm text-slate-400">{label}</p>
@@ -134,7 +162,7 @@ function StatCard({ label, value }) {
   );
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl bg-slate-50 p-4">
       <p className="text-slate-400">{label}</p>
@@ -143,7 +171,7 @@ function Stat({ label, value }) {
   );
 }
 
-function TypeBreakdown({ label, data }) {
+function TypeBreakdown({ label, data }: { label: string; data?: { items_count: number; total_quantity: number; stock_value: number } }) {
   const count = data?.items_count || 0;
   return (
     <div className="rounded-lg bg-slate-50 p-2.5">
@@ -152,8 +180,8 @@ function TypeBreakdown({ label, data }) {
         <p className="mt-1 text-slate-400">None here</p>
       ) : (
         <>
-          <p className="mt-1 font-semibold text-slate-900">{data.total_quantity} units</p>
-          <p className="text-slate-400">₹{Number(data.stock_value || 0).toLocaleString("en-IN")}</p>
+          <p className="mt-1 font-semibold text-slate-900">{data?.total_quantity} units</p>
+          <p className="text-slate-400">₹{Number(data?.stock_value || 0).toLocaleString("en-IN")}</p>
         </>
       )}
     </div>

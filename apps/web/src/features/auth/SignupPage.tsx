@@ -1,20 +1,28 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import api from "../../lib/api";
-import { setSession } from "../../lib/auth";
+import { setSession, User } from "../../lib/auth";
 import GoogleSignInButton from "./GoogleSignInButton";
+
+interface SignupResponse {
+  tokens: {
+    access: string;
+    refresh: string;
+  };
+  user: User;
+}
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", company: "", password: "" });
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/signup/", form);
+      const { data } = await api.post<SignupResponse>("/auth/signup/", form);
       setSession({
         access: data.tokens.access,
         refresh: data.tokens.refresh,
@@ -22,12 +30,19 @@ export default function SignupPage() {
       });
       toast.success("Account created");
       navigate("/dashboard", { replace: true });
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.detail || "Signup failed");
     } finally {
       setLoading(false);
     }
   }
+
+  const fields: Array<{ key: keyof typeof form; label: string; type: string }> = [
+    { key: "name", label: "Full Name", type: "text" },
+    { key: "email", label: "Email", type: "email" },
+    { key: "company", label: "Company", type: "text" },
+    { key: "password", label: "Password", type: "password" },
+  ];
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
@@ -35,12 +50,7 @@ export default function SignupPage() {
         <h1 className="text-3xl font-semibold text-slate-900">Start your free trial</h1>
         <p className="mt-2 text-sm text-slate-500">Create a workspace for billing, inventory, analytics, and AI.</p>
         <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {[
-            { key: "name", label: "Full Name", type: "text" },
-            { key: "email", label: "Email", type: "email" },
-            { key: "company", label: "Company", type: "text" },
-            { key: "password", label: "Password", type: "password" },
-          ].map((field) => (
+          {fields.map((field) => (
             <label key={field.key} className="block text-sm font-medium text-slate-700">
               {field.label}
               <input

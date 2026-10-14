@@ -1,9 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import api from "../../lib/api";
-import { setSession } from "../../lib/auth";
+import { setSession, User } from "../../lib/auth";
 import GoogleSignInButton from "./GoogleSignInButton";
+
+interface LoginResponse {
+  tokens: {
+    access: string;
+    refresh: string;
+  };
+  user: User;
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -11,11 +19,11 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/login/", form);
+      const { data } = await api.post<LoginResponse>("/auth/login/", form);
       setSession({
         access: data.tokens.access,
         refresh: data.tokens.refresh,
@@ -23,7 +31,7 @@ export default function LoginPage() {
       });
       toast.success("Welcome back");
       navigate(location.state?.from || "/dashboard", { replace: true });
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.response?.data?.detail || "Login failed");
     } finally {
       setLoading(false);
