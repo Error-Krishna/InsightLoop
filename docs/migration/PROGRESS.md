@@ -1,11 +1,11 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 2 (Monorepo Scaffolding & Tooling)
-- **Current Module**: Turborepo + pnpm Workspaces Scaffolding
+- **Current Phase**: Phase 3 (Build Node API Module by Module)
+- **Current Module**: Core Architecture & Module 1 (Health)
 - **Status**: IN PROGRESS
-- **Last Updated**: 2026-10-15 03:20 UTC
-- **Next Action**: Initialize root pnpm workspace, configure Turborepo, move frontend to apps/web, create shared packages.
+- **Last Updated**: 2026-10-15 03:32 UTC
+- **Next Action**: Build core API infrastructure (MongoDB connection pool, Redis, auth middleware, PBKDF2 hasher, error handler) and Module 1 (health).
 
 ---
 
@@ -39,12 +39,12 @@
 - [x] Record golden request/response fixtures into `apps/api/test/contracts/fixtures/` (`2026-10-15`)
 
 ### Phase 2: Monorepo Scaffolding & Tooling
-- [ ] Turborepo + pnpm workspaces initialization
-- [ ] Shared packages (`packages/shared`, `packages/tsconfig`, `packages/eslint-config`)
-- [ ] Move `frontend/` to `apps/web/` preserving history and build integrity
-- [ ] Husky v9 + lint-staged + commitlint configuration
-- [ ] CI workflow setup (`.github/workflows/ci.yml`)
-- [ ] Docker compose dev environment (`mongo`, `redis`)
+- [x] Turborepo + pnpm workspaces initialization (`2026-10-15`)
+- [x] Shared packages (`packages/shared`, `packages/tsconfig`, `packages/eslint-config`) (`2026-10-15`)
+- [x] Move `frontend/` to `apps/web/` preserving history and build integrity (`2026-10-15`)
+- [x] Husky v9 + lint-staged + commitlint configuration (`2026-10-15`)
+- [x] CI workflow setup (`.github/workflows/ci.yml`) (`2026-10-15`)
+- [x] Docker compose dev environment (`docker-compose.yml`) (`2026-10-15`)
 
 ### Phase 3: Build Node API Module by Module (`apps/api`)
 - [ ] `core`: Error handling (`AppError`), Async handler, Logger (Pino), Security (Helmet, CORS), DB, Redis, WS gateway
@@ -81,6 +81,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Phase 0 Baseline** | N/A | N/A | N/A | N/A | N/A | N/A | Clean |
 | **Phase 1 Django Contract**| 100,036/0/0 | N/A | 66/0/0 | N/A | N/A | 100% Math | Clean |
+| **Phase 2 Tooling & Shared**| 100,040/0/0 | N/A | 66/0/0 | N/A | N/A | 100% Math | Clean |
 
 ---
 
@@ -122,7 +123,8 @@
 ---
 
 ## 9. Commit Log (Newest First)
-- `(pending)` `test(contracts): capture 100k math vectors and 66 golden master endpoints from Django`
+- `(pending)` `chore(monorepo): scaffold Turborepo + pnpm workspace with shared packages and apps/web`
+- `561b122` `test(contracts): capture 100k math vectors and 66 golden master endpoints from Django`
 - `daa2910` `docs: complete Phase 0.5 pre-flight verifications`
 - `6fe0660` `docs: complete Phase 0 discovery deliverables and initialize PROGRESS.md`
 - `9410c2a` `refactor: clean up legacy views and update routing for API-only backend`
@@ -141,4 +143,5 @@
 ## 11. Activity Log
 - **2026-10-15 02:45 UTC**: Phase 0 discovery executed. Introspected local MongoDB database, audited all 48 API endpoints, analyzed WebSockets, reviewed business math and edge cases, generated all 8 required migration documents under `docs/migration/`.
 - **2026-10-15 03:10 UTC**: Switched to Autonomous Continuation Mode for Phases 0.5-5. Initialized `PROGRESS.md`. Completed Phase 0.5 pre-flight audits.
-- **2026-10-15 03:20 UTC**: Phase 1 Golden Master complete. Generated 100,036 banker's rounding & financial vectors from Python (`apps/api/test/contracts/fixtures/math_vectors.json`). Implemented HTTP contract test runner (`scripts/run_contract_suite.mjs`) and captured 66 endpoint fixtures against live Django instance on `InsightLoop_test`. Verified 100% pass rate in assert mode (66/66 passed). Transitioning to Phase 2.
+- **2026-10-15 03:20 UTC**: Phase 1 Golden Master complete. Generated 100,036 banker's rounding & financial vectors from Python (`apps/api/test/contracts/fixtures/math_vectors.json`). Implemented HTTP contract test runner (`scripts/run_contract_suite.mjs`) and captured 66 endpoint fixtures against live Django instance on `InsightLoop_test`. Verified 100% pass rate in assert mode (66/66 passed).
+- **2026-10-15 03:32 UTC**: Phase 2 Monorepo Scaffolding complete. Initialized pnpm workspace with Turborepo, established `@insightloop/shared` with exact Python banker's rounding (`roundPy`) and domain schemas, `@insightloop/tsconfig`, `@insightloop/eslint-config`. Migrated `frontend/` to `apps/web/` preserving Git history, initialized `@insightloop/api` with strict test DB safety net, configured Docker Compose and GitHub Actions CI. Verified monorepo build and unit tests pass cleanly. Transitioning to Phase 3.

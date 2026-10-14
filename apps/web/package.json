@@ -1,5 +1,5 @@
 {
-  "name": "insightloop-frontend",
+  "name": "@insightloop/web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@insightloop/shared": "workspace:*",
     "axios": "^1.8.4",
     "lucide-react": "^0.507.0",
     "react": "^19.0.0",
