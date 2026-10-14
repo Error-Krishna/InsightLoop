@@ -1,0 +1,24 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "workers": [
+      {
+        "amount": 500,
+        "amount_paid": 0,
+        "balance_due": 500,
+        "month": "October 2026",
+        "name": "Ramesh Carpenter",
+        "status": "Pending"
+      },
+      {
+        "amount": 500,
+        "amount_paid": 500,
+        "balance_due": 0,
+        "month": "October 2026",
+        "name": "Ramesh Carpenter",
+        "status": "Paid"
+      }
+    ]
+  }
+}

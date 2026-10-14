@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "cost_price": 300,
+      "created_at": "<ISO_TIMESTAMP>",
+      "id": "<OBJECT_ID>",
+      "image_url": null,
+      "name": "Oak Timber",
+      "quantity": 200,
+      "reorder_level": 20,
+      "selling_price": 500,
+      "sku": "SKU-00003",
+      "status": "In Stock",
+      "type": "raw",
+      "unit": "kg",
+      "updated_at": "<ISO_TIMESTAMP>",
+      "warehouse_id": "<OBJECT_ID>",
+      "warehouse_name": "South Depot"
+    }
+  ]
+}

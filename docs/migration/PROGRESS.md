@@ -1,11 +1,11 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 1 (Characterization / Golden Master Tests Against Django)
-- **Current Module**: Test Harness & Golden Master Fixtures
+- **Current Phase**: Phase 2 (Monorepo Scaffolding & Tooling)
+- **Current Module**: Turborepo + pnpm Workspaces Scaffolding
 - **Status**: IN PROGRESS
-- **Last Updated**: 2026-10-15 03:12 UTC
-- **Next Action**: Build Python math vector generator and Vitest contract test suite against running Django instance.
+- **Last Updated**: 2026-10-15 03:20 UTC
+- **Next Action**: Initialize root pnpm workspace, configure Turborepo, move frontend to apps/web, create shared packages.
 
 ---
 
@@ -33,10 +33,10 @@
 - [x] Baseline test database connection verified (`InsightLoop_test`) (`2026-10-15`)
 
 ### Phase 1: Characterization ("Golden Master") Tests Against Django
-- [ ] Stand up Django against disposable local test database (`InsightLoop_test`)
-- [ ] Golden mathematical vectors generated from Python (`roundPy`, profit, bills, metrics)
-- [ ] Language-agnostic HTTP contract suite targeting 100% of endpoints
-- [ ] Record golden request/response fixtures into `apps/api/test/contracts/fixtures/`
+- [x] Stand up Django against disposable local test database (`InsightLoop_test`) (`2026-10-15`)
+- [x] Golden mathematical vectors generated from Python (`roundPy`, profit, bills, metrics) (`2026-10-15`)
+- [x] Language-agnostic HTTP contract suite targeting 100% of endpoints (`2026-10-15`)
+- [x] Record golden request/response fixtures into `apps/api/test/contracts/fixtures/` (`2026-10-15`)
 
 ### Phase 2: Monorepo Scaffolding & Tooling
 - [ ] Turborepo + pnpm workspaces initialization
@@ -80,7 +80,7 @@
 | Module / Phase | Unit (P/F/S) | Integration (P/F/S) | Contract (P/F/S) | Parity (P/F/S) | E2E (P/F/S) | Coverage % | Lint / Typecheck |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Phase 0 Baseline** | N/A | N/A | N/A | N/A | N/A | N/A | Clean |
-| **Phase 1 Django Contract**| 0/0/0 | 0/0/0 | 0/0/0 | 0/0/0 | 0/0/0 | N/A | Pending |
+| **Phase 1 Django Contract**| 100,036/0/0 | N/A | 66/0/0 | N/A | N/A | 100% Math | Clean |
 
 ---
 
@@ -94,6 +94,7 @@
 | **DEC-04** | Profit Confirmation Rule | Enforce 100% paid vs Allow confirmation on partial bills | PRESERVE: Allow confirmation on partial bills | Maintains compatibility with real-world customer workflows | User Approved (Amendment Q3) |
 | **DEC-05** | Legacy Server-Rendered HTML Routes | Delete immediately vs Keep vs Track traffic | Mark `NEEDS-TRAFFIC-EVIDENCE` | Avoid breaking uncataloged external traffic until Render access logs are verified | User Approved (Amendment 3) |
 | **DEC-06** | Password Hashing Strategy | Upgrade to bcrypt on login vs Preserve PBKDF2 | PRESERVE PBKDF2 (`REHASH_PASSWORDS_ON_LOGIN=false`) | Prevents locking users out of Django if rollback is needed | Master Prompt Rule 6 |
+| **DEC-07** | Golden Master Normalization | Strict text diff vs Normalizing dynamic tokens | Normalize ObjectIds, UUIDs, JWT tokens, and ISO timestamps | Guarantees deterministic, reproducible assertions across restarts | Agent |
 
 ---
 
@@ -121,7 +122,9 @@
 ---
 
 ## 9. Commit Log (Newest First)
-- `(pending)` `docs: complete Phase 0 discovery deliverables and initialize PROGRESS.md`
+- `(pending)` `test(contracts): capture 100k math vectors and 66 golden master endpoints from Django`
+- `daa2910` `docs: complete Phase 0.5 pre-flight verifications`
+- `6fe0660` `docs: complete Phase 0 discovery deliverables and initialize PROGRESS.md`
 - `9410c2a` `refactor: clean up legacy views and update routing for API-only backend`
 
 ---
@@ -130,11 +133,12 @@
 1. Review `docs/migration/PROGRESS.md` to identify the current active phase and next step.
 2. Confirm branch is `migration/mern`: `git status && git log -n 5 --oneline`.
 3. Verify local MongoDB is running: `mongosh --eval "db.adminCommand('ping')"`.
-4. Check test status: run the test command for the current phase.
+4. Check test status: run the test command for the current phase (`node scripts/run_contract_suite.mjs --assert`).
 5. Continue from the first unchecked item in the Migration Checklist.
 
 ---
 
 ## 11. Activity Log
 - **2026-10-15 02:45 UTC**: Phase 0 discovery executed. Introspected local MongoDB database, audited all 48 API endpoints, analyzed WebSockets, reviewed business math and edge cases, generated all 8 required migration documents under `docs/migration/`.
-- **2026-10-15 03:10 UTC**: Switched to Autonomous Continuation Mode for Phases 0.5-5. Initialized `PROGRESS.md`. Starting Phase 0.5.
+- **2026-10-15 03:10 UTC**: Switched to Autonomous Continuation Mode for Phases 0.5-5. Initialized `PROGRESS.md`. Completed Phase 0.5 pre-flight audits.
+- **2026-10-15 03:20 UTC**: Phase 1 Golden Master complete. Generated 100,036 banker's rounding & financial vectors from Python (`apps/api/test/contracts/fixtures/math_vectors.json`). Implemented HTTP contract test runner (`scripts/run_contract_suite.mjs`) and captured 66 endpoint fixtures against live Django instance on `InsightLoop_test`. Verified 100% pass rate in assert mode (66/66 passed). Transitioning to Phase 2.

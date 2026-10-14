@@ -1,0 +1,8 @@
+{
+  "status": 401,
+  "contentType": "application/json",
+  "body": {
+    "code": "token_not_valid",
+    "detail": "Token is invalid or expired"
+  }
+}

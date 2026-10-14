@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "expenses": [
+      120000,
+      225000,
+      110400
+    ],
+    "labels": [
+      "Aug 2026",
+      "Sep 2026",
+      "Oct 2026"
+    ],
+    "revenue": [
+      200000,
+      375000,
+      185400
+    ]
+  }
+}

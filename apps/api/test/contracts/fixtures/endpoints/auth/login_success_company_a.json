@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "tokens": {
+      "access": "<JWT_TOKEN>",
+      "refresh": "<JWT_TOKEN>"
+    },
+    "user": {
+      "company_id": "<UUID>",
+      "company_name": "Company A Corp",
+      "email": "alice@company-a.com",
+      "id": "<OBJECT_ID>",
+      "name": "Alice Admin"
+    }
+  }
+}

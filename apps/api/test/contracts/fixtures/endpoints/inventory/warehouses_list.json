@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "created_at": "<ISO_TIMESTAMP>",
+      "id": "<OBJECT_ID>",
+      "location": "City A",
+      "name": "Central Warehouse"
+    },
+    {
+      "created_at": "<ISO_TIMESTAMP>",
+      "id": "<OBJECT_ID>",
+      "location": "City A South",
+      "name": "South Depot"
+    }
+  ]
+}

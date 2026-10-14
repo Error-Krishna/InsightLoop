@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "amount_paid": 500,
+    "bill_id": null,
+    "date": "<ISO_TIMESTAMP>",
+    "id": "<OBJECT_ID>",
+    "paid": true,
+    "product_name": "Custom Armchair",
+    "rate_per_unit": 50,
+    "source_assignment_id": null,
+    "total_amount": 500,
+    "units_produced": 10,
+    "worker_id": "<OBJECT_ID>",
+    "worker_name": "Ramesh Carpenter"
+  }
+}

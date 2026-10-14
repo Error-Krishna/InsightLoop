@@ -1,0 +1,7 @@
+{
+  "status": 405,
+  "contentType": "application/json",
+  "body": {
+    "detail": "Method \"GET\" not allowed."
+  }
+}

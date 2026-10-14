@@ -1,0 +1,10 @@
+{
+  "status": 201,
+  "contentType": "application/json",
+  "body": {
+    "created_at": "<ISO_TIMESTAMP>",
+    "id": "<OBJECT_ID>",
+    "location": "City North",
+    "name": "North Annex"
+  }
+}

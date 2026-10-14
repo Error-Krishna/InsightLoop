@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "active_workers": 2,
+    "breakdown": {
+      "bills": {
+        "profit": 15000,
+        "revenue": 35400
+      },
+      "uploaded_data": {
+        "profit": 290000,
+        "revenue": 725000
+      }
+    },
+    "profit_change": 103,
+    "revenue_change": 102.8,
+    "total_profit": 304500,
+    "total_revenue": 760400,
+    "worker_payments": 500,
+    "workers_change": 100
+  }
+}

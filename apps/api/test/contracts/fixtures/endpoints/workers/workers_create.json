@@ -1,0 +1,22 @@
+{
+  "status": 201,
+  "contentType": "application/json",
+  "body": {
+    "address": "West End",
+    "age": 28,
+    "created_at": "<ISO_TIMESTAMP>",
+    "id": "<OBJECT_ID>",
+    "image_url": null,
+    "is_active": true,
+    "joining_date": "<ISO_TIMESTAMP>",
+    "material_assigned": 0,
+    "material_delivered": 0,
+    "name": "Sunil Joiner",
+    "open_assignments": 0,
+    "pending_amount": 0,
+    "phone": "9876543299",
+    "total_wasted": 0,
+    "updated_at": "<ISO_TIMESTAMP>",
+    "wastage_rate": 0
+  }
+}

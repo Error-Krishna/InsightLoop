@@ -1,0 +1,20 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "amount_paid": 0,
+      "bill_id": null,
+      "date": "<ISO_TIMESTAMP>",
+      "id": "<OBJECT_ID>",
+      "paid": false,
+      "product_name": "Desk Assembly",
+      "rate_per_unit": 500,
+      "source_assignment_id": "<OBJECT_ID>",
+      "total_amount": 500,
+      "units_produced": 1,
+      "worker_id": "<OBJECT_ID>",
+      "worker_name": "Ramesh Carpenter"
+    }
+  ]
+}

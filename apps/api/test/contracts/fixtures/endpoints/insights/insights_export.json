@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "contentType": "text/csv",
+  "body": "Insight Title,Description,Note\r\nSales Spike Detected,High volume sales in North region,Q3 review\r\n\r\nPeriod,Value\r\n09/01,10000.0\r\n09/02,25000.0\r\n09/03,30000.0\r\n"
+}

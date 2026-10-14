@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "notifications": {
+      "comments": true,
+      "updates": true,
+      "weekly_summary": true
+    },
+    "workspace_settings": {
+      "ai_assistant_enabled": true,
+      "inventory_workspace_mode": true,
+      "jwt_session_authentication": true,
+      "realtime_dashboard_refresh": true
+    }
+  }
+}

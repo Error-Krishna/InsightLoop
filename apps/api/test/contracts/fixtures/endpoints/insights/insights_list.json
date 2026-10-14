@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "created_at": "<ISO_TIMESTAMP>",
+      "data_points": [
+        10000,
+        25000,
+        30000
+      ],
+      "description": "High volume sales in North region",
+      "id": "<OBJECT_ID>",
+      "labels": [
+        "09/01",
+        "09/02",
+        "09/03"
+      ],
+      "note": "Q3 review",
+      "title": "Sales Spike Detected"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "action": "message",
+    "assistant": "jarvis",
+    "content": "I can show you revenue trends, profit analysis, or worker performance",
+    "timestamp": "<ISO_TIMESTAMP>"
+  }
+}
