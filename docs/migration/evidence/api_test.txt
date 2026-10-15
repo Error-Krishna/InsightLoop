@@ -1,0 +1,92 @@
+$ vitest run
+
+ RUN  v3.2.7 <REPO_ROOT>/apps/api
+
+stdout | test/concurrency.test.ts > Concurrency & Race Conditions Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/concurrency.test.ts (2 tests) 1794ms
+   ✓ Concurrency & Race Conditions Suite > generates strictly unique, monotonic invoice numbers under high concurrent bill creations  526ms
+stdout | test/approved_fixes.test.ts > Approved Fix List Verification & Negative Proof Suite > Approved Fix #1: Atomic Invoice Sequencing vs Legacy Race Conditions
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/approved_fixes.test.ts (3 tests) 1091ms
+   ✓ Approved Fix List Verification & Negative Proof Suite > Approved Fix #1: Atomic Invoice Sequencing vs Legacy Race Conditions  914ms
+stdout | test/websocket.test.ts > WebSocket Gateway Suite: Auth, Scoping & Close Codes
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/websocket.test.ts (6 tests) 1223ms
+stdout | test/upload_security.test.ts > Upload Security, Formula Injection & Path Traversal Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/upload_security.test.ts (5 tests) 1072ms
+stdout | test/auth.test.ts > Auth Module Integration Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/auth.test.ts (3 tests) 1019ms
+stdout | test/ai_deep.test.ts > AI Assistant Module Deep Command & Analytics Suite > processes export commands for all business entities
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/ai_deep.test.ts (3 tests) 880ms
+   ✓ AI Assistant Module Deep Command & Analytics Suite > processes export commands for all business entities  588ms
+stdout | test/inventory.test.ts > Inventory Module Integration Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/inventory.test.ts (2 tests) 861ms
+stdout | test/tenancy_sweep.test.ts > Multi-Tenant Data Isolation Sweep Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/tenancy_sweep.test.ts (1 test) 897ms
+   ✓ Multi-Tenant Data Isolation Sweep Suite > verifies 100% data isolation: Tenant B cannot access, read, mutate, or delete Tenant A resources  357ms
+stdout | test/insights_deep.test.ts > Insights Deep Unit & Calculation Suite > runs sales analysis with spike detection and product ranking
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/insights_deep.test.ts (3 tests) 893ms
+   ✓ Insights Deep Unit & Calculation Suite > runs sales analysis with spike detection and product ranking  724ms
+stdout | test/workers_complete.test.ts > Workers Idempotent Complete & Kill-Resume Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/workers_complete.test.ts (2 tests) 905ms
+stdout | test/modules_remaining.test.ts > Health, Contact, AI & Insights Integration Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/modules_remaining.test.ts (4 tests) 794ms
+stdout | test/bills_deep.test.ts > Bills Deep Lifecycle, Mutation & Queries Suite > creates, updates, lists, and deletes bills across statuses
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/bills_deep.test.ts (2 tests) 787ms
+   ✓ Bills Deep Lifecycle, Mutation & Queries Suite > creates, updates, lists, and deletes bills across statuses  706ms
+stdout | test/workers_deep.test.ts > Workers Payments & Lifecycle Deep Suite > creates payments, records partial payments, and marks fully paid
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/workers_deep.test.ts (2 tests) 810ms
+   ✓ Workers Payments & Lifecycle Deep Suite > creates payments, records partial payments, and marks fully paid  721ms
+stdout | test/auth_deep.test.ts > Auth Deep Suite: Google OAuth & Token Refresh Boundaries > handles Google login for new user and generates valid JWT tokens
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/auth_deep.test.ts (3 tests) 722ms
+   ✓ Auth Deep Suite: Google OAuth & Token Refresh Boundaries > handles Google login for new user and generates valid JWT tokens  625ms
+stdout | test/bills_profit.test.ts > Bills Lifecycle, State Machine & Profit Transitions Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/bills_profit.test.ts (1 test) 762ms
+stdout | test/profile.test.ts > Profile Module Integration Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/profile.test.ts (1 test) 842ms
+stdout | test/dashboard_deep.test.ts > Dashboard Deep Analytics & Aggregation Suite > aggregates summary, rev-exp, profit-trends, workers, and top-workers
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/dashboard_deep.test.ts (1 test) 704ms
+   ✓ Dashboard Deep Analytics & Aggregation Suite > aggregates summary, rev-exp, profit-trends, workers, and top-workers  703ms
+ ✓ test/auth_pbkdf2.test.ts (6 tests) 481ms
+ ✓ test/middleware.test.ts (5 tests) 20ms
+ ✓ test/cors.test.ts (6 tests) 17ms
+ ✓ test/architecture.test.ts (2 tests) 10ms
+ ✓ test/smoke.test.ts (1 test) 2ms
+
+ Test Files  22 passed (22)
+      Tests  64 passed (64)
+   Start at  22:33:33
+   Duration  22.82s (transform 250ms, setup 0ms, collect 3.89s, tests 16.58s, environment 1ms, prepare 646ms)
+

@@ -19,8 +19,8 @@ const notificationFields = [
 
 export default function SettingsPage() {
   const user = getCurrentUser();
-  const [settings, setSettings] = useState<Record<string, any>>({});
-  const [notifications, setNotifications] = useState<Record<string, any>>({});
+  const [settings, setSettings] = useState<Record<string, boolean>>({});
+  const [notifications, setNotifications] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

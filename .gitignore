@@ -128,6 +128,9 @@ insightloop/client_secret_*.json
 # Staging area for files flagged as stale/dead code during cleanup passes
 _stale_files_safe_to_delete/
 
-# Turborepo
+# Turborepo & Test outputs
 .turbo/
+coverage/
+test-results/
+playwright-report/
 

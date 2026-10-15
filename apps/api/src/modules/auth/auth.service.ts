@@ -1,21 +1,16 @@
 import { ObjectId } from 'mongodb';
-import { getCollection } from '../../db/mongo.js';
+import { AuthRepository } from './auth.repository.js';
 import { hashPassword, verifyPassword } from '../../utils/crypto.js';
 import { BadRequestError, UnauthorizedError } from '../../utils/errors.js';
 import { generateTokens, verifyToken } from '../../utils/jwt.js';
 import type { GoogleLoginInput, LoginInput, SignupInput } from '@insightloop/shared';
+import crypto from 'node:crypto';
 
 export class AuthService {
   static async login(input: LoginInput) {
-    const usersCol = getCollection('user');
-    const companiesCol = getCollection('company');
+    const user = await AuthRepository.findUserByEmail(input.email);
 
-    const email = input.email.trim().toLowerCase();
-    const user = await usersCol.findOne({
-      email: { $regex: new RegExp(`^${email}$`, 'i') },
-    });
-
-    if (!user || !user.password) {
+    if (!user?.password) {
       throw new UnauthorizedError('Invalid email or password.');
     }
 
@@ -25,22 +20,22 @@ export class AuthService {
     }
 
     // Update last login
-    await usersCol.updateOne({ _id: user._id }, { $set: { last_login: new Date() } });
+    await AuthRepository.updateLastLogin(user._id);
 
     // Fetch associated company
     let company = null;
     if (user.company) {
       const companyQuery = ObjectId.isValid(user.company)
         ? { _id: new ObjectId(user.company) }
-        : { company_id: user.company };
-      company = await companiesCol.findOne(companyQuery);
+        : { company_id: String(user.company) };
+      company = await AuthRepository.findCompany(companyQuery);
     }
 
-    const companyId = company?.company_id || (user.company_id ? String(user.company_id) : '');
-    const companyName = company?.name || 'My Company';
+    const companyId = company?.company_id ?? (user.company_id ? String(user.company_id) : '');
+    const companyName = company?.name ?? 'My Company';
 
     const tokens = generateTokens(
-      { _id: user._id, email: user.email, name: user.name || '' },
+      { _id: user._id, email: user.email, name: user.name ?? '' },
       companyId
     );
 
@@ -48,7 +43,7 @@ export class AuthService {
       tokens,
       user: {
         id: user._id.toString(),
-        name: user.name || '',
+        name: user.name ?? '',
         email: user.email,
         company_id: companyId,
         company_name: companyName,
@@ -57,19 +52,13 @@ export class AuthService {
   }
 
   static async signup(input: SignupInput) {
-    const usersCol = getCollection('user');
-    const companiesCol = getCollection('company');
-
-    const email = input.email.trim().toLowerCase();
-    const existing = await usersCol.findOne({
-      email: { $regex: new RegExp(`^${email}$`, 'i') },
-    });
-
+    const existing = await AuthRepository.findUserByEmail(input.email);
     if (existing) {
       throw new BadRequestError('Email already registered.');
     }
 
-    const companyName = (input.company || input.company_name || `${input.name}'s Company`).trim();
+    const email = input.email.trim().toLowerCase();
+    const companyName = (input.company ?? input.company_name ?? `${input.name}'s Company`).trim();
     const companyId = crypto.randomUUID();
 
     const companyDoc = {
@@ -85,7 +74,7 @@ export class AuthService {
       },
     };
 
-    const compResult = await companiesCol.insertOne(companyDoc as any);
+    const compId = await AuthRepository.createCompany(companyDoc);
     const hashedPassword = hashPassword(input.password);
 
     const userDoc = {
@@ -93,23 +82,23 @@ export class AuthService {
       email,
       username: email.split('@')[0],
       password: hashedPassword,
-      company: compResult.insertedId,
+      company: compId,
       subscription: 'Pro Plan (₹499/mo)',
       notifications: { comments: true, weekly_summary: true, updates: true },
       created_at: new Date(),
     };
 
-    const userResult = await usersCol.insertOne(userDoc as any);
+    const userId = await AuthRepository.createUser(userDoc);
 
     const tokens = generateTokens(
-      { _id: userResult.insertedId, email, name: input.name.trim() },
+      { _id: userId, email, name: input.name.trim() },
       companyId
     );
 
     return {
       tokens,
       user: {
-        id: userResult.insertedId.toString(),
+        id: userId.toString(),
         name: input.name.trim(),
         email,
         company_id: companyId,
@@ -120,15 +109,13 @@ export class AuthService {
 
   static async refresh(token: string) {
     const payload = verifyToken(token, 'refresh');
-    const usersCol = getCollection('user');
-
-    const user = await usersCol.findOne({ _id: new ObjectId(payload.user_id) });
+    const user = await AuthRepository.findUserById(payload.user_id);
     if (!user) {
       throw new UnauthorizedError('Token is invalid or expired', 'token_not_valid');
     }
 
     const { access } = generateTokens(
-      { _id: user._id, email: user.email, name: user.name || '' },
+      { _id: user._id, email: user.email, name: user.name ?? '' },
       payload.company_id
     );
 
@@ -136,7 +123,7 @@ export class AuthService {
   }
 
   static async googleLogin(input: GoogleLoginInput) {
-    const token = input.credential || input.id_token;
+    const token = input.credential ?? input.id_token;
     if (!token) {
       throw new UnauthorizedError('Invalid or expired Google credential.');
     }
@@ -146,58 +133,61 @@ export class AuthService {
       if (!response.ok) {
         throw new UnauthorizedError('Invalid or expired Google credential.');
       }
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as { email?: string; email_verified?: string | boolean; name?: string };
       if (!data.email || (data.email_verified !== 'true' && data.email_verified !== true)) {
         throw new UnauthorizedError('Invalid or expired Google credential.');
       }
 
-      // Find or create user
-      const usersCol = getCollection('user');
-      const companiesCol = getCollection('company');
       const email = data.email.toLowerCase();
-
-      let user = await usersCol.findOne({ email });
+      let user = await AuthRepository.findUserByEmail(email);
       let company = null;
 
       if (!user) {
         const companyId = crypto.randomUUID();
-        const compResult = await companiesCol.insertOne({
+        const compId = await AuthRepository.createCompany({
           company_id: companyId,
-          name: `${data.name || 'User'}'s Company`,
+          name: `${data.name ?? 'User'}'s Company`,
           created_at: new Date(),
-        } as any);
+        });
 
-        const userResult = await usersCol.insertOne({
-          name: data.name || email.split('@')[0],
+        const userId = await AuthRepository.createUser({
+          name: data.name ?? email.split('@')[0],
           email,
           username: email.split('@')[0],
-          company: compResult.insertedId,
+          company: compId,
           created_at: new Date(),
-        } as any);
+        });
 
-        user = await usersCol.findOne({ _id: userResult.insertedId });
-        company = await companiesCol.findOne({ _id: compResult.insertedId });
-      } else {
-        company = await companiesCol.findOne({ _id: new ObjectId(user.company) });
+        user = await AuthRepository.findUserById(userId);
+        company = await AuthRepository.findCompany({ _id: compId });
+      } else if (user.company) {
+        const companyQuery = ObjectId.isValid(user.company)
+          ? { _id: new ObjectId(user.company) }
+          : { company_id: String(user.company) };
+        company = await AuthRepository.findCompany(companyQuery);
       }
 
-      const companyId = company?.company_id || '';
+      if (!user) {
+        throw new UnauthorizedError('Invalid or expired Google credential.');
+      }
+
+      const companyId = company?.company_id ?? '';
       const tokens = generateTokens(
-        { _id: user!._id, email: user!.email, name: user!.name || '' },
+        { _id: user._id, email: user.email, name: user.name ?? '' },
         companyId
       );
 
       return {
         tokens,
         user: {
-          id: user!._id.toString(),
-          name: user!.name || '',
-          email: user!.email,
+          id: user._id.toString(),
+          name: user.name ?? '',
+          email: user.email,
           company_id: companyId,
-          company_name: company?.name || '',
+          company_name: company?.name ?? '',
         },
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof UnauthorizedError) throw err;
       throw new UnauthorizedError('Invalid or expired Google credential.');
     }

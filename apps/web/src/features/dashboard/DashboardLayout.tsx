@@ -95,7 +95,7 @@ export default function DashboardLayout() {
 
   function handleLogout() {
     clearSession();
-    navigate("/login", { replace: true });
+    void navigate("/login", { replace: true });
   }
 
   const sidebarContent = (
@@ -202,7 +202,12 @@ export default function DashboardLayout() {
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="absolute inset-0 w-full h-full bg-black/60 cursor-default border-none"
+            onClick={() => setSidebarOpen(false)}
+          />
           <aside className="absolute inset-y-0 left-0 flex w-64 flex-col bg-slate-900">
             {sidebarContent}
           </aside>

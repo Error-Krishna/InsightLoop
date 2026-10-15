@@ -64,7 +64,7 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
   }
 
   useEffect(() => {
-    load();
+    void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billType, refreshKey]);
 
@@ -92,8 +92,8 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
 
     const [sortField, sortDir] = sort.split(":");
     result = [...result].sort((a, b) => {
-      let aVal: string | number = "";
-      let bVal: string | number = "";
+      let aVal: string | number;
+      let bVal: string | number;
       if (sortField === "buyer_name") {
         aVal = (a.buyer?.name || "").toLowerCase();
         bVal = (b.buyer?.name || "").toLowerCase();
@@ -104,8 +104,8 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
         aVal = Number(a.grand_total || 0);
         bVal = Number(b.grand_total || 0);
       } else {
-        aVal = ((a as any)[sortField] || "").toString().toLowerCase();
-        bVal = ((b as any)[sortField] || "").toString().toLowerCase();
+        aVal = String((a as unknown as Record<string, unknown>)[sortField] ?? "").toLowerCase();
+        bVal = String((b as unknown as Record<string, unknown>)[sortField] ?? "").toLowerCase();
       }
       if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
       if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
@@ -150,8 +150,9 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
     try {
       await api.post(`/bills/${bill.id}/share-whatsapp/`);
       toast.success(`Bill sent to ${bill.buyer.phone} on WhatsApp`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to send via WhatsApp");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to send via WhatsApp");
     } finally {
       setSharingId(null);
     }
@@ -167,8 +168,9 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
       toast.success("Bill deleted");
       setBills((c) => c.filter((b) => b.id !== bill.id));
       onChanged?.();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to delete bill");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to delete bill");
     } finally {
       setDeletingId(null);
     }
@@ -517,7 +519,7 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
   const gstAmount = isPakka ? (taxable * Number(form.gst_percentage || 0)) / 100 : 0;
   const grandTotal = taxable + gstAmount;
 
-  function updateProduct(index: number, field: keyof BillItem, value: any) {
+  function updateProduct(index: number, field: keyof BillItem, value: BillItem[keyof BillItem]) {
     setForm((c) => ({
       ...c,
       products: c.products.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
@@ -549,8 +551,9 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
       const { data } = await api.put<Bill>(`/bills/${bill.id}/`, form);
       toast.success("Bill updated");
       onSaved(data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to update bill");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to update bill");
     } finally {
       setSaving(false);
     }
@@ -574,16 +577,18 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
             <>
               <ModalInput label="GST Number" value={form.gst_number} onChange={(v) => setForm((c) => ({ ...c, gst_number: v }))} />
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">GST Rate</label>
-                <select
-                  value={form.gst_percentage}
-                  onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                >
-                  {GST_RATES.map((r) => (
-                    <option key={r} value={r}>{r}%</option>
-                  ))}
-                </select>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <span>GST Rate</span>
+                  <select
+                    value={form.gst_percentage}
+                    onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    {GST_RATES.map((r) => (
+                      <option key={r} value={r}>{r}%</option>
+                    ))}
+                  </select>
+                </label>
               </div>
             </>
           )}
@@ -680,8 +685,9 @@ function ConvertToPakkaModal({ bill, onClose, onConverted }: ConvertToPakkaModal
         gst_percentage: gstPercentage,
       });
       onConverted(data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to convert bill");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to convert bill");
     } finally {
       setConverting(false);
     }
@@ -709,16 +715,18 @@ function ConvertToPakkaModal({ bill, onClose, onConverted }: ConvertToPakkaModal
             placeholder="22AAAAA0000A1Z5"
           />
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">GST Percentage *</label>
-            <select
-              value={gstPercentage}
-              onChange={(e) => setGstPercentage(Number(e.target.value))}
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            >
-              {GST_RATES.map((r) => (
-                <option key={r} value={r}>{r}%</option>
-              ))}
-            </select>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              <span>GST Percentage *</span>
+              <select
+                value={gstPercentage}
+                onChange={(e) => setGstPercentage(Number(e.target.value))}
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              >
+                {GST_RATES.map((r) => (
+                  <option key={r} value={r}>{r}%</option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
 
@@ -798,8 +806,9 @@ function RecordPaymentModal({ bill, onClose, onUpdated }: RecordPaymentModalProp
       setAmount("");
       setNotes("");
       onUpdated(data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to record payment");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to record payment");
     } finally {
       setSaving(false);
     }
@@ -844,32 +853,38 @@ function RecordPaymentModal({ bill, onClose, onUpdated }: RecordPaymentModalProp
         ) : (
           <form onSubmit={handleAdd} className="mb-4 flex flex-wrap items-end gap-2 rounded-lg bg-blue-50/50 p-3">
             <div className="w-28">
-              <label className="text-xs font-medium text-slate-600">Amount (₹)</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={`up to ${bill.balance_due || 0}`}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
+              <label className="text-xs font-medium text-slate-600">
+                <span>Amount (₹)</span>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={`up to ${bill.balance_due || 0}`}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                />
+              </label>
             </div>
             <div className="w-36">
-              <label className="text-xs font-medium text-slate-600">Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
+              <label className="text-xs font-medium text-slate-600">
+                <span>Date</span>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                />
+              </label>
             </div>
             <div className="min-w-[120px] flex-1">
-              <label className="text-xs font-medium text-slate-600">Notes (optional)</label>
-              <input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. cash, UPI"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
+              <label className="text-xs font-medium text-slate-600">
+                <span>Notes (optional)</span>
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="e.g. cash, UPI"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                />
+              </label>
             </div>
             <button
               type="submit"
@@ -928,13 +943,14 @@ function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmat
       try {
         const { data } = await api.get<ProfitPreviewResponse>(`/bills/${bill.id}/profit-preview/`);
         if (!cancelled) setSuggestion(data);
-      } catch (err: any) {
-        if (!cancelled) toast.error(err.response?.data?.detail || "Failed to compute profit preview");
+      } catch (err: unknown) {
+        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+        if (!cancelled) toast.error(detail ?? "Failed to compute profit preview");
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
-    loadPreview();
+    void loadPreview();
     return () => {
       cancelled = true;
     };
@@ -947,8 +963,9 @@ function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmat
       const { data } = await api.post<Bill>(`/bills/${bill.id}/confirm-profit/`, payload);
       toast.success("Profit confirmed for this consignment");
       onConfirmed(data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to confirm profit");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to confirm profit");
     } finally {
       setConfirming(false);
     }

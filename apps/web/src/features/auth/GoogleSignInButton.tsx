@@ -3,9 +3,18 @@ import { toast } from "sonner";
 import api from "../../lib/api";
 import { setSession, User } from "../../lib/auth";
 
+interface GoogleAccountsId {
+  initialize: (options: { client_id: string; callback: (res: { credential: string }) => void }) => void;
+  renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+}
+
 declare global {
   interface Window {
-    google?: any;
+    google?: {
+      accounts?: {
+        id?: GoogleAccountsId;
+      };
+    };
   }
 }
 
@@ -23,13 +32,13 @@ export interface GoogleSignInButtonProps {
 
 export default function GoogleSignInButton({ onSuccess }: GoogleSignInButtonProps) {
   const buttonRef = useRef<HTMLDivElement | null>(null);
-  const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     if (!clientId) return;
 
     let cancelled = false;
-    let timeoutId: any = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     async function handleCredential(response: { credential: string }) {
       try {
@@ -39,8 +48,9 @@ export default function GoogleSignInButton({ onSuccess }: GoogleSignInButtonProp
         setSession({ access: data.tokens.access, refresh: data.tokens.refresh, user: data.user });
         toast.success("Welcome");
         onSuccess?.(data);
-      } catch (error: any) {
-        toast.error(error.response?.data?.detail || "Google sign-in failed");
+      } catch (error: unknown) {
+        const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+        toast.error(detail ?? "Google sign-in failed");
       }
     }
 
@@ -48,7 +58,9 @@ export default function GoogleSignInButton({ onSuccess }: GoogleSignInButtonProp
       if (cancelled || !window.google?.accounts?.id || !buttonRef.current) return;
       window.google.accounts.id.initialize({
         client_id: clientId,
-        callback: handleCredential,
+        callback: (response) => {
+          void handleCredential(response);
+        },
       });
       const width = Math.min(buttonRef.current?.parentElement?.clientWidth || 360, 400);
       window.google.accounts.id.renderButton(buttonRef.current, {

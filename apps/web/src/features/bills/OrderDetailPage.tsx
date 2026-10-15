@@ -65,15 +65,16 @@ export default function OrderDetailPage() {
       setAssignments(assignmentsRes.data);
       setWorkers(workersRes.data);
       setInventoryItems([...finishedRes.data, ...semiRes.data]);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to load order");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to load order");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadAll();
+    void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -157,8 +158,9 @@ function OrderHeader({ bill }: { bill: Bill }) {
     try {
       await api.post(`/bills/${bill.id}/share-whatsapp/`);
       toast.success(`Bill sent to ${bill.buyer.phone} on WhatsApp`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to send via WhatsApp");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to send via WhatsApp");
     } finally {
       setSharing(false);
     }
@@ -357,8 +359,9 @@ function AssignWorkerForm({ billId, workers, onAssigned }: AssignWorkerFormProps
       setWageAmount("");
       setWorkerId("");
       onAssigned();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to assign work");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to assign work");
     } finally {
       setSaving(false);
     }
@@ -367,60 +370,68 @@ function AssignWorkerForm({ billId, workers, onAssigned }: AssignWorkerFormProps
   return (
     <form onSubmit={handleAssign} className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-2">
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-600">Worker</label>
-        <select
-          value={workerId}
-          onChange={(e) => setWorkerId(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        >
-          <option value="">Select worker…</option>
-          {workers.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.name}
-            </option>
-          ))}
-        </select>
+        <label className="mb-1 block text-xs font-medium text-slate-600">
+          <span>Worker</span>
+          <select
+            value={workerId}
+            onChange={(e) => setWorkerId(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          >
+            <option value="">Select worker…</option>
+            {workers.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-600">Material / Product</label>
-        <input
-          value={materialName}
-          onChange={(e) => setMaterialName(e.target.value)}
-          placeholder="e.g. Large Jute Bag"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
+        <label className="mb-1 block text-xs font-medium text-slate-600">
+          <span>Material / Product</span>
+          <input
+            value={materialName}
+            onChange={(e) => setMaterialName(e.target.value)}
+            placeholder="e.g. Large Jute Bag"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+        </label>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-600">Quantity handed out</label>
-        <input
-          type="number"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          placeholder="e.g. 500"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
+        <label className="mb-1 block text-xs font-medium text-slate-600">
+          <span>Quantity handed out</span>
+          <input
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="e.g. 500"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+        </label>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-600">Raw material value / unit (₹)</label>
-        <input
-          type="number"
-          value={pricePerUnit}
-          onChange={(e) => setPricePerUnit(e.target.value)}
-          placeholder="0.00"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
+        <label className="mb-1 block text-xs font-medium text-slate-600">
+          <span>Raw material value / unit (₹)</span>
+          <input
+            type="number"
+            value={pricePerUnit}
+            onChange={(e) => setPricePerUnit(e.target.value)}
+            placeholder="0.00"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+        </label>
       </div>
       <div className="md:col-span-2">
         <label className="mb-1 block text-xs font-medium text-slate-600">
-          Worker's flat wage for this job (₹) — paid regardless of exact quantity returned
+          <span>Worker's flat wage for this job (₹) — paid regardless of exact quantity returned</span>
+          <input
+            type="number"
+            value={wageAmount}
+            onChange={(e) => setWageAmount(e.target.value)}
+            placeholder="e.g. 5000"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
         </label>
-        <input
-          type="number"
-          value={wageAmount}
-          onChange={(e) => setWageAmount(e.target.value)}
-          placeholder="e.g. 5000"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
       </div>
       <button
         type="submit"
@@ -463,8 +474,9 @@ function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }: ReadyToDeliver
       setItemId("");
       setQuantity("");
       onChanged();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to add batch");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to add batch");
     } finally {
       setSaving(false);
     }
@@ -476,8 +488,9 @@ function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }: ReadyToDeliver
       toast.success("Shipment confirmed — stock removed from inventory");
       setConfirmingShipment(false);
       onChanged();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to confirm shipment");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to confirm shipment");
     }
   }
 
@@ -505,29 +518,33 @@ function ReadyToDeliverPanel({ bill, inventoryItems, onChanged }: ReadyToDeliver
         <>
           <form onSubmit={handleAdd} className="mt-4 flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 p-4">
             <div className="min-w-[200px] flex-1">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Finished item</label>
-              <select
-                value={itemId}
-                onChange={(e) => setItemId(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              >
-                <option value="">Select item…</option>
-                {inventoryItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} ({item.quantity} {item.unit} in stock)
-                  </option>
-                ))}
-              </select>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                <span>Finished item</span>
+                <select
+                  value={itemId}
+                  onChange={(e) => setItemId(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="">Select item…</option>
+                  {inventoryItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.quantity} {item.unit} in stock)
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
             <div className="w-32">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Quantity</label>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="e.g. 100"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                <span>Quantity</span>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="e.g. 100"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                />
+              </label>
             </div>
             <button
               type="submit"
@@ -649,8 +666,9 @@ function CostLog({ title, total, entries, onAdd }: CostLogProps) {
       toast.success(`${title} cost logged`);
       setAmount("");
       setNotes("");
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || `Failed to log ${title.toLowerCase()} cost`);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? `Failed to log ${title.toLowerCase()} cost`);
     } finally {
       setSaving(false);
     }

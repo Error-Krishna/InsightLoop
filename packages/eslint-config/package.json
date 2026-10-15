@@ -2,5 +2,9 @@
   "name": "@insightloop/eslint-config",
   "version": "1.0.0",
   "private": true,
-  "main": "index.js"
+  "type": "module",
+  "exports": {
+    "./base": "./base.js",
+    "./react": "./react.js"
+  }
 }

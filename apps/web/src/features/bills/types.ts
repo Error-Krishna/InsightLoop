@@ -84,8 +84,8 @@ export interface ProfitPreviewResponse {
   };
   payment_fraction: number;
   suggested_profit: number;
-  lines: Array<{
+  lines: {
     item_name: string;
     cost_known: boolean;
-  }>;
+  }[];
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
@@ -62,14 +62,14 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
   const [search, setSearch] = useState("");
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     const [itemsResponse, warehousesResponse] = await Promise.all([
       api.get<InventoryItem[]>(`/inventory/${itemType}/`),
       api.get<Warehouse[]>("/inventory/warehouses/"),
     ]);
     setItems(itemsResponse.data);
     setWarehouses(warehousesResponse.data);
-  }
+  }, [itemType]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -98,7 +98,7 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
 
   useEffect(() => {
     load().catch(() => toast.error(`Failed to load ${title.toLowerCase()}`));
-  }, [itemType, title]);
+  }, [load, title]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -137,7 +137,7 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
     setForm(emptyForm);
   }
 
-  const formFields: Array<[keyof InventoryItemFormData, string, string]> = [
+  const formFields: [keyof InventoryItemFormData, string, string][] = [
     ["name", "Name", "text"],
     ["unit", "Unit", "text"],
     ["quantity", "Quantity", "number"],

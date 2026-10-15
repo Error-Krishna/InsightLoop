@@ -1,0 +1,12 @@
+$ vitest run
+
+ RUN  v3.2.7 <REPO_ROOT>/packages/shared
+
+ ✓ test/math.test.ts (3 tests) 429ms
+   ✓ Mathematical Compatibility Engine > passes 100,036 golden banker rounding test vectors with 0 mismatches  408ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  22:31:28
+   Duration  719ms (transform 76ms, setup 0ms, collect 73ms, tests 429ms, environment 0ms, prepare 44ms)
+

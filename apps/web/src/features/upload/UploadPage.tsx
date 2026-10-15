@@ -47,8 +47,9 @@ export default function UploadPage() {
       toast.success(
         `CSV uploaded successfully${typeof data?.created === "number" ? ` (${data.created} rows)` : ""}`
       );
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "CSV upload failed");
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "CSV upload failed");
     } finally {
       setUploading(false);
     }
@@ -61,8 +62,9 @@ export default function UploadPage() {
       await api.post("/upload/manual/", manual);
       toast.success("Manual record saved");
       setManual(emptyManual);
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to save manual record");
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to save manual record");
     } finally {
       setSavingManual(false);
     }
@@ -94,7 +96,7 @@ export default function UploadPage() {
       <Card className="p-6">
         <h2 className="text-xl font-semibold text-slate-900">Manual Entry</h2>
         <form onSubmit={handleManualSubmit} className="mt-6 grid gap-4 md:grid-cols-2">
-          {(Object.entries(manual) as Array<[keyof ManualRecord, any]>).map(([key, value]) => (
+          {(Object.entries(manual) as [keyof ManualRecord, string][]).map(([key, value]) => (
             <label key={key} className="text-sm font-medium text-slate-700">
               {key.replaceAll("_", " ")}
               {key === "customer_type" ? (

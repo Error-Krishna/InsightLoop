@@ -90,7 +90,7 @@ export default function ProfilePage() {
     }
   }
 
-  const fields: Array<[keyof ProfileValues, string]> = [
+  const fields: [keyof ProfileValues, string][] = [
     ["name", "Contact Name"],
     ["company_name", "Company Name"],
     ["address", "Company Address"],
@@ -103,7 +103,7 @@ export default function ProfilePage() {
     ["branch_name", "Branch"],
   ];
 
-  const fileFields: Array<[keyof ProfileFiles, string]> = [
+  const fileFields: [keyof ProfileFiles, string][] = [
     ["logo", "Company Logo"],
     ["stamp", "Stamp"],
     ["signature", "Signature"],

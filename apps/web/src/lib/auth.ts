@@ -39,7 +39,7 @@ export function getRefreshToken(): string | null {
 
 export function getCurrentUser(): User | null {
   try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || "null");
+    return JSON.parse(localStorage.getItem(USER_KEY) ?? "null") as User | null;
   } catch {
     return null;
   }
@@ -50,5 +50,5 @@ export function isAuthenticated(): boolean {
 }
 
 export function getCompanyId(): string {
-  return getCurrentUser()?.company_id || "";
+  return getCurrentUser()?.company_id ?? "";
 }

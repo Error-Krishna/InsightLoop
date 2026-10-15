@@ -1,0 +1,10 @@
+node_modules
+.git
+.github
+.husky
+.venv
+dist
+coverage
+docs/migration/evidence
+.env*
+*.log

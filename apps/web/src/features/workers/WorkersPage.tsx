@@ -132,11 +132,12 @@ export default function WorkersPage() {
   }
 
   useEffect(() => {
-    loadWorkers().catch(() => toast.error("Failed to load workers"));
+    void loadWorkers().catch(() => toast.error("Failed to load workers"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    loadWorkerDetails(selectedWorkerId).catch(() => toast.error("Failed to load worker details"));
+    void loadWorkerDetails(selectedWorkerId).catch(() => toast.error("Failed to load worker details"));
   }, [selectedWorkerId]);
 
   return (
@@ -193,8 +194,9 @@ export default function WorkersPage() {
                   }
                   resetWorkerForm();
                   await loadWorkers();
-                } catch (error: any) {
-                  toast.error(error.response?.data?.detail || "Failed to save worker");
+                } catch (error: unknown) {
+                  const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+                  toast.error(detail ?? "Failed to save worker");
                 }
               }}
               className="mt-6 grid gap-4 md:grid-cols-2"
@@ -279,8 +281,9 @@ export default function WorkersPage() {
                                   resetWorkerForm();
                                 }
                                 await loadWorkers();
-                              } catch (error: any) {
-                                toast.error(error.response?.data?.detail || "Failed to delete worker");
+                              } catch (error: unknown) {
+                                const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+                                toast.error(detail ?? "Failed to delete worker");
                               }
                             }}
                             className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600"
@@ -347,8 +350,9 @@ export default function WorkersPage() {
                     setPaymentForm(emptyPaymentForm);
                     await loadWorkerDetails(selectedWorkerId);
                     await loadWorkers();
-                  } catch (error: any) {
-                    toast.error(error.response?.data?.detail || "Failed to save payment record");
+                  } catch (error: unknown) {
+                    const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+                    toast.error(detail ?? "Failed to save payment record");
                   }
                 }}
                 className="mt-6 grid gap-4 md:grid-cols-2"
@@ -474,8 +478,9 @@ function MaterialDistributionPanel({
             toast.success("Material assigned");
             setMaterialForm(emptyMaterialForm);
             await refresh();
-          } catch (error: any) {
-            toast.error(error.response?.data?.detail || "Failed to assign material");
+          } catch (error: unknown) {
+            const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+            toast.error(detail ?? "Failed to assign material");
           }
         }}
         className="mt-6 grid gap-4 md:grid-cols-2"
@@ -589,8 +594,9 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
                           toast.success("Assignment marked complete");
                           setConfirmingComplete(false);
                           await onChanged();
-                        } catch (error: any) {
-                          toast.error(error.response?.data?.detail || "Failed to mark complete");
+                        } catch (error: unknown) {
+                          const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+                          toast.error(detail ?? "Failed to mark complete");
                         }
                       }}
                       className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
@@ -635,8 +641,9 @@ function AddBatchForm({ assignmentId, onAdded }: { assignmentId: string; onAdded
       setQuantity("");
       setNotes("");
       await onAdded();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to log returned chunk");
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to log returned chunk");
     } finally {
       setSaving(false);
     }
@@ -645,32 +652,38 @@ function AddBatchForm({ assignmentId, onAdded }: { assignmentId: string; onAdded
   return (
     <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-2 rounded-lg bg-blue-50/50 p-3">
       <div className="w-28">
-        <label className="text-xs font-medium text-slate-600">Chunk qty</label>
-        <input
-          type="number"
-          value={quantity}
-          onChange={(event) => setQuantity(event.target.value)}
-          placeholder="e.g. 100"
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
+        <label className="text-xs font-medium text-slate-600">
+          <span>Chunk qty</span>
+          <input
+            type="number"
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+            placeholder="e.g. 100"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+        </label>
       </div>
       <div className="w-36">
-        <label className="text-xs font-medium text-slate-600">Date</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(event) => setDate(event.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
+        <label className="text-xs font-medium text-slate-600">
+          <span>Date</span>
+          <input
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+        </label>
       </div>
       <div className="flex-1 min-w-[140px]">
-        <label className="text-xs font-medium text-slate-600">Notes (optional)</label>
-        <input
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="e.g. first batch"
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
+        <label className="text-xs font-medium text-slate-600">
+          <span>Notes (optional)</span>
+          <input
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="e.g. first batch"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+        </label>
       </div>
       <button
         type="submit"
@@ -705,8 +718,9 @@ function PayRecordRow({ payment, onChanged }: { payment: PayRecordItem; onChange
       toast.success(`₹${value.toLocaleString("en-IN")} recorded`);
       setAmount("");
       await onChanged();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to record payment");
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to record payment");
     } finally {
       setSaving(false);
     }
@@ -717,8 +731,9 @@ function PayRecordRow({ payment, onChanged }: { payment: PayRecordItem; onChange
       await api.put(`/workers/payments/${payment.id}/mark-paid/`);
       toast.success("Payment marked as paid");
       await onChanged();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to update payment");
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to update payment");
     }
   }
 

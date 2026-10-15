@@ -4,24 +4,27 @@ import { env } from '../config/env.js';
 let client: MongoClient | null = null;
 let db: Db | null = null;
 
-export async function connectMongo(): Promise<Db> {
+export async function connectMongo(customUri?: string, customDbName?: string): Promise<Db> {
   if (db && client) return db;
 
+  const uri = customUri ?? env.MONGODB_URI;
+  const dbName = customDbName ?? env.MONGODB_DB_NAME;
+
   // Runtime safety guard (Rule 3)
-  if (env.NODE_ENV === 'test' || env.MONGODB_DB_NAME.endsWith('_test')) {
-    if (!env.MONGODB_DB_NAME.endsWith('_test')) {
-      throw new Error(`REFUSING: DB name must end in '_test'. Got: ${env.MONGODB_DB_NAME}`);
+  if (env.NODE_ENV === 'test' || dbName.endsWith('_test')) {
+    if (!dbName.endsWith('_test')) {
+      throw new Error(`REFUSING: DB name must end in '_test'. Got: ${dbName}`);
     }
-    if (!env.MONGODB_URI.includes('localhost') && !env.MONGODB_URI.includes('127.0.0.1')) {
-      throw new Error(`REFUSING: Host must be local. Got: ${env.MONGODB_URI}`);
+    if (!uri.includes('localhost') && !uri.includes('127.0.0.1')) {
+      throw new Error(`REFUSING: Host must be local. Got: ${uri}`);
     }
   }
 
-  client = new MongoClient(env.MONGODB_URI);
+  client = new MongoClient(uri);
   await client.connect();
-  db = client.db(env.MONGODB_DB_NAME);
+  db = client.db(dbName);
 
-  console.log(`Connected to MongoDB: ${env.MONGODB_DB_NAME}`);
+  console.log(`Connected to MongoDB: ${dbName}`);
   return db;
 }
 

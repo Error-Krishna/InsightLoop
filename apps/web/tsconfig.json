@@ -7,5 +7,5 @@
     },
     "noEmit": true
   },
-  "include": ["src/**/*", "vite.config.js"]
+  "include": ["src/**/*", "test/**/*", "e2e/**/*", "vite.config.js", "playwright.config.ts", "vitest.config.ts"]
 }

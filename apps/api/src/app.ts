@@ -1,7 +1,9 @@
 import cors from 'cors';
-import express, { type Request, type Response, type NextFunction } from 'express';
+import express, { type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { env } from './config/env.js';
+import { requestIdMiddleware } from './middleware/requestId.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 // Route modules
 import { healthRouter } from './modules/health/health.routes.js';
@@ -18,17 +20,27 @@ import { contactRouter } from './modules/contact/contact.routes.js';
 
 export const app: express.Express = express();
 
-app.use(helmet({
-  crossOriginResourcePolicy: false,
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
+const allowedOrigins = env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean);
 app.use(
   cors({
-    origin: env.CORS_ORIGIN.split(',').map(s => s.trim()),
+    origin: (origin, callback) => {
+      if (!origin) { callback(null, true); return; }
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true); return;
+      }
+      callback(null, false);
+    },
     credentials: true,
   })
 );
 
+app.use(requestIdMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -48,21 +60,11 @@ app.use('/api/v1/dashboard', dashboardRouter);
 app.use('/api/v1/insights', insightsRouter);
 app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/ai', aiRouter);
+app.use('/api/v1/contact', contactRouter);
 app.use('/contact', contactRouter);
 
-// Standard DRF-compatible error handling envelope
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const detail = err.detail || err.message || 'Internal Server Error';
-  const body: Record<string, any> = { detail };
-  if (err.code) {
-    body.code = err.code;
-  }
-  if (err.missing) {
-    body.missing = err.missing;
-  }
-  if (err.errors) {
-    body.errors = err.errors;
-  }
-  res.status(status).json(body);
-});
+// 404 handler for undefined routes
+app.use(notFoundHandler);
+
+// Centralized error handler
+app.use(errorHandler);

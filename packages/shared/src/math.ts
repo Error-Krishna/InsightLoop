@@ -52,7 +52,7 @@ function floatToExactDecimal(num: number): Decimal {
 /**
  * Exact Python round() equivalent using banker's rounding (round half to even).
  */
-export function roundPy(val: number, n: number = 0): number {
+export function roundPy(val: number, n = 0): number {
   if (isNaN(val) || !isFinite(val)) return val;
   const d = floatToExactDecimal(val);
   const rounded = d.toDecimalPlaces(n, Decimal.ROUND_HALF_EVEN);
@@ -76,7 +76,7 @@ export interface BillProductInput {
   unit?: string;
   description?: string;
   inventory_item_id?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CalculatedProduct extends BillProductInput {
@@ -103,31 +103,31 @@ export interface BillTotals {
  */
 export function calculateBillTotals(
   rawProducts: BillProductInput[],
-  discount: number = 0,
-  gstPercentage: number = 0
+  discount = 0,
+  gstPercentage = 0
 ): BillTotals {
   let subtotal = 0;
   const products: CalculatedProduct[] = rawProducts.map(p => {
-    const qty = Number(p.quantity || 0);
-    const rate = Number(p.rate ?? p.price ?? p.unit_price ?? 0);
+    const qty = p.quantity ?? 0;
+    const rate = p.rate ?? p.price ?? p.unit_price ?? 0;
     const total = roundPy(qty * rate, 2);
     subtotal += total;
     return {
       ...p,
-      name: p.name || p.product_name || '',
+      name: (p.name ?? p.product_name) ?? '',
       quantity: qty,
       rate,
-      unit: p.unit || 'pcs',
-      description: p.description || '',
-      inventory_item_id: p.inventory_item_id || null,
+      unit: p.unit ?? 'pcs',
+      description: p.description ?? '',
+      inventory_item_id: p.inventory_item_id ?? null,
       total,
     };
   });
 
   subtotal = roundPy(subtotal, 2);
-  const normDiscount = roundPy(Math.max(0, discount || 0), 2);
+  const normDiscount = roundPy(Math.max(0, discount), 2);
   const taxable_amount = roundPy(Math.max(0, subtotal - normDiscount), 2);
-  const normGstPct = roundPy(Math.max(0, gstPercentage || 0), 2);
+  const normGstPct = roundPy(Math.max(0, gstPercentage), 2);
   const gst_amount = roundPy(taxable_amount * (normGstPct / 100), 2);
   const grand_total = roundPy(taxable_amount + gst_amount, 2);
 
@@ -163,20 +163,20 @@ export interface BillDerivedStatus {
 export function calculateBillDerived(
   grandTotal: number,
   payments: BillPaymentItem[] = [],
-  profitConfirmed: boolean = false,
-  billType: string = 'kacha',
-  shipmentConfirmed: boolean = false,
-  assignments: Array<{ status: string }> = []
+  profitConfirmed = false,
+  billType = 'kacha',
+  shipmentConfirmed = false,
+  assignments: { status: string }[] = []
 ): BillDerivedStatus {
   let amount_received = 0;
   for (const p of payments) {
-    amount_received += Number(p.amount) || 0;
+    amount_received += p.amount;
   }
   amount_received = roundPy(amount_received, 2);
 
-  let balance_due = 0;
-  let payment_status: 'unpaid' | 'partial' | 'paid' = 'unpaid';
-  let payment_fraction = 0;
+  let balance_due: number;
+  let payment_status: 'unpaid' | 'partial' | 'paid';
+  let payment_fraction: number;
 
   if (grandTotal <= 0) {
     payment_status = 'paid';
@@ -198,14 +198,14 @@ export function calculateBillDerived(
 
   const over_received = amount_received > grandTotal;
 
-  let order_status: 'draft' | 'confirmed' | 'in_production' | 'ready_to_ship' | 'shipped' | 'closed' = 'draft';
+  let order_status: 'draft' | 'confirmed' | 'in_production' | 'ready_to_ship' | 'shipped' | 'closed';
   if (profitConfirmed && payment_status === 'paid') {
     order_status = 'closed';
   } else if (shipmentConfirmed) {
     order_status = 'shipped';
   } else if (billType === 'kacha') {
     order_status = 'draft';
-  } else if (!assignments || assignments.length === 0) {
+  } else if (assignments.length === 0) {
     order_status = 'confirmed';
   } else if (assignments.every(a => a.status === 'completed')) {
     order_status = 'ready_to_ship';

@@ -2,12 +2,12 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { clearSession, getAccessToken, getRefreshToken, setSession, getCurrentUser } from "./auth";
 
 const api = axios.create({
-  baseURL: (import.meta as any).env?.VITE_API_BASE_URL || "/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
 });
 
 // Dedicated axios instance for refresh calls (bypasses interceptors to avoid infinite loops)
 const refreshAxios = axios.create({
-  baseURL: (import.meta as any).env?.VITE_API_BASE_URL || "/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
@@ -29,9 +29,9 @@ async function doRefreshToken(): Promise<string> {
     throw new Error("No refresh token available");
   }
 
-  const response = await refreshAxios.post("/auth/refresh/", { refresh });
+  const response = await refreshAxios.post<{ access: string; refresh?: string }>("/auth/refresh/", { refresh });
   const newAccessToken: string = response.data.access;
-  const newRefreshToken: string = response.data.refresh || refresh;
+  const newRefreshToken: string = response.data.refresh ?? refresh;
 
   setSession({
     access: newAccessToken,
@@ -63,11 +63,11 @@ api.interceptors.response.use(
         const newAccessToken = await refreshPromise;
         if (newAccessToken) {
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return api(originalRequest);
+          return await api(originalRequest);
         }
       } catch (refreshErr) {
         clearSession();
-        return Promise.reject(refreshErr);
+        return Promise.reject(refreshErr instanceof Error ? refreshErr : new Error(String(refreshErr)));
       }
     }
 

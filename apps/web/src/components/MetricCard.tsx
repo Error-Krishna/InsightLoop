@@ -5,7 +5,7 @@ export interface MetricCardProps {
   title: string;
   value: string | number;
   trend?: number | string;
-  data?: Array<{ value: number; [key: string]: any }>;
+  data?: { value: number; [key: string]: unknown }[];
   color?: string;
 }
 

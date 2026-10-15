@@ -1,236 +1,197 @@
 import { ObjectId } from 'mongodb';
-import { getCollection } from '../../db/mongo.js';
+import { InventoryRepository, type InventoryItemDoc, type WarehouseDoc } from './inventory.repository.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { roundPy } from '@insightloop/shared';
+import type { TenantScope } from '../../types/tenant.js';
+
+export interface ItemInput {
+  name?: string;
+  unit?: string;
+  selling_price?: number | string;
+  cost_price?: number | string;
+  quantity?: number | string;
+  reorder_level?: number | string;
+  warehouse_id?: string | null;
+  image_url?: string | null;
+}
+
+export interface WarehouseInput {
+  name?: string;
+  location?: string;
+}
 
 export class InventoryService {
-  private static serializeItem(item: any, warehouse: any = null) {
+  private static serializeItem(item: InventoryItemDoc, warehouse: WarehouseDoc | null = null) {
     return {
       id: item._id.toString(),
       name: item.name,
-      unit: item.unit || 'pcs',
+      unit: item.unit ?? 'pcs',
       type: item.type,
       selling_price: Number(item.selling_price) || 0,
       cost_price: Number(item.cost_price) || 0,
       quantity: Number(item.quantity) || 0,
       reorder_level: Number(item.reorder_level) || 0,
-      warehouse_id: item.warehouse_id || null,
-      warehouse_name: warehouse?.name || null,
-      image_url: item.image_url || null,
-      sku: item.sku || '',
+      warehouse_id: item.warehouse_id ?? null,
+      warehouse_name: warehouse?.name ?? null,
+      image_url: item.image_url ?? null,
+      sku: item.sku ?? '',
       status: (Number(item.quantity) || 0) <= 0 ? 'Out of Stock' : 'In Stock',
       created_at: item.created_at ? new Date(item.created_at).toISOString() : null,
       updated_at: item.updated_at ? new Date(item.updated_at).toISOString() : null,
     };
   }
 
-  private static serializeWarehouse(wh: any) {
+  private static serializeWarehouse(wh: WarehouseDoc) {
     return {
       id: wh._id.toString(),
       name: wh.name,
-      location: wh.location || '',
+      location: wh.location ?? '',
       created_at: wh.created_at ? new Date(wh.created_at).toISOString() : null,
     };
   }
 
-  static async getNextSku(companyId: string): Promise<string> {
-    const countersCol = getCollection('counters');
-    const itemsCol = getCollection('inventory_items');
+  static async listItems(scope: TenantScope, itemType: string) {
+    const items = await InventoryRepository.findItems(scope, { type: itemType });
+    const warehouseIds = [...new Set(items.map((i) => i.warehouse_id).filter(Boolean))] as string[];
+    const warehouses = await InventoryRepository.findWarehousesByIds(scope, warehouseIds);
+    const whMap = new Map(warehouses.map((w) => [w._id.toString(), w]));
 
-    const counterId = `sku_${companyId}`;
-    let counter = await countersCol.findOne({ _id: counterId as any });
-
-    if (!counter) {
-      // Find highest existing sequence for company
-      const lastItem = await itemsCol
-        .find({ company_id: companyId, sku: { $regex: /^SKU-\d+$/ } })
-        .sort({ sku: -1 })
-        .limit(1)
-        .toArray();
-
-      let startingSeq = 0;
-      if (lastItem.length > 0 && lastItem[0].sku) {
-        const match = lastItem[0].sku.match(/^SKU-(\d+)$/);
-        if (match) startingSeq = parseInt(match[1], 10);
-      }
-
-      await countersCol.updateOne(
-        { _id: counterId as any },
-        { $setOnInsert: { seq: startingSeq } },
-        { upsert: true }
-      );
-    }
-
-    const updated = await countersCol.findOneAndUpdate(
-      { _id: counterId as any },
-      { $inc: { seq: 1 } },
-      { returnDocument: 'after', upsert: true }
-    );
-
-    const seq = updated?.seq || 1;
-    return `SKU-${String(seq).padStart(5, '0')}`;
+    return items.map((item) => this.serializeItem(item, whMap.get(String(item.warehouse_id)) ?? null));
   }
 
-  static async listItems(companyId: string, itemType: string) {
-    const itemsCol = getCollection('inventory_items');
-    const warehousesCol = getCollection('warehouses');
-
-    const items = await itemsCol
-      .find({ company_id: companyId, type: itemType })
-      .sort({ updated_at: -1, _id: -1 })
-      .toArray();
-
-    const warehouseIds = [...new Set(items.map(i => i.warehouse_id).filter(Boolean))].map(
-      id => (ObjectId.isValid(id) ? new ObjectId(id) : id)
-    );
-
-    const warehouses = await warehousesCol.find({ _id: { $in: warehouseIds as any } }).toArray();
-    const whMap = new Map(warehouses.map(w => [w._id.toString(), w]));
-
-    return items.map(item => this.serializeItem(item, whMap.get(String(item.warehouse_id))));
-  }
-
-  static async createItem(companyId: string, itemType: string, data: any) {
-    const itemsCol = getCollection('inventory_items');
-    const warehousesCol = getCollection('warehouses');
-
-    const name = (data.name || '').trim();
+  static async createItem(scope: TenantScope, itemType: string, data: ItemInput) {
+    const name = (data.name ?? '').trim();
     if (!name) {
       throw new ValidationError('Item name is required.');
     }
 
-    const sku = await this.getNextSku(companyId);
+    const sku = await InventoryRepository.getNextSku(scope);
     const now = new Date();
 
-    const doc = {
-      company_id: companyId,
+    const created = await InventoryRepository.insertItem(scope, {
       type: itemType,
       name,
-      unit: data.unit || 'pcs',
-      selling_price: parseFloat(data.selling_price) || 0,
-      cost_price: parseFloat(data.cost_price) || 0,
-      quantity: parseFloat(data.quantity) || 0,
-      reorder_level: parseFloat(data.reorder_level) || 0,
-      warehouse_id: data.warehouse_id || null,
-      image_url: data.image_url || null,
+      unit: data.unit ?? 'pcs',
+      selling_price: parseFloat(String(data.selling_price ?? 0)) || 0,
+      cost_price: parseFloat(String(data.cost_price ?? 0)) || 0,
+      quantity: parseFloat(String(data.quantity ?? 0)) || 0,
+      reorder_level: parseFloat(String(data.reorder_level ?? 0)) || 0,
+      warehouse_id: data.warehouse_id ?? null,
+      image_url: data.image_url ?? null,
       sku,
       created_at: now,
       updated_at: now,
-    };
+    });
 
-    const result = await itemsCol.insertOne(doc as any);
-    const saved = await itemsCol.findOne({ _id: result.insertedId });
-
-    let warehouse = null;
-    if (saved?.warehouse_id && ObjectId.isValid(saved.warehouse_id)) {
-      warehouse = await warehousesCol.findOne({ _id: new ObjectId(saved.warehouse_id) });
+    let warehouse: WarehouseDoc | null = null;
+    if (created.warehouse_id && ObjectId.isValid(created.warehouse_id)) {
+      warehouse = await InventoryRepository.findWarehouseById(scope, created.warehouse_id);
     }
 
-    return this.serializeItem(saved, warehouse);
+    return this.serializeItem(created, warehouse);
   }
 
-  static async updateItem(companyId: string, itemType: string, id: string, data: any) {
+  static async updateItem(scope: TenantScope, itemType: string, id: string, data: ItemInput) {
     if (!ObjectId.isValid(id)) {
       throw new ValidationError('Invalid id.');
     }
 
-    const itemsCol = getCollection('inventory_items');
-    const warehousesCol = getCollection('warehouses');
-
-    const existing = await itemsCol.findOne({
-      _id: new ObjectId(id),
-      company_id: companyId,
-      type: itemType,
-    });
-
-    if (!existing) {
+    const existing = await InventoryRepository.findItemById(scope, id);
+    if (existing?.type !== itemType) {
       throw new NotFoundError('Inventory item not found.');
     }
 
-    const updateFields: Record<string, any> = {
+    const updateFields: Partial<InventoryItemDoc> = {
       updated_at: new Date(),
     };
 
     if (data.name !== undefined) updateFields.name = data.name;
     if (data.unit !== undefined) updateFields.unit = data.unit;
-    if (data.selling_price !== undefined) updateFields.selling_price = parseFloat(data.selling_price) || 0;
-    if (data.cost_price !== undefined) updateFields.cost_price = parseFloat(data.cost_price) || 0;
-    if (data.quantity !== undefined) updateFields.quantity = parseFloat(data.quantity) || 0;
-    if (data.reorder_level !== undefined) updateFields.reorder_level = parseFloat(data.reorder_level) || 0;
+    if (data.selling_price !== undefined) updateFields.selling_price = parseFloat(String(data.selling_price)) || 0;
+    if (data.cost_price !== undefined) updateFields.cost_price = parseFloat(String(data.cost_price)) || 0;
+    if (data.quantity !== undefined) updateFields.quantity = parseFloat(String(data.quantity)) || 0;
+    if (data.reorder_level !== undefined) updateFields.reorder_level = parseFloat(String(data.reorder_level)) || 0;
     if (data.warehouse_id !== undefined) updateFields.warehouse_id = data.warehouse_id;
     if (data.image_url !== undefined) updateFields.image_url = data.image_url;
 
-    await itemsCol.updateOne({ _id: new ObjectId(id) }, { $set: updateFields });
-    const updated = await itemsCol.findOne({ _id: new ObjectId(id) });
+    const updated = await InventoryRepository.updateItem(scope, id, updateFields);
+    if (!updated) {
+      throw new NotFoundError('Inventory item not found.');
+    }
 
-    let warehouse = null;
-    if (updated?.warehouse_id && ObjectId.isValid(updated.warehouse_id)) {
-      warehouse = await warehousesCol.findOne({ _id: new ObjectId(updated.warehouse_id) });
+    let warehouse: WarehouseDoc | null = null;
+    if (updated.warehouse_id && ObjectId.isValid(updated.warehouse_id)) {
+      warehouse = await InventoryRepository.findWarehouseById(scope, updated.warehouse_id);
     }
 
     return this.serializeItem(updated, warehouse);
   }
 
-  static async deleteItem(companyId: string, itemType: string, id: string) {
+  static async deleteItem(scope: TenantScope, itemType: string, id: string) {
     if (!ObjectId.isValid(id)) {
       throw new ValidationError('Invalid id.');
     }
 
-    const itemsCol = getCollection('inventory_items');
-    const existing = await itemsCol.findOne({
-      _id: new ObjectId(id),
-      company_id: companyId,
-      type: itemType,
-    });
-
-    if (!existing) {
+    const existing = await InventoryRepository.findItemById(scope, id);
+    if (existing?.type !== itemType) {
       throw new NotFoundError('Inventory item not found.');
     }
 
-    await itemsCol.deleteOne({ _id: new ObjectId(id) });
+    await InventoryRepository.deleteItem(scope, id);
   }
 
-  static async getLiveSemiFinished(companyId: string) {
-    const itemsCol = getCollection('inventory_items');
-    const assignmentsCol = getCollection('material_assignments');
-    const workersCol = getCollection('workers');
-    const billsCol = getCollection('bills');
+  static async getLiveSemiFinished(scope: TenantScope) {
+    const manualItems = await this.listItems(scope, 'semi_finished');
+    const manualRows = manualItems.map((item) => ({ ...item, source: 'manual' }));
 
-    const manualItems = await this.listItems(companyId, 'semi_finished');
-    const manualRows = manualItems.map(item => ({ ...item, source: 'manual' }));
-
-    const openAssignments = await assignmentsCol
-      .find({ company_id: companyId, status: 'open' })
-      .sort({ assignment_date: -1 })
-      .toArray();
-
-    const workerIds = [...new Set(openAssignments.map(a => a.worker_id || a.worker).filter(Boolean))].map(
-      id => (ObjectId.isValid(id) ? new ObjectId(id) : id)
-    );
-    const workers = await workersCol.find({ _id: { $in: workerIds as any } }).toArray();
-    const workerMap = new Map(workers.map(w => [w._id.toString(), w]));
+    const openAssignments = await InventoryRepository.findOpenAssignments(scope);
+    const workerIds = [
+      ...new Set(
+        openAssignments
+          .map((a) => {
+            if (a.worker_id) return a.worker_id;
+            if (a.worker instanceof ObjectId) return a.worker.toString();
+            if (typeof a.worker === 'string') return a.worker;
+            return null;
+          })
+          .filter((id): id is string => Boolean(id))
+      ),
+    ];
+    const workers = await InventoryRepository.findWorkersByIds(scope, workerIds);
+    const workerMap = new Map(workers.map((w) => [w._id.toString(), w]));
 
     const derivedRows = [];
     for (const assignment of openAssignments) {
       let orderInfo = null;
-      if (assignment.bill_id && ObjectId.isValid(assignment.bill_id)) {
-        const bill = await billsCol.findOne({
-          _id: new ObjectId(assignment.bill_id),
-          company_id: companyId,
-        });
+      if (assignment.bill_id && ObjectId.isValid(String(assignment.bill_id))) {
+        const bill = await InventoryRepository.findBillById(scope, String(assignment.bill_id));
         if (bill) {
           orderInfo = {
             bill_id: bill._id.toString(),
-            invoice_number: bill.invoice_number,
-            order_status: bill.order_status,
-            buyer_name: bill.buyer?.name || null,
+            invoice_number: bill.invoice_number ?? '',
+            order_status: bill.order_status ?? '',
+            buyer_name: bill.buyer?.name ?? null,
           };
         }
       }
 
-      const workerId = (assignment.worker_id || assignment.worker?._id || assignment.worker)?.toString();
+      let workerId: string | undefined;
+      if (assignment.worker_id) {
+        workerId = assignment.worker_id;
+      } else if (assignment.worker instanceof ObjectId) {
+        workerId = assignment.worker.toString();
+      } else if (typeof assignment.worker === 'string') {
+        workerId = assignment.worker;
+      } else if (assignment.worker && typeof assignment.worker === 'object' && '_id' in assignment.worker && assignment.worker._id) {
+        workerId = String(assignment.worker._id);
+      }
+
       const worker = workerId ? workerMap.get(workerId) : null;
-      const workerName = worker?.name || assignment.worker?.name || null;
+      let fallbackWorkerName: string | null = null;
+      if (typeof assignment.worker === 'object' && assignment.worker !== null && !(assignment.worker instanceof ObjectId) && 'name' in assignment.worker && typeof assignment.worker.name === 'string') {
+        fallbackWorkerName = assignment.worker.name;
+      }
+      const workerName = worker?.name ?? fallbackWorkerName;
 
       let deliveredQty = 0;
       if (Array.isArray(assignment.batches)) {
@@ -244,7 +205,7 @@ export class InventoryService {
         id: `assignment:${assignment._id.toString()}`,
         source: 'assignment',
         assignment_id: assignment._id.toString(),
-        name: assignment.material_name,
+        name: assignment.material_name ?? 'Unknown',
         unit: 'pcs',
         type: 'semi_finished',
         assigned_quantity: Number(assignment.quantity) || 0,
@@ -252,7 +213,7 @@ export class InventoryService {
         balance_quantity: balanceQty,
         quantity: balanceQty,
         location_label: workerName ? `With ${workerName}` : 'Worker unassigned',
-        worker_id: workerId || null,
+        worker_id: workerId ?? null,
         worker_name: workerName,
         order: orderInfo,
         assignment_date: assignment.assignment_date ? new Date(assignment.assignment_date).toISOString() : null,
@@ -265,73 +226,57 @@ export class InventoryService {
     };
   }
 
-  static async listWarehouses(companyId: string) {
-    const warehousesCol = getCollection('warehouses');
-    const warehouses = await warehousesCol.find({ company_id: companyId }).sort({ name: 1 }).toArray();
-    return warehouses.map(w => this.serializeWarehouse(w));
+  static async listWarehouses(scope: TenantScope) {
+    const warehouses = await InventoryRepository.findWarehouses(scope);
+    return warehouses.map((w) => this.serializeWarehouse(w));
   }
 
-  static async createWarehouse(companyId: string, data: any) {
-    const warehousesCol = getCollection('warehouses');
-    const name = (data.name || '').trim();
+  static async createWarehouse(scope: TenantScope, data: WarehouseInput) {
+    const name = (data.name ?? '').trim();
     if (!name) {
       throw new ValidationError('Warehouse name is required.');
     }
 
-    const doc = {
-      company_id: companyId,
+    const created = await InventoryRepository.insertWarehouse(scope, {
       name,
-      location: (data.location || '').trim(),
+      location: (data.location ?? '').trim(),
       created_at: new Date(),
-    };
+    });
 
-    const result = await warehousesCol.insertOne(doc as any);
-    const created = await warehousesCol.findOne({ _id: result.insertedId });
     return this.serializeWarehouse(created);
   }
 
-  static async updateWarehouse(companyId: string, id: string, data: any) {
+  static async updateWarehouse(scope: TenantScope, id: string, data: WarehouseInput) {
     if (!ObjectId.isValid(id)) throw new ValidationError('Invalid id.');
-    const warehousesCol = getCollection('warehouses');
 
-    const existing = await warehousesCol.findOne({ _id: new ObjectId(id), company_id: companyId });
+    const existing = await InventoryRepository.findWarehouseById(scope, id);
     if (!existing) throw new NotFoundError('Warehouse not found.');
 
-    const updateFields: Record<string, any> = {};
-    if (data.name !== undefined) updateFields.name = (data.name || '').trim();
-    if (data.location !== undefined) updateFields.location = (data.location || '').trim();
+    const updateFields: Partial<WarehouseDoc> = {};
+    if (data.name !== undefined) updateFields.name = (data.name ?? '').trim();
+    if (data.location !== undefined) updateFields.location = (data.location ?? '').trim();
 
-    await warehousesCol.updateOne({ _id: new ObjectId(id) }, { $set: updateFields });
-    const updated = await warehousesCol.findOne({ _id: new ObjectId(id) });
+    const updated = await InventoryRepository.updateWarehouse(scope, id, updateFields);
+    if (!updated) throw new NotFoundError('Warehouse not found.');
+
     return this.serializeWarehouse(updated);
   }
 
-  static async deleteWarehouse(companyId: string, id: string) {
+  static async deleteWarehouse(scope: TenantScope, id: string) {
     if (!ObjectId.isValid(id)) throw new ValidationError('Invalid id.');
-    const warehousesCol = getCollection('warehouses');
-    const itemsCol = getCollection('inventory_items');
 
-    const existing = await warehousesCol.findOne({ _id: new ObjectId(id), company_id: companyId });
+    const existing = await InventoryRepository.findWarehouseById(scope, id);
     if (!existing) throw new NotFoundError('Warehouse not found.');
 
-    await itemsCol.updateMany(
-      { company_id: companyId, warehouse_id: id },
-      { $set: { warehouse_id: null } }
-    );
-    await warehousesCol.deleteOne({ _id: new ObjectId(id) });
+    await InventoryRepository.deleteWarehouse(scope, id);
   }
 
-  static async getWarehouseSummary(companyId: string) {
-    const warehousesCol = getCollection('warehouses');
-    const itemsCol = getCollection('inventory_items');
-
-    const warehouses = await warehousesCol.find({ company_id: companyId }).toArray();
+  static async getWarehouseSummary(scope: TenantScope) {
+    const warehouses = await InventoryRepository.findWarehouses(scope);
     const summary = [];
 
     for (const warehouse of warehouses) {
-      const items = await itemsCol
-        .find({ company_id: companyId, warehouse_id: warehouse._id.toString() })
-        .toArray();
+      const items = await InventoryRepository.findItems(scope, { warehouse_id: warehouse._id.toString() });
 
       const byType: Record<string, { items_count: number; total_quantity: number; stock_value: number }> = {
         raw: { items_count: 0, total_quantity: 0, stock_value: 0 },

@@ -1,14 +1,15 @@
 import { ObjectId } from 'mongodb';
-import { getCollection } from '../../db/mongo.js';
+import { DashboardRepository } from './dashboard.repository.js';
+import type { TenantScope } from '../../types/tenant.js';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
 const MONTH_ABBR = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
 function calcChange(oldVal: number, newVal: number): number {
@@ -18,22 +19,23 @@ function calcChange(oldVal: number, newVal: number): number {
 }
 
 export class DashboardService {
-  static async getBillFinancials(companyId: string, startDt?: Date, endDt?: Date) {
-    const billsCol = getCollection('bills');
-    const filter: Record<string, any> = {
-      company_id: companyId,
+  static async getBillFinancials(scope: TenantScope, startDt?: Date, endDt?: Date) {
+    const filter: Record<string, unknown> = {
       profit_confirmed: true,
     };
 
     if (startDt || endDt) {
-      filter.profit_confirmed_at = {};
-      if (startDt) filter.profit_confirmed_at.$gte = startDt;
-      if (endDt) filter.profit_confirmed_at.$lte = endDt;
+      const dateRange: Record<string, unknown> = {};
+      if (startDt) dateRange.$gte = startDt;
+      if (endDt) dateRange.$lte = endDt;
+      filter.profit_confirmed_at = dateRange;
     }
 
-    const bills = await billsCol
-      .find(filter, { projection: { payments: 1, grand_total: 1, profit_confirmed_amount: 1 } })
-      .toArray();
+    const bills = await DashboardRepository.findBills(scope, filter, {
+      payments: 1,
+      grand_total: 1,
+      profit_confirmed_amount: 1,
+    });
 
     let totalRevenue = 0.0;
     let totalProfit = 0.0;
@@ -42,7 +44,7 @@ export class DashboardService {
       let amountReceived = 0.0;
       if (Array.isArray(b.payments)) {
         for (const p of b.payments) {
-          amountReceived += Number(p.amount) || 0;
+          amountReceived += Number((p as { amount?: unknown }).amount) || 0;
         }
       }
       totalRevenue += amountReceived;
@@ -55,14 +57,14 @@ export class DashboardService {
     };
   }
 
-  static async getUploadedDataFinancials(companyId: string, startDt?: Date, endDt?: Date) {
-    const bizCol = getCollection('business_data');
-    const match: Record<string, any> = { company_id: companyId };
+  static async getUploadedDataFinancials(scope: TenantScope, startDt?: Date, endDt?: Date) {
+    const match: Record<string, unknown> = {};
 
     if (startDt || endDt) {
-      match.date = {};
-      if (startDt) match.date.$gte = startDt;
-      if (endDt) match.date.$lte = endDt;
+      const dateRange: Record<string, unknown> = {};
+      if (startDt) dateRange.$gte = startDt;
+      if (endDt) dateRange.$lte = endDt;
+      match.date = dateRange;
     }
 
     const pipeline = [
@@ -76,7 +78,7 @@ export class DashboardService {
       },
     ];
 
-    const results = await bizCol.aggregate(pipeline).toArray();
+    const results = await DashboardRepository.aggregateBusinessData(scope, pipeline);
     const result = results[0] || {};
     const totalRevenue = Number(result.total_revenue) || 0;
     const totalCost = Number(result.total_cost) || 0;
@@ -87,14 +89,14 @@ export class DashboardService {
     };
   }
 
-  static async getWorkerPaymentsPaid(companyId: string, startDt?: Date, endDt?: Date) {
-    const payCol = getCollection('pay_records');
-    const match: Record<string, any> = { company_id: companyId };
+  static async getWorkerPaymentsPaid(scope: TenantScope, startDt?: Date, endDt?: Date) {
+    const match: Record<string, unknown> = {};
 
     if (startDt || endDt) {
-      match.date = {};
-      if (startDt) match.date.$gte = startDt;
-      if (endDt) match.date.$lte = endDt;
+      const dateRange: Record<string, unknown> = {};
+      if (startDt) dateRange.$gte = startDt;
+      if (endDt) dateRange.$lte = endDt;
+      match.date = dateRange;
     }
 
     const pipeline = [
@@ -107,16 +109,16 @@ export class DashboardService {
       },
     ];
 
-    const results = await payCol.aggregate(pipeline).toArray();
+    const results = await DashboardRepository.aggregatePayRecords(scope, pipeline);
     const result = results[0] || {};
     return Math.round((Number(result.total_paid) || 0) * 100) / 100;
   }
 
-  static async getLiveFinancialSummary(companyId: string) {
+  static async getLiveFinancialSummary(scope: TenantScope) {
     const [bills, uploaded, workerPaid] = await Promise.all([
-      this.getBillFinancials(companyId),
-      this.getUploadedDataFinancials(companyId),
-      this.getWorkerPaymentsPaid(companyId),
+      this.getBillFinancials(scope),
+      this.getUploadedDataFinancials(scope),
+      this.getWorkerPaymentsPaid(scope),
     ]);
 
     const totalRevenue = Math.round((bills.revenue + uploaded.revenue) * 100) / 100;
@@ -133,8 +135,8 @@ export class DashboardService {
     };
   }
 
-  static async getSummaryData(companyId: string) {
-    const live = await this.getLiveFinancialSummary(companyId);
+  static async getSummaryData(scope: TenantScope) {
+    const live = await this.getLiveFinancialSummary(scope);
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
@@ -142,19 +144,17 @@ export class DashboardService {
     const prevMonthStart = new Date(prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), 1, 0, 0, 0, 0);
 
     const [prevBills, prevUploaded, prevWorkerPaid] = await Promise.all([
-      this.getBillFinancials(companyId, prevMonthStart, prevMonthEnd),
-      this.getUploadedDataFinancials(companyId, prevMonthStart, prevMonthEnd),
-      this.getWorkerPaymentsPaid(companyId, prevMonthStart, prevMonthEnd),
+      this.getBillFinancials(scope, prevMonthStart, prevMonthEnd),
+      this.getUploadedDataFinancials(scope, prevMonthStart, prevMonthEnd),
+      this.getWorkerPaymentsPaid(scope, prevMonthStart, prevMonthEnd),
     ]);
 
     const prevRevenue = Math.round((prevBills.revenue + prevUploaded.revenue) * 100) / 100;
     const prevProfit = Math.round((prevBills.profit + prevUploaded.profit - prevWorkerPaid) * 100) / 100;
 
-    const workersCol = getCollection('workers');
     const [activeWorkers, prevWorkers] = await Promise.all([
-      workersCol.countDocuments({ company_id: companyId, is_active: true }),
-      workersCol.countDocuments({
-        company_id: companyId,
+      DashboardRepository.countWorkers(scope, { is_active: true }),
+      DashboardRepository.countWorkers(scope, {
         is_active: true,
         created_at: { $lt: currentMonthStart },
       }),
@@ -180,12 +180,10 @@ export class DashboardService {
     return { startDt, endDt };
   }
 
-  private static async getBillMonthlySeries(companyId: string, startDt: Date, endDt: Date) {
-    const billsCol = getCollection('bills');
+  private static async getBillMonthlySeries(scope: TenantScope, startDt: Date, endDt: Date) {
     const pipeline = [
       {
         $match: {
-          company_id: companyId,
           profit_confirmed: true,
           profit_confirmed_at: { $gte: startDt, $lte: endDt },
         },
@@ -202,10 +200,11 @@ export class DashboardService {
       },
     ];
 
-    const results = await billsCol.aggregate(pipeline).toArray();
+    const results = await DashboardRepository.aggregateBills(scope, pipeline);
     const series: Record<string, { revenue: number; profit: number }> = {};
     for (const r of results) {
-      const key = `${r._id.year}-${r._id.month}`;
+      const idObj = r._id as { year: number; month: number };
+      const key = `${idObj.year}-${idObj.month}`;
       series[key] = {
         revenue: Number(r.revenue) || 0,
         profit: Number(r.profit) || 0,
@@ -214,14 +213,12 @@ export class DashboardService {
     return series;
   }
 
-  static async getRevExpData(companyId: string, months = 6) {
+  static async getRevExpData(scope: TenantScope, months = 6) {
     const { startDt, endDt } = this.buildDateRange(months);
-    const bizCol = getCollection('business_data');
 
     const pipeline = [
       {
         $match: {
-          company_id: companyId,
           date: { $gte: startDt, $lte: endDt },
         },
       },
@@ -239,13 +236,14 @@ export class DashboardService {
     ];
 
     const [bizResults, billSeries] = await Promise.all([
-      bizCol.aggregate(pipeline).toArray(),
-      this.getBillMonthlySeries(companyId, startDt, endDt),
+      DashboardRepository.aggregateBusinessData(scope, pipeline),
+      this.getBillMonthlySeries(scope, startDt, endDt),
     ]);
 
     const combined: Record<string, [number, number]> = {};
     for (const r of bizResults) {
-      const key = `${r._id.year}-${r._id.month}`;
+      const idObj = r._id as { year: number; month: number };
+      const key = `${idObj.year}-${idObj.month}`;
       combined[key] = [Number(r.total_revenue) || 0, Number(r.total_expenses) || 0];
     }
 
@@ -277,11 +275,10 @@ export class DashboardService {
     return { labels, revenue, expenses };
   }
 
-  static async getProfitTrends(companyId: string, months = 6, interval = 'monthly') {
+  static async getProfitTrends(scope: TenantScope, months = 6, interval = 'monthly') {
     const { startDt, endDt } = this.buildDateRange(months);
-    const bizCol = getCollection('business_data');
 
-    let groupId: Record<string, any>;
+    let groupId: Record<string, unknown>;
     if (interval === 'daily') {
       groupId = {
         year: { $year: '$date' },
@@ -303,7 +300,6 @@ export class DashboardService {
     const pipeline = [
       {
         $match: {
-          company_id: companyId,
           date: { $gte: startDt, $lte: endDt },
         },
       },
@@ -330,14 +326,15 @@ export class DashboardService {
       },
     ];
 
-    const results = await bizCol.aggregate(pipeline).toArray();
+    const results = await DashboardRepository.aggregateBusinessData(scope, pipeline);
 
     if (interval === 'monthly') {
-      const billSeries = await this.getBillMonthlySeries(companyId, startDt, endDt);
+      const billSeries = await this.getBillMonthlySeries(scope, startDt, endDt);
       const combined: Record<string, number> = {};
 
       for (const r of results) {
-        const key = `${r._id.year}-${r._id.month}`;
+        const idObj = r._id as { year: number; month: number };
+        const key = `${idObj.year}-${idObj.month}`;
         combined[key] = Number(r.total_profit) || 0;
       }
 
@@ -367,12 +364,13 @@ export class DashboardService {
     const profit: number[] = [];
 
     for (const r of results) {
+      const idObj = r._id as { day?: number; month?: number; week?: number; year?: number };
       if (interval === 'daily') {
-        labels.push(`${r._id.day}/${r._id.month}`);
+        labels.push(`${idObj.day}/${idObj.month}`);
       } else if (interval === 'weekly') {
-        labels.push(`Week ${r._id.week}`);
+        labels.push(`Week ${idObj.week}`);
       } else {
-        labels.push(`${MONTH_ABBR[r._id.month - 1]} ${r._id.year}`);
+        labels.push(`${MONTH_ABBR[(idObj.month ?? 1) - 1]} ${idObj.year}`);
       }
       profit.push(Number(r.total_profit) || 0);
     }
@@ -380,49 +378,40 @@ export class DashboardService {
     return { labels, profit, interval };
   }
 
-  static async getWorkerPayments(companyId: string) {
-    const payCol = getCollection('pay_records');
-    const workersCol = getCollection('workers');
-
-    const records = await payCol
-      .find({ company_id: companyId })
-      .sort({ date: -1 })
-      .limit(10)
-      .toArray();
+  static async getWorkerPayments(scope: TenantScope) {
+    const records = await DashboardRepository.findRecentPayRecords(scope, 10);
 
     const workerIds = [
       ...new Set(
         records
-          .map(r => {
-            if (!r.worker) return r.worker_id || null;
+          .map((r) => {
+            if (!r.worker) return (r.worker_id as string | undefined) ?? null;
             if (r.worker instanceof ObjectId) return r.worker.toString();
             if (typeof r.worker === 'string') return r.worker;
-            if (r.worker._id) return r.worker._id.toString();
-            return r.worker_id || null;
+            if ((r.worker as { _id?: unknown })._id) return String((r.worker as { _id: unknown })._id);
+            return (r.worker_id as string | undefined) ?? null;
           })
           .filter(Boolean)
       ),
-    ];
+    ] as string[];
 
     const validObjectIds = workerIds
       .filter((id): id is string => typeof id === 'string' && ObjectId.isValid(id))
-      .map(id => new ObjectId(id));
+      .map((id) => new ObjectId(id));
 
-    const workerDocs = await workersCol
-      .find({ _id: { $in: validObjectIds } })
-      .toArray();
-    const workerMap = new Map(workerDocs.map(w => [w._id.toString(), w]));
+    const workerDocs = await DashboardRepository.findWorkersByIds(scope, validObjectIds);
+    const workerMap = new Map(workerDocs.map((w) => [w._id.toString(), w]));
 
     const results = [];
     for (const r of records) {
       let workerId: string | null = null;
       if (r.worker instanceof ObjectId) workerId = r.worker.toString();
       else if (typeof r.worker === 'string') workerId = r.worker;
-      else if (r.worker?._id) workerId = r.worker._id.toString();
-      else if (r.worker_id) workerId = r.worker_id;
+      else if ((r.worker as { _id?: unknown })?._id) workerId = String((r.worker as { _id: unknown })._id);
+      else if (r.worker_id) workerId = String(r.worker_id);
 
       const worker = workerId ? workerMap.get(workerId) : null;
-      const workerName = worker?.name || (workerId ? 'Deleted Worker' : 'Unknown');
+      const workerName = worker?.name ?? (workerId ? 'Deleted Worker' : 'Unknown');
 
       const unitsProduced = Number(r.units_produced) || 0;
       const ratePerUnit = Number(r.rate_per_unit) || 0;
@@ -430,7 +419,7 @@ export class DashboardService {
       const amountPaid = Number(r.amount_paid) || 0;
       const isPaid = Boolean(r.paid) || amountPaid >= totalOwed;
 
-      const dateObj = r.date instanceof Date ? r.date : new Date(r.date);
+      const dateObj = r.date instanceof Date ? r.date : new Date(r.date as string | Date);
       const monthStr = `${MONTH_NAMES[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 
       results.push({
@@ -446,10 +435,8 @@ export class DashboardService {
     return results;
   }
 
-  static async getTopWorkers(companyId: string) {
-    const payCol = getCollection('pay_records');
+  static async getTopWorkers(scope: TenantScope) {
     const pipeline = [
-      { $match: { company_id: companyId } },
       {
         $group: {
           _id: '$worker',
@@ -479,8 +466,13 @@ export class DashboardService {
       },
     ];
 
-    const results = await payCol.aggregate(pipeline).toArray();
-    return results.map(w => {
+    const results = await DashboardRepository.aggregatePayRecords<{
+      name?: string;
+      total_payout?: number;
+      payment_count?: number;
+      latest_payment?: Date | string | null;
+    }>(scope, pipeline);
+    return results.map((w) => {
       const latest = w.latest_payment;
       let latestStr = 'N/A';
       if (latest instanceof Date) {
@@ -489,7 +481,7 @@ export class DashboardService {
         latestStr = new Date(latest).toISOString();
       }
       return {
-        name: w.name || 'Unknown',
+        name: w.name ?? 'Unknown',
         total_payout: Number(w.total_payout) || 0,
         payment_count: Number(w.payment_count) || 0,
         latest_payment: latestStr,
@@ -497,15 +489,14 @@ export class DashboardService {
     });
   }
 
-  static async getDashboardData(companyId: string) {
-    const billsCol = getCollection('bills');
+  static async getDashboardData(scope: TenantScope) {
     const [summary, revExp, profitTrends, workers, topWorkers, billsCount] = await Promise.all([
-      this.getSummaryData(companyId),
-      this.getRevExpData(companyId, 6),
-      this.getProfitTrends(companyId, 6, 'monthly'),
-      this.getWorkerPayments(companyId),
-      this.getTopWorkers(companyId),
-      billsCol.countDocuments({ company_id: companyId }),
+      this.getSummaryData(scope),
+      this.getRevExpData(scope, 6),
+      this.getProfitTrends(scope, 6, 'monthly'),
+      this.getWorkerPayments(scope),
+      this.getTopWorkers(scope),
+      DashboardRepository.countBills(scope),
     ]);
 
     return {

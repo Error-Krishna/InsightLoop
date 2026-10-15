@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { UnauthorizedError } from './errors.js';
 
@@ -14,7 +14,10 @@ export interface TokenPayload {
   exp?: number;
 }
 
-export function generateTokens(user: { _id: any; email: string; name: string }, companyId: string) {
+export function generateTokens(
+  user: { _id: { toString(): string }; email: string; name: string },
+  companyId: string
+) {
   const userIdStr = user._id.toString();
   const jtiAccess = crypto.randomUUID().replace(/-/g, '');
   const jtiRefresh = crypto.randomUUID().replace(/-/g, '');
@@ -38,12 +41,12 @@ export function generateTokens(user: { _id: any; email: string; name: string }, 
   };
 
   const access = jwt.sign(accessPayload, env.JWT_SECRET, {
-    expiresIn: env.JWT_ACCESS_EXPIRES_IN as any,
+    expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions['expiresIn'],
     algorithm: 'HS256',
   });
 
   const refresh = jwt.sign(refreshPayload, env.JWT_SECRET, {
-    expiresIn: env.JWT_REFRESH_EXPIRES_IN as any,
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN as SignOptions['expiresIn'],
     algorithm: 'HS256',
   });
 
@@ -54,16 +57,19 @@ export function verifyToken(token: string, expectedType: 'access' | 'refresh'): 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET, {
       algorithms: ['HS256'],
-    }) as TokenPayload;
+    }) as unknown as TokenPayload;
 
     if (payload.token_type !== expectedType) {
       throw new UnauthorizedError('Token is invalid or expired', 'token_not_valid');
     }
 
     return payload;
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof UnauthorizedError) throw err;
-    throw new UnauthorizedError('Token is invalid or expired', 'token_not_valid');
+    if (err instanceof jwt.TokenExpiredError) {
+      throw new UnauthorizedError('Token has expired', 'token_expired');
+    }
+    throw new UnauthorizedError('Token is invalid', 'token_not_valid');
   }
 }
 

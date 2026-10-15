@@ -21,7 +21,15 @@ interface ChatMessage {
   timestamp?: string;
 }
 
-function formatAssistantMessage(payload: any): string {
+interface AssistantPayload {
+  action?: string;
+  content?: string;
+  message?: string;
+  url?: string;
+  file_url?: string;
+}
+
+function formatAssistantMessage(payload: AssistantPayload): string {
   if (payload.action !== "display" || !payload.content) {
     return payload.content || payload.message || "Done.";
   }
@@ -146,7 +154,7 @@ export default function ChatPage() {
         ]);
 
         if (payload.action === "navigate" && payload.url) {
-          setTimeout(() => navigate(payload.url), 800);
+          setTimeout(() => { void navigate(payload.url); }, 800);
         }
         if (payload.action === "download" && payload.file_url) {
           window.open(payload.file_url, "_blank");
@@ -167,7 +175,7 @@ export default function ChatPage() {
 
   function send(text?: string) {
     const command = (text || input).trim();
-    if (!command || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return;
+    if (!command || socketRef.current?.readyState !== WebSocket.OPEN) return;
     const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setMessages((prev) => [...prev, { role: "user", content: command, timestamp: ts }]);
     setInput("");

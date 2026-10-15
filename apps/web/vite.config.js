@@ -8,11 +8,24 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api/v1": {
-        target: "http://localhost:8000",
+        target: process.env.BACKEND_URL || "http://127.0.0.1:4000",
         changeOrigin: true,
       },
       "/ws": {
-        target: "ws://localhost:8000",
+        target: (process.env.BACKEND_URL || "http://127.0.0.1:4000").replace(/^http/, "ws"),
+        ws: true,
+      },
+    },
+  },
+  preview: {
+    port: 5173,
+    proxy: {
+      "/api/v1": {
+        target: process.env.BACKEND_URL || "http://127.0.0.1:4000",
+        changeOrigin: true,
+      },
+      "/ws": {
+        target: (process.env.BACKEND_URL || "http://127.0.0.1:4000").replace(/^http/, "ws"),
         ws: true,
       },
     },

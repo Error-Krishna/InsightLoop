@@ -1,19 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
 import { UnauthorizedError } from '../utils/errors.js';
-import { verifyToken, type TokenPayload } from '../utils/jwt.js';
+import { verifyToken } from '../utils/jwt.js';
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenPayload;
-      companyId?: string;
-    }
-  }
-}
-
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
+export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader?.startsWith('Bearer ')) {
     throw new UnauthorizedError('Authentication credentials were not provided.');
   }
 
@@ -23,7 +14,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
     req.user = payload;
     req.companyId = payload.company_id;
     next();
-  } catch (err: any) {
+  } catch {
     throw new UnauthorizedError('Given token not valid for any token type');
   }
 }

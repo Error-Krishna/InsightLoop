@@ -30,9 +30,11 @@ export default function LoginPage() {
         user: data.user,
       });
       toast.success("Welcome back");
-      navigate(location.state?.from || "/dashboard", { replace: true });
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Login failed");
+      const target = (location.state as { from?: string } | null)?.from ?? "/dashboard";
+      void navigate(target, { replace: true });
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Login failed");
     } finally {
       setLoading(false);
     }

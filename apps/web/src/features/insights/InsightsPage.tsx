@@ -33,7 +33,7 @@ export default function InsightsPage() {
     try {
       await api.post("/insights/analyze/");
       toast.success("Insights generated");
-      load();
+      await load();
     } catch {
       toast.error("Failed to generate insights");
     } finally {
@@ -117,7 +117,7 @@ export default function InsightsPage() {
                     onClick={async () => {
                       await api.delete(`/insights/${selected.id}/`);
                       toast.success("Insight deleted");
-                      load();
+                      await load();
                     }}
                     className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-medium text-rose-600"
                   >
@@ -131,7 +131,7 @@ export default function InsightsPage() {
                   <LineChart data={selected.labels.map((label, index) => ({ label, value: selected.data_points[index] }))}>
                     <XAxis dataKey="label" />
                     <YAxis />
-                    <Tooltip formatter={(v: any) => [Number(v).toLocaleString("en-IN"), "Value"]} />
+                    <Tooltip formatter={(v: unknown) => [Number(v).toLocaleString("en-IN"), "Value"]} />
                     <Line dataKey="value" stroke="#2563eb" strokeWidth={3} />
                   </LineChart>
                 </ResponsiveContainer>

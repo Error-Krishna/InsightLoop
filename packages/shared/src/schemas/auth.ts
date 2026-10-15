@@ -13,7 +13,7 @@ export const SignupSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters.'),
   company: z.string().optional(),
   company_name: z.string().optional(),
-}).refine(data => data.company || data.company_name, {
+}).refine(data => Boolean(data.company ?? data.company_name), {
   message: 'Please provide a company name.',
   path: ['company_name'],
 });
@@ -29,7 +29,7 @@ export type RefreshTokenInput = z.infer<typeof RefreshTokenSchema>;
 export const GoogleLoginSchema = z.object({
   credential: z.string().optional(),
   id_token: z.string().optional(),
-}).refine(data => data.credential || data.id_token, {
+}).refine(data => Boolean(data.credential ?? data.id_token), {
   message: 'Google credential or id_token is required.',
   path: ['credential'],
 });

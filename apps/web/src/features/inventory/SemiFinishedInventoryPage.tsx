@@ -38,7 +38,7 @@ export default function SemiFinishedInventoryPage() {
   }
 
   useEffect(() => {
-    loadInProduction();
+    void loadInProduction();
   }, []);
 
   return (

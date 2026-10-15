@@ -63,11 +63,10 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
   }
 
   useEffect(() => {
-    loadInventory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void loadInventory();
   }, [billType]);
 
-  function updateProduct(index: number, field: keyof BillItem, value: any) {
+  function updateProduct(index: number, field: keyof BillItem, value: BillItem[keyof BillItem]) {
     setForm((c) => ({
       ...c,
       products: c.products.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
@@ -145,8 +144,9 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
         products: [{ ...emptyProduct }],
       });
       setRefreshKey((k) => k + 1);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to save bill");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to save bill");
     } finally {
       setSaving(false);
     }
@@ -206,16 +206,18 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
                   placeholder="22AAAAA0000A1Z5"
                 />
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">GST Rate</label>
-                  <select
-                    value={form.gst_percentage}
-                    onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  >
-                    {GST_RATES.map((r) => (
-                      <option key={r} value={r}>{r}%</option>
-                    ))}
-                  </select>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    <span>GST Rate</span>
+                    <select
+                      value={form.gst_percentage}
+                      onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    >
+                      {GST_RATES.map((r) => (
+                        <option key={r} value={r}>{r}%</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </>
             )}
@@ -495,8 +497,9 @@ function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onA
         quantity: Number(quantity) || 0,
       });
       onAdded(data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to add item to inventory");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to add item to inventory");
     } finally {
       setSaving(false);
     }
@@ -516,16 +519,18 @@ function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onA
           <FieldInput label="Item name" value={name} onChange={setName} placeholder="Jute bag - large" />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
-              <select
-                value={itemType}
-                onChange={(e) => setItemType(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="finished">Finished good</option>
-                <option value="semi-finished">Work in progress</option>
-                <option value="raw">Raw material</option>
-              </select>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                <span>Type</span>
+                <select
+                  value={itemType}
+                  onChange={(e) => setItemType(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="finished">Finished good</option>
+                  <option value="semi-finished">Work in progress</option>
+                  <option value="raw">Raw material</option>
+                </select>
+              </label>
             </div>
             <FieldInput label="Unit" value={unit} onChange={setUnit} placeholder="pcs" />
           </div>

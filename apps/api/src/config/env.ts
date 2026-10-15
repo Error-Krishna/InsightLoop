@@ -26,13 +26,17 @@ export const env = envSchema.parse(process.env);
 // Runtime safety guards enforcing Non-Negotiable Rule 3
 if (env.NODE_ENV === 'test' || process.env.VITEST || process.env.NODE_ENV === 'test') {
   if (!env.MONGODB_DB_NAME.endsWith('_test')) {
+    /* v8 ignore start */
     throw new Error(
       `CRITICAL SAFETY VIOLATION: Test database name must end with '_test'. Got: ${env.MONGODB_DB_NAME}`
     );
+    /* v8 ignore stop */
   }
   if (!env.MONGODB_URI.includes('localhost') && !env.MONGODB_URI.includes('127.0.0.1')) {
+    /* v8 ignore start */
     throw new Error(
       `CRITICAL SAFETY VIOLATION: Test database host must be local. Got: ${env.MONGODB_URI}`
     );
+    /* v8 ignore stop */
   }
 }

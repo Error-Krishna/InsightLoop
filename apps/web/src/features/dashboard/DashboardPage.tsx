@@ -26,7 +26,7 @@ interface SummaryData {
   revenue_change?: number;
   profit_change?: number;
   workers_change?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface RevExpData {
@@ -146,7 +146,7 @@ export default function DashboardPage() {
       };
     }
 
-    bootstrap();
+    void bootstrap();
     connectSocket();
     return () => socket?.close();
   }, []);
@@ -231,7 +231,7 @@ export default function DashboardPage() {
                   <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, ""]} />
+                  <Tooltip formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, ""]} />
                   <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f97316" strokeWidth={2.5} dot={false} />
                 </LineChart>
@@ -259,7 +259,7 @@ export default function DashboardPage() {
                   <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, "Profit"]} />
+                  <Tooltip formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, "Profit"]} />
                   <Area type="monotone" dataKey="value" stroke="#14b8a6" fill="url(#profitGrad)" strokeWidth={2.5} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -325,7 +325,7 @@ export default function DashboardPage() {
                     tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
                   />
                   <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <Tooltip formatter={(v: any) => [`₹${Number(v).toLocaleString("en-IN")}`, "Payout"]} />
+                  <Tooltip formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, "Payout"]} />
                   <Bar dataKey="total_payout" fill="#2563eb" radius={[0, 6, 6, 0]} maxBarSize={28} />
                 </BarChart>
               </ResponsiveContainer>

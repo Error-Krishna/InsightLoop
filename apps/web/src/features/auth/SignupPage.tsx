@@ -29,15 +29,16 @@ export default function SignupPage() {
         user: data.user,
       });
       toast.success("Account created");
-      navigate("/dashboard", { replace: true });
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Signup failed");
+      void navigate("/dashboard", { replace: true });
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Signup failed");
     } finally {
       setLoading(false);
     }
   }
 
-  const fields: Array<{ key: keyof typeof form; label: string; type: string }> = [
+  const fields: { key: keyof typeof form; label: string; type: string }[] = [
     { key: "name", label: "Full Name", type: "text" },
     { key: "email", label: "Email", type: "email" },
     { key: "company", label: "Company", type: "text" },

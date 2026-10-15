@@ -1,21 +1,29 @@
 import { parse } from 'csv-parse/sync';
-import { getCollection } from '../../db/mongo.js';
+import { UploadRepository } from './upload.repository.js';
 import { BadRequestError } from '../../utils/errors.js';
+import type { TenantScope } from '../../types/tenant.js';
+
+export interface ManualUploadInput {
+  date?: string;
+  product?: string;
+  category?: string;
+  quantity?: number | string;
+  production_cost?: number | string;
+  selling_price?: number | string;
+  region?: string;
+  customer_type?: string;
+}
 
 export class UploadService {
-  static async generateFinancialSummaries(companyId: string) {
-    const bizCol = getCollection('business_data');
-    const finCol = getCollection('financial_summaries');
-
-    const hasData = await bizCol.findOne({ company_id: companyId });
+  static async generateFinancialSummaries(scope: TenantScope) {
+    const hasData = await UploadRepository.findOneBusinessData(scope);
     if (!hasData) {
       return;
     }
 
-    await finCol.deleteMany({ company_id: companyId });
+    await UploadRepository.deleteFinancialSummaries(scope);
 
     const pipeline = [
-      { $match: { company_id: companyId } },
       {
         $group: {
           _id: {
@@ -26,11 +34,11 @@ export class UploadService {
       },
     ];
 
-    const distinctMonths = await bizCol.aggregate(pipeline).toArray();
+    const distinctMonths = await UploadRepository.aggregateBusinessData(scope, pipeline);
 
     for (const m of distinctMonths) {
-      const year = m._id.year;
-      const month = m._id.month;
+      const year = (m._id as { year: number }).year;
+      const month = (m._id as { month: number }).month;
 
       const startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
       const endDate = new Date(year, month, 0, 23, 59, 59, 999);
@@ -38,7 +46,6 @@ export class UploadService {
       const aggPipeline = [
         {
           $match: {
-            company_id: companyId,
             date: { $gte: startDate, $lte: endDate },
           },
         },
@@ -51,7 +58,7 @@ export class UploadService {
         },
       ];
 
-      const aggResults = await bizCol.aggregate(aggPipeline).toArray();
+      const aggResults = await UploadRepository.aggregateBusinessData(scope, aggPipeline);
       const monthlyData = aggResults[0];
 
       if (monthlyData) {
@@ -59,8 +66,7 @@ export class UploadService {
         const totalExpenses = Number(monthlyData.total_expenses) || 0;
         const totalProfit = totalRevenue - totalExpenses;
 
-        await finCol.insertOne({
-          company_id: companyId,
+        await UploadRepository.insertFinancialSummary(scope, {
           timestamp: endDate,
           total_revenue: totalRevenue,
           total_profit: totalProfit,
@@ -71,10 +77,14 @@ export class UploadService {
     }
   }
 
-  static async manualUpload(companyId: string, data: any) {
-    const bizCol = getCollection('business_data');
-
-    if (!data.date || !data.product || data.quantity === undefined || data.production_cost === undefined || data.selling_price === undefined) {
+  static async manualUpload(scope: TenantScope, data: ManualUploadInput) {
+    if (
+      !data.date ||
+      !data.product ||
+      data.quantity === undefined ||
+      data.production_cost === undefined ||
+      data.selling_price === undefined
+    ) {
       throw new BadRequestError('Missing required fields.');
     }
 
@@ -84,24 +94,23 @@ export class UploadService {
     }
 
     const doc = {
-      company_id: companyId,
       date: dateObj,
       product: String(data.product),
-      category: String(data.category || ''),
+      category: String(data.category ?? ''),
       quantity: parseInt(String(data.quantity), 10),
       production_cost: parseFloat(String(data.production_cost)),
       selling_price: parseFloat(String(data.selling_price)),
-      region: String(data.region || ''),
-      customer_type: String(data.customer_type || ''),
+      region: String(data.region ?? ''),
+      customer_type: String(data.customer_type ?? ''),
     };
 
-    const result = await bizCol.insertOne(doc);
-    await this.generateFinancialSummaries(companyId);
+    const insertedId = await UploadRepository.insertBusinessData(scope, doc);
+    await this.generateFinancialSummaries(scope);
 
     const dateStr = dateObj.toISOString().split('T')[0];
 
     return {
-      id: result.insertedId.toString(),
+      id: insertedId.toString(),
       date: dateStr,
       product: doc.product,
       category: doc.category,
@@ -113,12 +122,16 @@ export class UploadService {
     };
   }
 
-  static async csvUpload(companyId: string, buffer: Buffer, filename: string) {
+  static async csvUpload(scope: TenantScope, buffer: Buffer, filename: string) {
+    // Security check 1: Path traversal / zip slip check
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      throw new BadRequestError('Invalid or insecure filename.');
+    }
+
     if (!filename.toLowerCase().endsWith('.csv')) {
       throw new BadRequestError('Please upload a valid CSV file.');
     }
 
-    const bizCol = getCollection('business_data');
     let csvString = buffer.toString('utf-8');
     if (csvString.charCodeAt(0) === 0xfeff) {
       csvString = csvString.slice(1);
@@ -130,7 +143,7 @@ export class UploadService {
         columns: true,
         skip_empty_lines: true,
         trim: true,
-      });
+      }) as Record<string, string>[];
     } catch {
       throw new BadRequestError('Failed to parse CSV file.');
     }
@@ -142,20 +155,23 @@ export class UploadService {
     const requiredColumns = ['date', 'product', 'quantity', 'production_cost', 'selling_price', 'region', 'customer_type'];
     const headers = Object.keys(records[0] || {});
     const headerSet = new Set(headers);
-    const missing = requiredColumns.filter(c => !headerSet.has(c));
+    const missing = requiredColumns.filter((c) => !headerSet.has(c));
 
     if (missing.length > 0) {
       throw new BadRequestError(`Missing required columns: ${missing.sort().join(', ')}`);
     }
 
-    let created = 0;
-    const warnings: Array<{ row: number; detail: string }> = [];
-    const sanitizeFormula = (val: string) => {
-      if (typeof val === 'string' && /^[=+\-@]/.test(val)) {
-        return `'${val}`;
+    // Security check 2: Formula injection detection
+    for (const row of records) {
+      for (const val of Object.values(row)) {
+        if (typeof val === 'string' && /^[=+\-@]/.test(val.trim())) {
+          throw new BadRequestError('CSV contains disallowed formula expression.');
+        }
       }
-      return val;
-    };
+    }
+
+    let created = 0;
+    const warnings: { row: number; detail: string }[] = [];
 
     for (let i = 0; i < records.length; i++) {
       const rowNum = i + 1;
@@ -176,26 +192,25 @@ export class UploadService {
         const sellPrice = parseFloat(row.selling_price);
         if (isNaN(sellPrice)) throw new Error(`Invalid selling_price '${row.selling_price}'`);
 
-        await bizCol.insertOne({
-          company_id: companyId,
+        await UploadRepository.insertBusinessData(scope, {
           date: dateObj,
-          product: sanitizeFormula(row.product),
-          category: sanitizeFormula(row.category || ''),
+          product: row.product,
+          category: row.category ?? '',
           quantity: qty,
           production_cost: prodCost,
           selling_price: sellPrice,
-          region: sanitizeFormula(row.region),
-          customer_type: sanitizeFormula(row.customer_type),
+          region: row.region,
+          customer_type: row.customer_type,
         });
 
         created++;
-      } catch (err: any) {
-        warnings.push({ row: rowNum, detail: err.message || String(err) });
+      } catch (err: unknown) {
+        warnings.push({ row: rowNum, detail: err instanceof Error ? err.message : String(err) });
       }
     }
 
     if (created > 0) {
-      await this.generateFinancialSummaries(companyId);
+      await this.generateFinancialSummaries(scope);
     }
 
     return { created, warnings };
