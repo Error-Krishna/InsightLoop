@@ -1,0 +1,19 @@
+
+   • turbo 2.11.8
+   • Packages in scope: @insightloop/api, @insightloop/eslint-config, @insightloop/shared, @insightloop/tsconfig, @insightloop/web
+   • Running typecheck in 5 packages
+   • Remote caching disabled
+
+@insightloop/shared:typecheck: cache hit, replaying logs f85a111b027c7ff3
+@insightloop/shared:build: cache hit, replaying logs 82a3af088661ddcd
+@insightloop/shared:build: $ tsc
+@insightloop/shared:typecheck: $ tsc --noEmit
+@insightloop/web:typecheck: cache hit, replaying logs 93a309e544308523
+@insightloop/api:typecheck: cache hit, replaying logs 86852b03dbcbb6e5
+@insightloop/web:typecheck: $ tsc --noEmit
+@insightloop/api:typecheck: $ tsc --noEmit
+
+ Tasks:    4 successful, 4 total
+Cached:    4 cached, 4 total
+  Time:    40ms >>> FULL TURBO
+

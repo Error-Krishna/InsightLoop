@@ -168,6 +168,8 @@ def seed():
         sku="SKU-00001",
     ).save()
 
+    ANCHOR_NOW = datetime(2026, 10, 14, 21, 0, 0)
+
     # 6. Workers for Company A
     worker_1 = Worker(
         company_id=comp_a.company_id,
@@ -175,7 +177,7 @@ def seed():
         age=35,
         address="Woodland St",
         phone="9988776655",
-        joining_date=datetime.now() - timedelta(days=180),
+        joining_date=ANCHOR_NOW - timedelta(days=180),
         is_active=True,
     ).save()
 
@@ -184,7 +186,7 @@ def seed():
         company_id=comp_b.company_id,
         name="Worker B Private",
         age=40,
-        joining_date=datetime.now() - timedelta(days=100),
+        joining_date=ANCHOR_NOW - timedelta(days=100),
         is_active=True,
     ).save()
 
@@ -195,9 +197,9 @@ def seed():
         material_name="Desk Assembly",
         quantity=20,
         price_per_unit=50.0,
-        assignment_date=datetime.now() - timedelta(days=10),
+        assignment_date=ANCHOR_NOW - timedelta(days=10),
         notes="Urgent consignment",
-        batches=[{"quantity": 10, "date": (datetime.now() - timedelta(days=5)).isoformat(), "notes": "First chunk"}],
+        batches=[{"quantity": 10, "date": (ANCHOR_NOW - timedelta(days=5)).isoformat(), "notes": "First chunk"}],
         status="open",
         wage_amount=500.0,
     ).save()
@@ -222,9 +224,9 @@ def seed():
         discount=500.0,
         grand_total=9500.0,
         invoice_number="INV-2026-00001",
-        payments=[{"amount": 5000.0, "date": (datetime.now() - timedelta(days=2)).isoformat(), "notes": "Advance"}],
+        payments=[{"amount": 5000.0, "date": (ANCHOR_NOW - timedelta(days=2)).isoformat(), "notes": "Advance"}],
         profit_confirmed=False,
-        created_at=datetime.now() - timedelta(days=2),
+        created_at=ANCHOR_NOW - timedelta(days=2),
     ).save()
 
     bill_pakka = Bill(
@@ -246,19 +248,19 @@ def seed():
         discount=0.0,
         grand_total=35400.0,
         invoice_number="INV-2026-00002",
-        payments=[{"amount": 35400.0, "date": (datetime.now() - timedelta(days=1)).isoformat(), "notes": "Full payment"}],
+        payments=[{"amount": 35400.0, "date": (ANCHOR_NOW - timedelta(days=1)).isoformat(), "notes": "Full payment"}],
         profit_confirmed=True,
         profit_suggested_amount=15000.0,
         profit_confirmed_amount=15000.0,
-        profit_confirmed_at=datetime.now() - timedelta(days=1),
-        created_at=datetime.now() - timedelta(days=1),
+        profit_confirmed_at=ANCHOR_NOW - timedelta(days=1),
+        created_at=ANCHOR_NOW - timedelta(days=1),
     ).save()
 
     # 9. BusinessData (Historical Sales) for Company A
     for i in range(1, 30):
         BusinessData(
             company_id=comp_a.company_id,
-            date=(datetime.now() - timedelta(days=i * 2)).date(),
+            date=(ANCHOR_NOW - timedelta(days=i * 2)).date(),
             product="Finished Desk",
             category="Furniture",
             quantity=5,
@@ -276,8 +278,8 @@ def seed():
         labels=["09/01", "09/02", "09/03"],
         data_points=[10000.0, 25000.0, 30000.0],
         note="Q3 review",
-        created_at=datetime.now() - timedelta(days=5),
-        expires_at=datetime.now() + timedelta(days=25),
+        created_at=ANCHOR_NOW - timedelta(days=5),
+        expires_at=ANCHOR_NOW + timedelta(days=25),
     ).save()
 
     print("Test database seeded successfully with deterministic fixtures for Company A and Company B.")

@@ -1,0 +1,1 @@
+Django diff byte-for-byte check: 0 changes against pre-mern-migration-2026-10-15
