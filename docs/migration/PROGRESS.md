@@ -2,10 +2,10 @@
 
 ## 1. Status Header
 - **Current Phase**: Phase 5.7 (Full-Codebase Fix Pass & Complete Migration to Staging-Ready)
-- **Current Module**: Section C (Phase 5.6 Carry-over) Completed; Proceeding to Section D (Frontend)
+- **Current Module**: Section D (Frontend) Completed; Proceeding to Section E (Remaining Migration Work)
 - **Status**: PHASE 5.7 IN PROGRESS (Phases 6, 7, 8 Strictly Locked)
-- **Last Updated**: 2026-10-16 03:05 UTC
-- **Next Action**: Execute Section D (Frontend Modernization & Verification)
+- **Last Updated**: 2026-10-16 03:40 UTC
+- **Next Action**: Execute Section E (Remaining Migration Work & Phase 8 Removal Plan)
 
 ---
 
@@ -62,8 +62,18 @@
   *Evidence:* [`docs/migration/evidence/C6_contract_suite.txt`](file:///docs/migration/evidence/C6_contract_suite.txt) and [`docs/migration/contract-coverage.md`](file:///docs/migration/contract-coverage.md)
 - **C7. Docker Multi-Stage & Graceful Shutdown**: Multi-stage non-root containers with HEALTHCHECK; verified automated graceful shutdown (HTTP drain, WS 1001 "Going Away", Mongo pool drain, Redis close, exit 0).  
   *Evidence:* [`docs/migration/evidence/C7_docker.txt`](file:///docs/migration/evidence/C7_docker.txt)
-- **C8. Audit Hygiene & Citation Sweep**: Created `scripts/check_citations.mjs`; audited all markdown files (175/175 citations physically valid, 0 broken links).  
+- **C8. Audit Hygiene & Citation Sweep**: Created `scripts/check_citations.mjs`; audited all markdown files (200/200 citations physically valid, 0 broken links).  
   *Evidence:* [`docs/migration/evidence/hooks.txt`](file:///docs/migration/evidence/hooks.txt) and [`scripts/check_citations.mjs`](file:///scripts/check_citations.mjs)
+
+### Section D: Frontend Modernization & Verification (All items verified)
+- **D1. Frontend Hardening & Ephemeral Storage Runbook**: `apps/web/src/lib/api.ts` handles 401 redirect to `/login` with `clearSession()`. `apps/web/src/lib/ws.ts` exponential backoff (1s, 2s, 4s, ... max 30s) + offline message queuing + automatic reconnection + active socket deduplication. `docs/runbooks/env.md` updated with ephemeral disk caveats on Render/Vercel and recommendations.  
+  *Evidence:* [`docs/runbooks/env.md`](file:///docs/runbooks/env.md), [`apps/web/src/lib/api.test.ts`](file:///apps/web/src/lib/api.test.ts), [`apps/web/src/lib/ws.test.ts`](file:///apps/web/src/lib/ws.test.ts)
+- **D2. RTL + MSW Page Integration Tests**: `apps/web/test/pages.test.tsx` testing 6 major feature pages (`DashboardPage`, `KachaBillPage`, `PakkaBillPage`, `WorkersPage`, `InventoryItemsPage`, `UploadPage`). 11 tests covering populated and empty states, calculation flows, GST rates, tab switching, and 500 error toast handling. Total 22 web tests passing across 5 test suites.  
+  *Evidence:* [`docs/migration/evidence/D2_rtl_msw.txt`](file:///docs/migration/evidence/D2_rtl_msw.txt)
+- **D3. Playwright Dual-Stack E2E Suite**: Parameterized E2E suite (`E2E_BACKEND=django|node`) executing 5 critical enterprise workflows: Flow 1 (Login → Dashboard), Flow 2 (Create Kacha Bill → View in list), Flow 3 (Worker CRUD + Assign Material + Return Batch + Partial Pay), Flow 4 (Inventory Items CRUD), Flow 5 (Upload CSV / Manual Entry & Dashboard shift). 100% passing (5/5 tests) on BOTH Node and Django.  
+  *Evidence:* [`docs/migration/evidence/D3_e2e.txt`](file:///docs/migration/evidence/D3_e2e.txt)
+- **D4. Dashboard Render Numeric Parity**: Verified exact numeric parity across all dashboard endpoints (`/dashboard/summary`, `/dashboard/rev-exp`, `/dashboard/profit-trends`, `/dashboard/workers`, `/dashboard/top-workers`) between Django and Node. 0 mismatches across all revenue, expense, profit, and worker metrics.  
+  *Evidence:* [`docs/migration/evidence/D4_dashboard_parity.txt`](file:///docs/migration/evidence/D4_dashboard_parity.txt) and [`scripts/verify_dashboard_parity.mjs`](file:///scripts/verify_dashboard_parity.mjs)
 
 ---
 

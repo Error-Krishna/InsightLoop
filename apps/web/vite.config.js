@@ -2,17 +2,21 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+const targetBackend =
+  process.env.BACKEND_URL ||
+  (process.env.E2E_BACKEND === "django" ? "http://127.0.0.1:8000" : "http://127.0.0.1:4000");
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: {
       "/api/v1": {
-        target: process.env.BACKEND_URL || "http://127.0.0.1:4000",
+        target: targetBackend,
         changeOrigin: true,
       },
       "/ws": {
-        target: (process.env.BACKEND_URL || "http://127.0.0.1:4000").replace(/^http/, "ws"),
+        target: targetBackend.replace(/^http/, "ws"),
         ws: true,
       },
     },
@@ -21,11 +25,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api/v1": {
-        target: process.env.BACKEND_URL || "http://127.0.0.1:4000",
+        target: targetBackend,
         changeOrigin: true,
       },
       "/ws": {
-        target: (process.env.BACKEND_URL || "http://127.0.0.1:4000").replace(/^http/, "ws"),
+        target: targetBackend.replace(/^http/, "ws"),
         ws: true,
       },
     },

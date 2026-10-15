@@ -42,32 +42,48 @@ async function doRefreshToken(): Promise<string> {
   return newAccessToken;
 }
 
+function redirectToLogin() {
+  if (typeof window !== "undefined" && window.location) {
+    const currentPath = window.location.pathname + window.location.search;
+    if (!currentPath.startsWith("/login")) {
+      const next = encodeURIComponent(currentPath);
+      window.location.replace(`/login?next=${next}`);
+    }
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && getRefreshToken()) {
-      originalRequest._retry = true;
+    if (error.response?.status === 401) {
+      if (originalRequest && !originalRequest._retry && getRefreshToken()) {
+        originalRequest._retry = true;
 
-      if (!isRefreshing) {
-        isRefreshing = true;
-        refreshPromise = doRefreshToken()
-          .finally(() => {
-            isRefreshing = false;
-            refreshPromise = null;
-          });
-      }
-
-      try {
-        const newAccessToken = await refreshPromise;
-        if (newAccessToken) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return await api(originalRequest);
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = doRefreshToken()
+            .finally(() => {
+              isRefreshing = false;
+              refreshPromise = null;
+            });
         }
-      } catch (refreshErr) {
+
+        try {
+          const newAccessToken = await refreshPromise;
+          if (newAccessToken) {
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            return await api(originalRequest);
+          }
+        } catch (refreshErr) {
+          clearSession();
+          redirectToLogin();
+          return Promise.reject(refreshErr instanceof Error ? refreshErr : new Error(String(refreshErr)));
+        }
+      } else {
         clearSession();
-        return Promise.reject(refreshErr instanceof Error ? refreshErr : new Error(String(refreshErr)));
+        redirectToLogin();
       }
     }
 

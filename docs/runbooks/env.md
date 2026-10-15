@@ -18,3 +18,17 @@ This runbook documents every configuration and secret required for production de
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Node API / Django | S3 credentials for file uploads (logos, signatures, attachments). | Rotate IAM credentials in AWS console, update env, verify upload, deactivate old IAM key. |
 | `S3_BUCKET_NAME` / `AWS_REGION` | Node API | S3 target bucket configuration. Fallback to MongoDB GridFS is supported if unset. | Standard S3 bucket policy management. |
 | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | Node API / Django | SMTP credentials for contact form submissions. | Rotate SMTP provider credentials (SendGrid / Postmark / Mailgun). |
+
+---
+
+## 2. Frontend Client Storage Architecture
+
+| Key / Data | Storage Medium | Lifecycle & Purpose | Security & Eviction Behavior |
+| :--- | :--- | :--- | :--- |
+| `insightloop_access_token` | `localStorage` | Short-lived JWT (1h) used in `Authorization: Bearer <token>` for API requests. | Cleared via `clearSession()` on 401 refresh failure, logout, or explicit session invalidation. |
+| `insightloop_refresh_token` | `localStorage` | Long-lived JWT (7d) used solely by `refreshAxios` to mint new access tokens without re-prompting login. | Evicted on refresh failure (401) or logout; never exposed in request headers or WebSocket query parameters. |
+| `insightloop_user` | `localStorage` | Serialized JSON snapshot of active user (`id`, `name`, `email`, `company_id`, `company_name`). | Re-hydrated on application boot; evicted on logout or session reset. |
+| `refreshPromise` / `isRefreshing` | Memory (`api.ts`) | Single-flight promise mutex ensuring concurrent 401s resolve via exactly one refresh network request. | Disposed immediately upon promise resolution or rejection. |
+| `messageQueue` | Memory (`ws.ts`) | Buffer of outbound messages queued while WebSocket is reconnecting or in backoff state. | Flushed immediately upon connection re-establishment; discarded on socket destroy or 4001 termination. |
+| `reconnectTimer` | Memory (`ws.ts`) | Exponential backoff timer tracking next retry attempt. | Cancelled on manual `close()`, explicit `reconnect()`, or code 4001 unrecoverable close. |
+

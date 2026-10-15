@@ -9,6 +9,7 @@ export default defineConfig({
     baseURL: process.env.WEB_BASE_URL || 'http://127.0.0.1:5173',
     trace: 'off',
     headless: true,
+    screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'pnpm preview --port 5173 --host 127.0.0.1',
