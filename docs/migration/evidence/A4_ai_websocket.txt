@@ -1,0 +1,14 @@
+$ vitest run test/ai_websocket_tenancy.test.ts
+
+ RUN  v3.2.7 <REPO_ROOT>/apps/api
+
+stdout | test/ai_websocket_tenancy.test.ts > A4: AI WebSocket Tenancy & Live Revocation
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/ai_websocket_tenancy.test.ts (4 tests) 1210ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  00:54:11
+   Duration  1.87s (transform 175ms, setup 0ms, collect 524ms, tests 1.21s, environment 0ms, prepare 45ms)
+

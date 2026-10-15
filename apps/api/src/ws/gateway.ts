@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import type { Server } from 'node:http';
 import { URL } from 'node:url';
+import { ObjectId } from 'mongodb';
 import { WebSocket, WebSocketServer } from 'ws';
 import { AuthRepository } from '../modules/auth/auth.repository.js';
 import { AiService } from '../modules/ai/ai.service.js';
@@ -60,13 +61,9 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
         try {
           const payload = verifyAccessToken(token);
           email = payload.email;
-        } catch (err: unknown) {
-          const errStr = String(err).toLowerCase();
-          if (errStr.includes('expired')) {
-            ws.close(4002, 'Token expired');
-          } else {
-            ws.close(4001, 'Invalid token');
-          }
+        } catch {
+          // Django closes 4001 for all token errors (expired or invalid)
+          ws.close(4001, 'Invalid or expired token');
           return;
         }
 
@@ -76,7 +73,18 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
           return;
         }
 
-        const companyId = user.company_id ? String(user.company_id) : '';
+        let companyId = '';
+        if (user.company) {
+          const companyQuery = ObjectId.isValid(user.company)
+            ? { _id: new ObjectId(user.company) }
+            : { company_id: String(user.company) };
+          const company = await AuthRepository.findCompany(companyQuery);
+          companyId = company?.company_id ?? '';
+        }
+        if (!companyId && user.company_id) {
+          companyId = String(user.company_id);
+        }
+
         if (!companyId) {
           ws.close(4001, 'No company associated with user');
           return;
@@ -92,16 +100,16 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
           console.error('Failed to send initial dashboard snapshot:', err);
         }
 
-        // Live update listener
+        // Live update listener (sending data directly matching Django)
         const onUpdate = (event: { companyId: string; data?: unknown }) => {
           if (event.companyId === companyId && ws.readyState === WebSocket.OPEN) {
             if (event.data) {
-              ws.send(JSON.stringify({ data: event.data }));
+              ws.send(JSON.stringify(event.data));
             } else {
               DashboardService.getDashboardData(scope)
                 .then((freshData) => {
                   if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ data: freshData }));
+                    ws.send(JSON.stringify(freshData));
                   }
                 })
                 .catch((_err: unknown) => { /* ignore */ });
@@ -116,101 +124,156 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
         return;
       }
 
-    // 2. AI ASSISTANT CONSUMER: /ws/ai-assistant/
-    if (pathname.startsWith('/ws/ai-assistant/')) {
-      let authenticated = false;
-      let companyId = '';
-      let userEmail = '';
+      // 2. AI ASSISTANT CONSUMER: /ws/ai-assistant/
+      if (pathname.startsWith('/ws/ai-assistant/')) {
+        let authenticated = false;
+        let companyId = '';
+        let userEmail = '';
 
-      const tokenParam = parsedUrl.searchParams.get('token');
-      if (tokenParam) {
-        try {
-          const payload = verifyAccessToken(tokenParam);
-          authenticated = true;
-          companyId = payload.company_id ?? '';
-          userEmail = payload.email ?? '';
-        } catch (err: unknown) {
-          const errStr = String(err).toLowerCase();
-          if (errStr.includes('expired')) {
-            ws.close(4002, 'Token expired');
+        const tokenParam = parsedUrl.searchParams.get('token');
+        if (tokenParam) {
+          try {
+            const payload = verifyAccessToken(tokenParam);
+            const user = await AuthRepository.findUserByEmail(payload.email);
+            if (!user) {
+              ws.close(4001, 'User not found or deleted');
+              return;
+            }
+
+            let compId = '';
+            if (user.company) {
+              const companyQuery = ObjectId.isValid(user.company)
+                ? { _id: new ObjectId(user.company) }
+                : { company_id: String(user.company) };
+              const company = await AuthRepository.findCompany(companyQuery);
+              compId = company?.company_id ?? '';
+            }
+            if (!compId && user.company_id) {
+              compId = String(user.company_id);
+            }
+
+            if (!compId) {
+              ws.close(4001, 'No company associated with user');
+              return;
+            }
+
+            authenticated = true;
+            companyId = compId;
+            userEmail = user.email;
+          } catch {
+            ws.close(4001, 'Invalid or expired token');
             return;
           }
-          authenticated = false;
         }
-      }
 
-      // Status frame
-      ws.send(
-        JSON.stringify({
-          type: 'session_status',
-          authenticated,
-          message: 'Connected to AI Assistant',
-        })
-      );
+        // Status frame
+        ws.send(
+          JSON.stringify({
+            type: 'session_status',
+            authenticated,
+            message: 'Connected to AI Assistant',
+          })
+        );
 
-      ws.on('message', (data) => {
-        void (async () => {
-          try {
-            const msgStr = typeof data === 'string' ? data : data.toString();
-            const msg = JSON.parse(msgStr) as { token?: string; command?: string; assistant?: string };
+        ws.on('message', (data) => {
+          void (async () => {
+            try {
+              const msgStr = typeof data === 'string' ? data : data.toString();
+              const msg = JSON.parse(msgStr) as { token?: string; command?: string; assistant?: string };
 
-            // Handle first-message auth if unauthenticated
-            if (!authenticated) {
-              if (msg.token) {
-                try {
-                  const payload = verifyAccessToken(msg.token);
-                  authenticated = true;
-                  companyId = payload.company_id ?? '';
-                  userEmail = payload.email ?? '';
-                  ws.send(
-                    JSON.stringify({
-                      type: 'session_status',
-                      authenticated: true,
-                    })
-                  );
-                  return;
-                } catch (err: unknown) {
-                  const errStr = String(err).toLowerCase();
-                  const code = errStr.includes('expired') ? 4002 : 4001;
+              // Handle first-message auth if unauthenticated
+              if (!authenticated) {
+                if (msg.token) {
+                  try {
+                    const payload = verifyAccessToken(msg.token);
+                    const user = await AuthRepository.findUserByEmail(payload.email);
+                    if (!user) {
+                      ws.send(JSON.stringify({ type: 'error', content: 'User not found or deactivated.' }));
+                      ws.close(4001, 'User deactivated');
+                      return;
+                    }
+
+                    let compId = '';
+                    if (user.company) {
+                      const companyQuery = ObjectId.isValid(user.company)
+                        ? { _id: new ObjectId(user.company) }
+                        : { company_id: String(user.company) };
+                      const company = await AuthRepository.findCompany(companyQuery);
+                      compId = company?.company_id ?? '';
+                    }
+                    if (!compId && user.company_id) {
+                      compId = String(user.company_id);
+                    }
+
+                    if (!compId) {
+                      ws.send(JSON.stringify({ type: 'error', content: 'No company associated with user.' }));
+                      ws.close(4001, 'No company');
+                      return;
+                    }
+
+                    authenticated = true;
+                    companyId = compId;
+                    userEmail = user.email;
+                    ws.send(
+                      JSON.stringify({
+                        type: 'session_status',
+                        authenticated: true,
+                      })
+                    );
+                    return;
+                  } catch {
+                    ws.send(
+                      JSON.stringify({
+                        type: 'error',
+                        content: 'Invalid or expired token.',
+                      })
+                    );
+                    ws.close(4001, 'Invalid or expired token');
+                    return;
+                  }
+                } else {
                   ws.send(
                     JSON.stringify({
                       type: 'error',
-                      content: 'Invalid or expired token.',
+                      content: 'Authentication required.',
                     })
                   );
-                  ws.close(code, 'Invalid or expired token');
                   return;
                 }
-              } else {
+              }
+
+              // Tenancy Check: Live verification before command processing
+              const liveUser = await AuthRepository.findUserByEmail(userEmail);
+              if (!liveUser) {
                 ws.send(
                   JSON.stringify({
-                    type: 'error',
-                    content: 'Authentication required.',
+                    action: 'error',
+                    content: 'User account has been deactivated.',
                   })
                 );
+                ws.close(4001, 'User revoked');
                 return;
               }
-            }
 
-            // Process AI Command (Scoped to requesting socket)
-            const command = msg.command ?? '';
-            const assistant = msg.assistant ?? 'jarvis';
-            const scope: TenantScope = { companyId };
-            const response = await AiService.processAiCommand(scope, userEmail, command, assistant);
-            ws.send(JSON.stringify(response));
-          } catch (err: unknown) {
-            ws.send(
-              JSON.stringify({
-                action: 'error',
-                content: `Error processing message: ${err instanceof Error ? err.message : String(err)}`,
-              })
-            );
-          }
-        })();
-      });
-    }
-  })();
-});
+              // Process AI Command (Scoped to requesting socket)
+              const command = msg.command ?? '';
+              const assistant = msg.assistant ?? 'jarvis';
+              const scope: TenantScope = { companyId };
+              const response = await AiService.processAiCommand(scope, userEmail, command, assistant);
+              ws.send(JSON.stringify(response));
+            } catch {
+              ws.send(
+                JSON.stringify({
+                  action: 'error',
+                  content: 'Error processing your request: An unexpected error occurred while processing your command.',
+                })
+              );
+            }
+          })();
+        });
+      }
+    })();
+  });
 
   return wss;
 }

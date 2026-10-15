@@ -75,4 +75,9 @@ export class AuthRepository {
     const res = await usersCol.insertOne(doc as UserDoc);
     return res.insertedId;
   }
+
+  static async deleteCompanyById(id: ObjectId): Promise<void> {
+    const companiesCol = getCollection<CompanyDoc>('company');
+    await companiesCol.deleteOne({ _id: id });
+  }
 }

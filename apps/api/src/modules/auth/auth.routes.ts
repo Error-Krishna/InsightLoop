@@ -3,11 +3,14 @@ import { GoogleLoginSchema, LoginSchema, RefreshTokenSchema, SignupSchema } from
 import { AuthController } from './auth.controller.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { validateRequest } from '../../middleware/validate.js';
+import { authIpRateLimiter, loginBruteForceLimiter } from '../../middleware/rateLimiter.js';
 
 export const authRouter = Router();
 
 authRouter.post(
   '/login',
+  authIpRateLimiter,
+  loginBruteForceLimiter,
   validateRequest({
     body: LoginSchema,
     customErrorMessage: 'Invalid email or password.',
@@ -17,6 +20,7 @@ authRouter.post(
 
 authRouter.post(
   '/signup',
+  authIpRateLimiter,
   validateRequest({
     body: SignupSchema,
     customErrorMessage: 'Name, email, company, and password are required.',
@@ -26,6 +30,7 @@ authRouter.post(
 
 authRouter.post(
   '/refresh',
+  authIpRateLimiter,
   validateRequest({
     body: RefreshTokenSchema,
     customErrorMessage: 'Refresh token is required.',
@@ -35,6 +40,7 @@ authRouter.post(
 
 authRouter.post(
   '/google',
+  authIpRateLimiter,
   validateRequest({
     body: GoogleLoginSchema,
     customErrorMessage: 'Invalid or expired Google credential.',

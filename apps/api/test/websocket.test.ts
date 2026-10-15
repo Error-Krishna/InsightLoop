@@ -64,10 +64,10 @@ describe('WebSocket Gateway Suite: Auth, Scoping & Close Codes', () => {
     });
 
     expect(closeEvent.code).toBe(4001);
-    expect(closeEvent.reason).toBe('Invalid token');
+    expect(closeEvent.reason).toBe('Invalid or expired token');
   });
 
-  it('closes with code 4002 when token is expired', async () => {
+  it('closes with code 4001 when token is expired (matching Django)', async () => {
     const user = await createTestUser();
 
     // Sign an already expired token
@@ -92,8 +92,8 @@ describe('WebSocket Gateway Suite: Auth, Scoping & Close Codes', () => {
       });
     });
 
-    expect(closeEvent.code).toBe(4002);
-    expect(closeEvent.reason).toBe('Token expired');
+    expect(closeEvent.code).toBe(4001);
+    expect(closeEvent.reason).toBe('Invalid or expired token');
   });
 
   it('authenticates valid token, delivers initial snapshot, and strictly scopes real-time events to tenant', async () => {

@@ -14,9 +14,22 @@ export interface TokenPayload {
   exp?: number;
 }
 
+/**
+ * Derives the signing key in exact accordance with Django simplejwt:
+ * If secret length >= 32, use secret as-is.
+ * If secret length < 32, use sha256(secret).hexdigest().
+ */
+export function deriveSigningKey(secret = env.JWT_SECRET): string {
+  if (secret.length >= 32) {
+    return secret;
+  }
+  return crypto.createHash('sha256').update(secret, 'utf-8').digest('hex');
+}
+
 export function generateTokens(
   user: { _id: { toString(): string }; email: string; name: string },
-  companyId: string
+  companyId: string,
+  secret = env.JWT_SECRET
 ) {
   const userIdStr = user._id.toString();
   const jtiAccess = crypto.randomUUID().replace(/-/g, '');
@@ -40,12 +53,14 @@ export function generateTokens(
     jti: jtiRefresh,
   };
 
-  const access = jwt.sign(accessPayload, env.JWT_SECRET, {
+  const key = deriveSigningKey(secret);
+
+  const access = jwt.sign(accessPayload, key, {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as SignOptions['expiresIn'],
     algorithm: 'HS256',
   });
 
-  const refresh = jwt.sign(refreshPayload, env.JWT_SECRET, {
+  const refresh = jwt.sign(refreshPayload, key, {
     expiresIn: env.JWT_REFRESH_EXPIRES_IN as SignOptions['expiresIn'],
     algorithm: 'HS256',
   });
@@ -53,9 +68,14 @@ export function generateTokens(
   return { access, refresh };
 }
 
-export function verifyToken(token: string, expectedType: 'access' | 'refresh'): TokenPayload {
+export function verifyToken(
+  token: string,
+  expectedType: 'access' | 'refresh',
+  secret = env.JWT_SECRET
+): TokenPayload {
   try {
-    const payload = jwt.verify(token, env.JWT_SECRET, {
+    const key = deriveSigningKey(secret);
+    const payload = jwt.verify(token, key, {
       algorithms: ['HS256'],
     }) as unknown as TokenPayload;
 
@@ -73,10 +93,10 @@ export function verifyToken(token: string, expectedType: 'access' | 'refresh'): 
   }
 }
 
-export function verifyAccessToken(token: string): TokenPayload {
-  return verifyToken(token, 'access');
+export function verifyAccessToken(token: string, secret = env.JWT_SECRET): TokenPayload {
+  return verifyToken(token, 'access', secret);
 }
 
-export function verifyRefreshToken(token: string): TokenPayload {
-  return verifyToken(token, 'refresh');
+export function verifyRefreshToken(token: string, secret = env.JWT_SECRET): TokenPayload {
+  return verifyToken(token, 'refresh', secret);
 }

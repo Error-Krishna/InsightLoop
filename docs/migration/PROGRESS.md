@@ -1,16 +1,31 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 5.5 (Hardening, Architecture Layering & Honest Re-Baseline)
-- **Current Module**: All Gates G1 through G7 Verified
-- **Status**: PHASE 5.5 COMPLETE (Phase 6 Strictly Locked)
-- **Last Updated**: 2026-10-15 22:40 UTC
-- **Next Action**: Await user review of `docs/migration/MIGRATION_REPORT.md` and explicit authorization before unlocking Phase 6 (Deployment & Cutover).
+- **Current Phase**: Phase 5.7 (Full-Codebase Fix Pass & Complete Migration to Staging-Ready)
+- **Current Module**: Section A (Security) Completed; Proceeding to Section B
+- **Status**: PHASE 5.7 IN PROGRESS (Phases 6, 7, 8 Strictly Locked)
+- **Last Updated**: 2026-10-16 00:55 UTC
+- **Next Action**: Execute Section B (Django-vs-Node Regressions)
 
 ---
 
 ## 2. ATTENTION (Critical Alerts & Immediate Actions)
-*None. All Phase 5.5 hardening gates (G1 through G7) have passed with verified on-disk evidence. Phase 6 remains strictly locked per Master Rules until user authorization.*
+
+### Section A: Security Hardening (All items tested, fixed, and verified with raw evidence)
+- **A1. Google Login Audience Validation & Security**: Google OAuth credential verification enforces audience check matching `GOOGLE_CLIENT_ID` (rejects mismatch with 401 "Google credential was not issued for this application."), verifies `email_verified`, requires email, enforces 10s AbortController timeout (502 on network/timeout), creates users with Django-compatible PBKDF2 sha256 hash (`pbkdf2_sha256$600000$...`) and complete company/user fields, and gracefully prevents orphan company creation on concurrent double-submits.  
+  *Evidence:* [`docs/migration/evidence/A1_google_login.txt`](file:///docs/migration/evidence/A1_google_login.txt)
+- **A2. Production Fail-Fast Environment Validation & Bidirectional JWT**: `validateEnv()` in `env.ts` enforces non-negotiable production invariants (strictly requires non-default `JWT_SECRET`, `MONGODB_URI`, `MONGODB_DB_NAME`, `CORS_ORIGIN`, `GOOGLE_CLIENT_ID`; refuses boot if secret is a known default or DB name ends in `_test`). Drop `.min(32)` restriction and implement Django simplejwt signing key derivation (`len >= 32 ? secret : sha256(secret).hexdigest()`), verified bidirectionally in both directions against real Django.  
+  *Evidence:* [`docs/migration/evidence/A2_env_and_jwt.txt`](file:///docs/migration/evidence/A2_env_and_jwt.txt)
+- **A3. Auth Rate Limiting & Brute-Force Protection**: Express rate limiting implemented on `/login`, `/signup`, `/google`, `/refresh`. Enforces tolerant per-IP rate limits (100 req/15 min) and targeted brute-force protection (10 failed attempts/15 min per `clientIp::email`), preserving access for office colleagues behind shared NAT. Configured `app.set('trust proxy', 1)` and CORS `exposedHeaders` (`Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`).  
+  *Evidence:* [`docs/migration/evidence/A3_rate_limiting.txt`](file:///docs/migration/evidence/A3_rate_limiting.txt)
+- **A4. AI WebSocket Tenancy & Mid-Session Revocation**: `/ws/ai-assistant/` resolves user and company from live MongoDB user record rather than trusting static JWT claims. Rejects refresh tokens and deleted users with close code 4001 (matching Django). Dynamically checks user existence on incoming messages, revoking access immediately if deleted.  
+  *Evidence:* [`docs/migration/evidence/A4_ai_websocket.txt`](file:///docs/migration/evidence/A4_ai_websocket.txt)
+- **A5. Error Handler Leakage & Unified Envelope**: `errorHandler.ts` unifies all error classes (`AppError`, `ZodError`, Mongo duplicate key `11000`, `JsonWebTokenError`, `TokenExpiredError`, Multer `LIMIT_FILE_SIZE`, body-parser `MALFORMED_JSON` and `PAYLOAD_TOO_LARGE`) into compatible `{ detail, code, requestId }` envelope with zero stack or internal text leakage in production.  
+  *Evidence:* [`docs/migration/evidence/A5_error_handler.txt`](file:///docs/migration/evidence/A5_error_handler.txt)
+- **A6. AI Command Error Sanitization**: `processAiCommand` sanitizes internal errors into generic message `"Error processing your request: An unexpected error occurred while processing your request."` and logs internal details with requestId, preventing database connection or credential leakage.  
+  *Evidence:* [`docs/migration/evidence/A6_ai_error.txt`](file:///docs/migration/evidence/A6_ai_error.txt)
+- **A7. CSV Formula Injection & Path Traversal (Additional Hardening #10 & #11)**: CSV upload blocks formula expressions (`=`, `+`, `-`, `@`) and rejects path traversal / zip-slip filenames (`../`, absolute paths), categorized as additional hardening #10 and #11.  
+  *Evidence:* [`docs/migration/evidence/A7_formula_and_traversal.txt`](file:///docs/migration/evidence/A7_formula_and_traversal.txt)
 
 ---
 

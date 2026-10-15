@@ -1,6 +1,7 @@
 import { type ObjectId } from 'mongodb';
 import { AiRepository } from './ai.repository.js';
 import type { TenantScope } from '../../types/tenant.js';
+import { logger } from '../../utils/logger.js';
 
 export class AiService {
   static getConfig() {
@@ -108,7 +109,7 @@ export class AiService {
     return [];
   }
 
-  static async processAiCommand(scope: TenantScope, _userEmail: string, command: string, assistantType = 'jarvis') {
+  static async processAiCommand(scope: TenantScope, userEmail: string, command: string, assistantType = 'jarvis') {
     const cmd = (command || '').toLowerCase();
     const response: Record<string, unknown> = {
       assistant: assistantType,
@@ -179,8 +180,9 @@ export class AiService {
           "I can help with exports, navigation, or data analysis. Try: 'Export business trends' or 'Show me worker productivity'";
       }
     } catch (err: unknown) {
+      logger.error({ err, companyId: scope.companyId, userEmail, command }, 'Error processing AI command');
       response.action = 'error';
-      response.content = `Error processing your request: ${err instanceof Error ? err.message : String(err)}`;
+      response.content = 'Error processing your request: An unexpected error occurred while processing your request.';
     }
 
     return response;

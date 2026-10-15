@@ -1,0 +1,14 @@
+$ vitest run test/upload_security.test.ts
+
+ RUN  v3.2.7 <REPO_ROOT>/apps/api
+
+stdout | test/upload_security.test.ts > Upload Security, Formula Injection & Path Traversal Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/upload_security.test.ts (5 tests) 1667ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  00:56:39
+   Duration  2.46s (transform 194ms, setup 0ms, collect 636ms, tests 1.67s, environment 0ms, prepare 56ms)
+

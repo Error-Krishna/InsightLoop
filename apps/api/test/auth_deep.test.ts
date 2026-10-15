@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { createTestUser, clearDatabase } from './testHelper.js';
+import { env } from '../src/config/env.js';
 
 describe('Auth Deep Suite: Google OAuth & Token Refresh Boundaries', () => {
   beforeEach(async () => {
@@ -17,6 +18,7 @@ describe('Auth Deep Suite: Google OAuth & Token Refresh Boundaries', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true,
       json: async () => ({
+        aud: env.GOOGLE_CLIENT_ID || 'mock-google-client-id',
         email: 'googleuser@example.com',
         email_verified: 'true',
         name: 'Google User',
@@ -38,6 +40,7 @@ describe('Auth Deep Suite: Google OAuth & Token Refresh Boundaries', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true,
       json: async () => ({
+        aud: env.GOOGLE_CLIENT_ID || 'mock-google-client-id',
         email: 'googleuser@example.com',
         email_verified: true,
         name: 'Google User',

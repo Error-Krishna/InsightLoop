@@ -20,6 +20,8 @@ import { contactRouter } from './modules/contact/contact.routes.js';
 
 export const app: express.Express = express();
 
+app.set('trust proxy', Number(env.TRUST_PROXY) || 1);
+
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
@@ -37,6 +39,13 @@ app.use(
       callback(null, false);
     },
     credentials: true,
+    exposedHeaders: [
+      'Content-Disposition',
+      'Retry-After',
+      'X-Request-ID',
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+    ],
   })
 );
 
