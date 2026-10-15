@@ -1,0 +1,17 @@
+$ vitest run test/b1_doc_shape.test.ts
+
+ RUN  v3.2.7 /Users/krishnagoyal/Development/personal projects/Insightloop/apps/api
+
+stdout | test/b1_doc_shape.test.ts > B1: Document Shape & MongoEngine Strictness
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/b1_doc_shape.test.ts (4 tests) 4175ms
+   ✓ B1: Document Shape & MongoEngine Strictness > MaterialAssignment document written to MongoDB has worker as ObjectId and NO worker_id field  1034ms
+   ✓ B1: Document Shape & MongoEngine Strictness > PayRecord document written to MongoDB has worker as ObjectId and NO worker_id field  991ms
+   ✓ B1: Document Shape & MongoEngine Strictness > dual-stack test: Node writes every entity type; Django loads, lists, updates, and deletes each with zero errors  2113ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  01:14:42
+   Duration  4.43s (transform 62ms, setup 0ms, collect 121ms, tests 4.17s, environment 0ms, prepare 40ms)
+

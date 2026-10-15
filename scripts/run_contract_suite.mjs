@@ -45,8 +45,8 @@ function normalizeValue(val) {
     if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(val)) {
       return '<JWT_TOKEN>';
     }
-    // ISO-8601 timestamp
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/.test(val)) {
+    // Strict ISO-8601 timestamp: enforces Django naive ISO format without trailing Z
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(val)) {
       return '<ISO_TIMESTAMP>';
     }
     // UUID v4

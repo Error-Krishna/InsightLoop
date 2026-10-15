@@ -70,16 +70,15 @@ export interface BillDoc extends Document {
 }
 
 export class BillsRepository {
-  static async getNextInvoiceNumber(scope: TenantScope): Promise<string> {
+  static async getNextInvoiceNumber(scope: TenantScope, forceResync = false): Promise<string> {
     const year = new Date().getFullYear();
     const countersCol = getCollection('counters');
     const billsCol = getCollection<BillDoc>('bills');
 
     const counterId = `invoice_${scope.companyId}_${year}`;
-    const counter = await countersCol.findOne({ _id: counterId as unknown as ObjectId });
+    const prefix = `INV-${year}-`;
 
-    if (!counter) {
-      const prefix = `INV-${year}-`;
+    const resyncCounter = async (): Promise<number> => {
       const lastBill = await billsCol
         // eslint-disable-next-line security/detect-non-literal-regexp
         .find({ company_id: scope.companyId, invoice_number: { $regex: new RegExp(`^${prefix}\\d+$`) } })
@@ -87,17 +86,42 @@ export class BillsRepository {
         .limit(1)
         .toArray();
 
-      let startingSeq = 0;
+      let currentMax = 0;
       if (lastBill.length > 0 && lastBill[0].invoice_number) {
         const numPart = lastBill[0].invoice_number.slice(prefix.length);
-        startingSeq = parseInt(numPart, 10) || 0;
+        currentMax = parseInt(numPart, 10) || 0;
       }
 
       await countersCol.updateOne(
         { _id: counterId as unknown as ObjectId },
-        { $setOnInsert: { seq: startingSeq } },
+        { $max: { seq: currentMax } },
         { upsert: true }
       );
+      return currentMax;
+    };
+
+    const counter = await countersCol.findOne({ _id: counterId as unknown as ObjectId });
+    if (!counter || forceResync) {
+      await resyncCounter();
+    } else {
+      const lastBill = await billsCol
+        // eslint-disable-next-line security/detect-non-literal-regexp
+        .find({ company_id: scope.companyId, invoice_number: { $regex: new RegExp(`^${prefix}\\d+$`) } })
+        .sort({ invoice_number: -1 })
+        .limit(1)
+        .toArray();
+      if (lastBill.length > 0 && lastBill[0].invoice_number) {
+        const numPart = lastBill[0].invoice_number.slice(prefix.length);
+        const billMax = parseInt(numPart, 10) || 0;
+        const currentSeq = (counter as { seq?: number }).seq ?? 0;
+        if (billMax >= currentSeq) {
+          await countersCol.updateOne(
+            { _id: counterId as unknown as ObjectId },
+            { $max: { seq: billMax } },
+            { upsert: true }
+          );
+        }
+      }
     }
 
     const updated = await countersCol.findOneAndUpdate(
@@ -108,6 +132,34 @@ export class BillsRepository {
 
     const seq = (updated as { seq?: number } | null)?.seq ?? 1;
     return `INV-${year}-${String(seq).padStart(5, '0')}`;
+  }
+
+  static async insertBillWithRetry(
+    scope: TenantScope,
+    docFactory: (invoiceNumber: string) => Omit<BillDoc, '_id' | 'company_id'>,
+    maxAttempts = 5
+  ): Promise<BillDoc> {
+    const col = getCollection<BillDoc>('bills');
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const invoiceNumber = await this.getNextInvoiceNumber(scope, attempt > 0);
+      const fullDoc = { ...docFactory(invoiceNumber), invoice_number: invoiceNumber, company_id: scope.companyId } as BillDoc;
+      try {
+        const res = await col.insertOne(fullDoc);
+        return { ...fullDoc, _id: res.insertedId };
+      } catch (err: unknown) {
+        const isDupKey =
+          (err as { code?: number })?.code === 11000 ||
+          /E11000|duplicate key/i.test((err as Error)?.message || '');
+        if (isDupKey && attempt < maxAttempts - 1) {
+          continue;
+        }
+        if (isDupKey) {
+          throw new Error('Could not generate a unique invoice number, please retry.', { cause: err });
+        }
+        throw err;
+      }
+    }
+    throw new Error('Could not generate a unique invoice number, please retry.');
   }
 
   static async findBills(scope: TenantScope, filter: Filter<BillDoc> = {}): Promise<BillDoc[]> {
@@ -175,12 +227,29 @@ export class BillsRepository {
     return itemsCol.findOne({ _id: objId, company_id: scope.companyId });
   }
 
-  static async adjustInventoryStockById(scope: TenantScope, id: ObjectId | string, quantityChange: number): Promise<void> {
+  static async adjustInventoryStockById(scope: TenantScope, id: ObjectId | string, quantityChange: number): Promise<boolean> {
     const itemsCol = getCollection('inventory_items');
     const objId = typeof id === 'string' ? new ObjectId(id) : id;
-    await itemsCol.updateOne(
+    const res = await itemsCol.updateOne(
       { _id: objId, company_id: scope.companyId },
       { $inc: { quantity: quantityChange } }
     );
+    return res.matchedCount > 0;
+  }
+
+  static async adjustInventoryStockConditional(
+    scope: TenantScope,
+    id: ObjectId | string,
+    quantityChange: number,
+    minQuantity: number
+  ): Promise<boolean> {
+    const itemsCol = getCollection('inventory_items');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    const res = await itemsCol.updateOne(
+      { _id: objId, company_id: scope.companyId, quantity: { $gte: minQuantity } },
+      { $inc: { quantity: quantityChange } }
+    );
+    return res.matchedCount > 0;
   }
 }
+

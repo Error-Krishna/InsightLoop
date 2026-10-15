@@ -84,10 +84,9 @@ export function errorHandler(
 
   // 4. JWT verification / expiration errors
   if (anyErr?.name === 'JsonWebTokenError' || anyErr?.name === 'TokenExpiredError') {
-    const isExpired = anyErr.name === 'TokenExpiredError';
     res.status(401).json({
-      detail: isExpired ? 'Token has expired' : 'Token is invalid',
-      code: isExpired ? 'token_expired' : 'token_not_valid',
+      detail: 'Token is invalid or expired',
+      code: 'token_not_valid',
       requestId,
     });
     return;

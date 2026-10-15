@@ -1,4 +1,4 @@
-import { ObjectId, type Document } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import {
   WorkersRepository,
   type MaterialAssignmentDoc,
@@ -7,6 +7,7 @@ import {
 } from './workers.repository.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { roundPy } from '@insightloop/shared';
+import { formatDjangoIso } from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
 
 export interface WorkerInput {
@@ -91,7 +92,7 @@ export class WorkersService {
       address: worker.address ?? '',
       phone: worker.phone ?? '',
       image_url: worker.image_url ?? null,
-      joining_date: worker.joining_date ? new Date(worker.joining_date).toISOString() : null,
+      joining_date: formatDjangoIso(worker.joining_date),
       is_active: worker.is_active !== false,
       material_assigned: totalAssigned,
       material_delivered: totalDelivered,
@@ -99,8 +100,8 @@ export class WorkersService {
       open_assignments: openCount,
       total_wasted: totalWasted,
       wastage_rate: wastageRate,
-      created_at: worker.created_at ? new Date(worker.created_at).toISOString() : null,
-      updated_at: worker.updated_at ? new Date(worker.updated_at).toISOString() : null,
+      created_at: formatDjangoIso(worker.created_at),
+      updated_at: formatDjangoIso(worker.updated_at),
     };
   }
 
@@ -122,18 +123,18 @@ export class WorkersService {
       material_name: item.material_name,
       quantity: qty,
       price_per_unit: price,
-      assignment_date: item.assignment_date ? new Date(item.assignment_date).toISOString() : null,
+      assignment_date: formatDjangoIso(item.assignment_date),
       notes: item.notes ?? '',
       batches: (item.batches ?? []).map((b) => ({
         ...b,
         quantity: Number(b.quantity) || 0,
-        date: b.date ? new Date(b.date).toISOString() : null,
+        date: formatDjangoIso(b.date),
       })),
       delivered_quantity: deliveredQty,
       balance_quantity: balanceQty,
       total_value: totalValue,
       status: item.status || 'open',
-      completed_at: item.completed_at ? new Date(item.completed_at).toISOString() : null,
+      completed_at: formatDjangoIso(item.completed_at),
       wastage_quantity:
         item.wastage_quantity !== undefined && item.wastage_quantity !== null
           ? Number(item.wastage_quantity)
@@ -161,7 +162,7 @@ export class WorkersService {
       rate_per_unit: rate,
       amount_paid: amountPaid,
       total_amount: totalAmount,
-      date: item.date ? new Date(item.date).toISOString() : null,
+      date: formatDjangoIso(item.date),
       paid: item.paid || amountPaid >= totalAmount,
       bill_id: item.bill_id ?? null,
       source_assignment_id: item.source_assignment_id ?? null,
@@ -292,17 +293,22 @@ export class WorkersService {
     const qty = parseFloat(String(data.quantity ?? 0)) || 0;
     if (qty <= 0) throw new ValidationError('Quantity must be a positive number.');
 
+    const pricePerUnit = parseFloat(String(data.price_per_unit ?? 0)) || 0;
+    if (pricePerUnit <= 0) throw new ValidationError('Price per unit must be a positive number.');
+
+    const wageAmount = parseFloat(String(data.wage_amount ?? 0)) || 0;
+    if (wageAmount < 0) throw new ValidationError('Wage amount cannot be negative.');
+
     const created = await WorkersRepository.insertAssignment(scope, {
-      worker: { _id: worker._id, name: worker.name },
-      worker_id: worker._id.toString(),
+      worker: worker._id,
       material_name: materialName,
       quantity: qty,
-      price_per_unit: parseFloat(String(data.price_per_unit ?? 0)) || 0,
+      price_per_unit: pricePerUnit,
       assignment_date: data.date ? new Date(data.date) : new Date(),
       notes: (data.notes ?? '').trim(),
       batches: data.batches ?? [],
       status: 'open',
-      wage_amount: parseFloat(String(data.wage_amount ?? 0)) || 0,
+      wage_amount: wageAmount,
       bill_id: data.bill_id ?? null,
       created_at: new Date(),
     });
@@ -322,6 +328,16 @@ export class WorkersService {
 
     const qty = parseFloat(String(data.quantity ?? 0)) || 0;
     if (qty <= 0) throw new ValidationError('Quantity must be a positive number.');
+
+    const delivered = (assignment.batches ?? []).reduce((acc, b) => acc + (Number(b.quantity) || 0), 0);
+    const balance = assignment.quantity - delivered;
+    if (qty > balance) {
+      throw new ValidationError(`Cannot add batch: quantity exceeds balance (${balance} units available)`);
+    }
+
+    if (data.date && new Date(data.date) > new Date()) {
+      throw new ValidationError('Batch date cannot be in the future');
+    }
 
     const batch = {
       quantity: qty,
@@ -362,11 +378,10 @@ export class WorkersService {
     let payRecordId = assignment.pay_record_id;
     if (!payRecordId && Number(assignment.wage_amount) > 0) {
       const rawWorkerId = (assignment.worker_id ?? (assignment.worker as { _id?: unknown })?._id ?? assignment.worker)?.toString();
-      const workerRef = rawWorkerId && ObjectId.isValid(rawWorkerId) ? new ObjectId(rawWorkerId) : (assignment.worker as Document);
+      const workerRef = rawWorkerId && ObjectId.isValid(rawWorkerId) ? new ObjectId(rawWorkerId) : (assignment.worker as ObjectId);
 
       const createdPayRecord = await WorkersRepository.insertPayment(scope, {
         worker: workerRef,
-        worker_id: rawWorkerId,
         product_name: assignment.material_name,
         units_produced: 1,
         rate_per_unit: Number(assignment.wage_amount),
@@ -429,7 +444,6 @@ export class WorkersService {
 
     const created = await WorkersRepository.insertPayment(scope, {
       worker: worker._id,
-      worker_id: worker._id.toString(),
       product_name: (data.product_name ?? '').trim(),
       units_produced: units,
       rate_per_unit: rate,

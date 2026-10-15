@@ -248,5 +248,5 @@ export function calculateSuggestedProfit(
 export function calcPercentageChange(current: number, previous: number): number {
   if (previous === 0 && current === 0) return 0.0;
   if (previous === 0) return current > 0 ? 100.0 : -100.0;
-  return Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10;
+  return roundPy(((current - previous) / Math.abs(previous)) * 100, 1);
 }

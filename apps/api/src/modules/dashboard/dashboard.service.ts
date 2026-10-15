@@ -1,5 +1,12 @@
 import { ObjectId } from 'mongodb';
 import { DashboardRepository } from './dashboard.repository.js';
+import { env } from '../../config/env.js';
+import {
+  calcChange,
+  getMonthBoundaries,
+  buildZonedDateRange,
+  getZonedDateParts,
+} from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
 
 const MONTH_NAMES = [
@@ -11,12 +18,6 @@ const MONTH_ABBR = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
-
-function calcChange(oldVal: number, newVal: number): number {
-  if (oldVal === 0 && newVal === 0) return 0.0;
-  if (oldVal === 0) return newVal > 0 ? 100.0 : -100.0;
-  return Math.round(((newVal - oldVal) / Math.abs(oldVal)) * 1000) / 10;
-}
 
 export class DashboardService {
   static async getBillFinancials(scope: TenantScope, startDt?: Date, endDt?: Date) {
@@ -138,10 +139,10 @@ export class DashboardService {
   static async getSummaryData(scope: TenantScope) {
     const live = await this.getLiveFinancialSummary(scope);
 
-    const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    const prevMonthEnd = new Date(currentMonthStart.getTime() - 1);
-    const prevMonthStart = new Date(prevMonthEnd.getFullYear(), prevMonthEnd.getMonth(), 1, 0, 0, 0, 0);
+    const { currentMonthStart, prevMonthStart, prevMonthEnd } = getMonthBoundaries(
+      new Date(),
+      env.APP_TIME_ZONE
+    );
 
     const [prevBills, prevUploaded, prevWorkerPaid] = await Promise.all([
       this.getBillFinancials(scope, prevMonthStart, prevMonthEnd),
@@ -173,11 +174,7 @@ export class DashboardService {
   }
 
   private static buildDateRange(months: number) {
-    const endDt = new Date();
-    endDt.setHours(23, 59, 59, 999);
-    const startDt = new Date(endDt.getTime() - months * 30 * 24 * 60 * 60 * 1000);
-    startDt.setHours(0, 0, 0, 0);
-    return { startDt, endDt };
+    return buildZonedDateRange(months, new Date(), env.APP_TIME_ZONE);
   }
 
   private static async getBillMonthlySeries(scope: TenantScope, startDt: Date, endDt: Date) {
@@ -191,8 +188,8 @@ export class DashboardService {
       {
         $group: {
           _id: {
-            year: { $year: '$profit_confirmed_at' },
-            month: { $month: '$profit_confirmed_at' },
+            year: { $year: { date: '$profit_confirmed_at', timezone: env.APP_TIME_ZONE } },
+            month: { $month: { date: '$profit_confirmed_at', timezone: env.APP_TIME_ZONE } },
           },
           revenue: { $sum: '$grand_total' },
           profit: { $sum: '$profit_confirmed_amount' },
@@ -225,8 +222,8 @@ export class DashboardService {
       {
         $group: {
           _id: {
-            year: { $year: '$date' },
-            month: { $month: '$date' },
+            year: { $year: { date: '$date', timezone: env.APP_TIME_ZONE } },
+            month: { $month: { date: '$date', timezone: env.APP_TIME_ZONE } },
           },
           total_revenue: { $sum: { $multiply: ['$quantity', '$selling_price'] } },
           total_expenses: { $sum: { $multiply: ['$quantity', '$production_cost'] } },
@@ -281,19 +278,19 @@ export class DashboardService {
     let groupId: Record<string, unknown>;
     if (interval === 'daily') {
       groupId = {
-        year: { $year: '$date' },
-        month: { $month: '$date' },
-        day: { $dayOfMonth: '$date' },
+        year: { $year: { date: '$date', timezone: env.APP_TIME_ZONE } },
+        month: { $month: { date: '$date', timezone: env.APP_TIME_ZONE } },
+        day: { $dayOfMonth: { date: '$date', timezone: env.APP_TIME_ZONE } },
       };
     } else if (interval === 'weekly') {
       groupId = {
-        year: { $year: '$date' },
-        week: { $week: '$date' },
+        year: { $year: { date: '$date', timezone: env.APP_TIME_ZONE } },
+        week: { $week: { date: '$date', timezone: env.APP_TIME_ZONE } },
       };
     } else {
       groupId = {
-        year: { $year: '$date' },
-        month: { $month: '$date' },
+        year: { $year: { date: '$date', timezone: env.APP_TIME_ZONE } },
+        month: { $month: { date: '$date', timezone: env.APP_TIME_ZONE } },
       };
     }
 
@@ -420,7 +417,8 @@ export class DashboardService {
       const isPaid = Boolean(r.paid) || amountPaid >= totalOwed;
 
       const dateObj = r.date instanceof Date ? r.date : new Date(r.date as string | Date);
-      const monthStr = `${MONTH_NAMES[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+      const zoned = getZonedDateParts(dateObj, env.APP_TIME_ZONE);
+      const monthStr = `${MONTH_NAMES[zoned.month - 1]} ${zoned.year}`;
 
       results.push({
         name: workerName,

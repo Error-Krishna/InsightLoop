@@ -86,10 +86,7 @@ export function verifyToken(
     return payload;
   } catch (err: unknown) {
     if (err instanceof UnauthorizedError) throw err;
-    if (err instanceof jwt.TokenExpiredError) {
-      throw new UnauthorizedError('Token has expired', 'token_expired');
-    }
-    throw new UnauthorizedError('Token is invalid', 'token_not_valid');
+    throw new UnauthorizedError('Token is invalid or expired', 'token_not_valid');
   }
 }
 

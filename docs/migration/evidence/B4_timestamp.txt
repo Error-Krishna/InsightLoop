@@ -1,0 +1,15 @@
+$ vitest run test/b4_timestamp.test.ts
+
+ RUN  v3.2.7 /Users/krishnagoyal/Development/personal projects/Insightloop/apps/api
+
+stdout | test/b4_timestamp.test.ts > B4: Timestamp Serialization
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/b4_timestamp.test.ts (2 tests) 1243ms
+   ✓ B4: Timestamp Serialization > Node response and Django capture for the same record produce identical timestamps  1215ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  01:22:54
+   Duration  1.54s (transform 64ms, setup 0ms, collect 145ms, tests 1.24s, environment 0ms, prepare 48ms)
+

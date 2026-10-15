@@ -8,6 +8,7 @@ import {
   calculateSuggestedProfit,
   roundPy,
 } from '@insightloop/shared';
+import { formatDjangoIso } from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
 
 export interface BillInput {
@@ -140,7 +141,7 @@ export class BillsService {
       invoice_number: bill.invoice_number ?? '',
       payments: payments.map((p) => ({
         amount: Number(p.amount) || 0,
-        date: p.date ? new Date(p.date).toISOString() : null,
+        date: formatDjangoIso(p.date),
         notes: p.notes ?? '',
       })),
       amount_received: derived.amount_received,
@@ -156,20 +157,18 @@ export class BillsService {
         bill.profit_confirmed_amount !== undefined && bill.profit_confirmed_amount !== null
           ? Number(bill.profit_confirmed_amount)
           : null,
-      profit_confirmed_at: bill.profit_confirmed_at
-        ? new Date(bill.profit_confirmed_at).toISOString()
-        : null,
+      profit_confirmed_at: formatDjangoIso(bill.profit_confirmed_at),
       worker_assignment_ids: bill.worker_assignment_ids ?? [],
       worker_cost_total: roundPy(workerCostTotal, 2),
       transportation_costs: (bill.transportation_costs ?? []).map((t) => ({
         amount: Number(t.amount) || 0,
-        date: t.date ? new Date(t.date).toISOString() : null,
+        date: formatDjangoIso(t.date),
         notes: t.notes ?? '',
       })),
       transportation_cost_total: roundPy(transportationCostTotal, 2),
       misc_costs: (bill.misc_costs ?? []).map((m) => ({
         amount: Number(m.amount) || 0,
-        date: m.date ? new Date(m.date).toISOString() : null,
+        date: formatDjangoIso(m.date),
         notes: m.notes ?? '',
       })),
       misc_cost_total: roundPy(miscCostTotal, 2),
@@ -178,16 +177,14 @@ export class BillsService {
         item_name: r.item_name ?? '',
         quantity: Number(r.quantity) || 0,
         notes: r.notes ?? '',
-        date: r.date ? new Date(r.date).toISOString() : null,
+        date: formatDjangoIso(r.date),
       })),
       ready_to_deliver_quantity: readyToDeliverQty,
       shipment_confirmed: shipmentConfirmed,
-      shipment_confirmed_at: bill.shipment_confirmed_at
-        ? new Date(bill.shipment_confirmed_at).toISOString()
-        : null,
+      shipment_confirmed_at: formatDjangoIso(bill.shipment_confirmed_at),
       order_status: derived.order_status,
-      created_at: bill.created_at ? new Date(bill.created_at).toISOString() : null,
-      updated_at: bill.updated_at ? new Date(bill.updated_at).toISOString() : null,
+      created_at: formatDjangoIso(bill.created_at),
+      updated_at: formatDjangoIso(bill.updated_at),
     };
   }
 
@@ -210,6 +207,56 @@ export class BillsService {
     return this.serializeBill(bill, scope);
   }
 
+  private static getStockDeltas(products: { inventory_item_id?: string | null; quantity?: number | string }[]): Map<string, number> {
+    const deltas = new Map<string, number>();
+    for (const product of products) {
+      const itemId = product.inventory_item_id ? String(product.inventory_item_id).trim() : null;
+      if (!itemId || !ObjectId.isValid(itemId)) continue;
+      const qty = Number(product.quantity) || 0;
+      if (qty > 0) {
+        deltas.set(itemId, (deltas.get(itemId) ?? 0) + qty);
+      }
+    }
+    return deltas;
+  }
+
+  private static async validateStockAvailable(scope: TenantScope, deltas: Map<string, number>): Promise<void> {
+    const shortages: string[] = [];
+    for (const [itemId, requestedQty] of deltas.entries()) {
+      const item = await BillsRepository.findInventoryItemById(scope, itemId);
+      if (!item) continue;
+      const available = Number(item.quantity) || 0;
+      if (available < requestedQty) {
+        const unit = (item.unit as string) ?? 'pcs';
+        shortages.push(`${item.name}: requested ${requestedQty} ${unit}, only ${available} ${unit} in stock`);
+      }
+    }
+    if (shortages.length > 0) {
+      throw new ValidationError(`Insufficient stock: ${shortages.join('; ')}`);
+    }
+  }
+
+  private static async applyStockDeductions(scope: TenantScope, deltas: Map<string, number>): Promise<{ itemId: string; qty: number }[]> {
+    await this.validateStockAvailable(scope, deltas);
+
+    const applied: { itemId: string; qty: number }[] = [];
+    for (const [itemId, needed] of deltas.entries()) {
+      const success = await BillsRepository.adjustInventoryStockConditional(scope, itemId, -needed, needed);
+      if (!success) {
+        for (const roll of applied) {
+          await BillsRepository.adjustInventoryStockById(scope, roll.itemId, roll.qty);
+        }
+        const item = await BillsRepository.findInventoryItemById(scope, itemId);
+        const available = item ? Number(item.quantity) || 0 : 0;
+        const unit = (item?.unit as string) ?? 'pcs';
+        const name = item ? (item.name as string) : 'Item';
+        throw new ValidationError(`Insufficient stock: ${name}: requested ${needed} ${unit}, only ${available} ${unit} in stock`);
+      }
+      applied.push({ itemId, qty: needed });
+    }
+    return applied;
+  }
+
   static async createBill(scope: TenantScope, billType: string, data: BillInput) {
     const rawProducts = data.products ?? [];
     if (!Array.isArray(rawProducts) || rawProducts.length === 0) {
@@ -220,15 +267,11 @@ export class BillsService {
     const gstPercentage = billType === 'kacha' ? 0 : parseFloat(String(data.gst_percentage ?? 0)) || 0;
 
     const totals = calculateBillTotals(rawProducts, discount, gstPercentage);
-    const invoiceNumber = await BillsRepository.getNextInvoiceNumber(scope);
     const now = new Date();
 
-    // Stock deduction for linked items
-    for (const p of totals.products) {
-      if (p.inventory_item_id && ObjectId.isValid(p.inventory_item_id)) {
-        await BillsRepository.adjustInventoryStockById(scope, p.inventory_item_id, -p.quantity);
-      }
-    }
+    // Stock deduction for linked items with rollback on error
+    const deltas = this.getStockDeltas(totals.products);
+    const appliedStock = await this.applyStockDeductions(scope, deltas);
 
     const buyerInput = data.buyer ?? {};
     const buyer = {
@@ -238,28 +281,35 @@ export class BillsService {
       phone: data.buyer_phone ?? buyerInput.phone ?? '',
     };
 
-    const created = await BillsRepository.insertBill(scope, {
-      bill_type: billType,
-      buyer,
-      products: totals.products,
-      subtotal: totals.subtotal,
-      gst_percentage: totals.gst_percentage,
-      gst_amount: totals.gst_amount,
-      discount: totals.discount,
-      grand_total: totals.grand_total,
-      invoice_number: invoiceNumber,
-      payments: data.payments ?? [],
-      profit_confirmed: false,
-      worker_assignment_ids: [],
-      transportation_costs: [],
-      misc_costs: [],
-      ready_to_deliver: [],
-      shipment_confirmed: false,
-      created_at: now,
-      updated_at: now,
-    });
+    try {
+      const created = await BillsRepository.insertBillWithRetry(scope, (invoiceNumber) => ({
+        bill_type: billType,
+        buyer,
+        products: totals.products,
+        subtotal: totals.subtotal,
+        gst_percentage: totals.gst_percentage,
+        gst_amount: totals.gst_amount,
+        discount: totals.discount,
+        grand_total: totals.grand_total,
+        invoice_number: invoiceNumber,
+        payments: data.payments ?? [],
+        profit_confirmed: false,
+        worker_assignment_ids: [],
+        transportation_costs: [],
+        misc_costs: [],
+        ready_to_deliver: [],
+        shipment_confirmed: false,
+        created_at: now,
+        updated_at: now,
+      }));
 
-    return this.serializeBill(created, scope);
+      return await this.serializeBill(created, scope);
+    } catch (err) {
+      for (const roll of appliedStock) {
+        await BillsRepository.adjustInventoryStockById(scope, roll.itemId, roll.qty);
+      }
+      throw err;
+    }
   }
 
   static async updateBill(scope: TenantScope, id: string, data: BillInput) {
@@ -274,6 +324,23 @@ export class BillsService {
       );
     }
 
+    if (existing.bill_type === 'pakka') {
+      const incomingGstNumber =
+        data.buyer?.gst_number !== undefined
+          ? data.buyer.gst_number
+          : (data.gst_number !== undefined ? data.gst_number : existing.buyer?.gst_number);
+      const incomingGstPercentage =
+        data.gst_percentage !== undefined ? data.gst_percentage : existing.gst_percentage;
+      const missing: string[] = [];
+      if (!incomingGstNumber) missing.push('GST number');
+      if (incomingGstPercentage === undefined || incomingGstPercentage === null || incomingGstPercentage === '') {
+        missing.push('GST percentage');
+      }
+      if (missing.length > 0) {
+        throw new ValidationError(`Cannot update pakka bill: missing required field(s): ${missing.join(', ')}.`);
+      }
+    }
+
     const rawProducts = data.products ?? existing.products ?? [];
     const discount = data.discount !== undefined ? parseFloat(String(data.discount)) || 0 : (existing.discount ?? 0);
     const gstPercentage =
@@ -284,6 +351,58 @@ export class BillsService {
         : (existing.gst_percentage ?? 0);
 
     const totals = calculateBillTotals(rawProducts, discount, gstPercentage);
+
+    // Reconcile stock on update:
+    // net_delta = new_delta - old_delta
+    const oldDeltas = this.getStockDeltas(existing.products ?? []);
+    const newDeltas = this.getStockDeltas(totals.products ?? []);
+
+    const allItemIds = new Set([...oldDeltas.keys(), ...newDeltas.keys()]);
+    const positiveNetDeltas = new Map<string, number>();
+    const negativeNetDeltas = new Map<string, number>();
+
+    for (const itemId of allItemIds) {
+      const net = (newDeltas.get(itemId) ?? 0) - (oldDeltas.get(itemId) ?? 0);
+      if (net > 0) {
+        positiveNetDeltas.set(itemId, net);
+      } else if (net < 0) {
+        negativeNetDeltas.set(itemId, -net);
+      }
+    }
+
+    // 1. Validate stock availability for positive net deltas
+    if (positiveNetDeltas.size > 0) {
+      await this.validateStockAvailable(scope, positiveNetDeltas);
+    }
+
+    // 2. Restore stock for items where quantity decreased
+    for (const [itemId, qtyToRestore] of negativeNetDeltas.entries()) {
+      await BillsRepository.adjustInventoryStockById(scope, itemId, qtyToRestore);
+    }
+
+    // 3. Atomically deduct stock for positive net deltas
+    const appliedIncreases: { itemId: string; qty: number }[] = [];
+    try {
+      for (const [itemId, needed] of positiveNetDeltas.entries()) {
+        const success = await BillsRepository.adjustInventoryStockConditional(scope, itemId, -needed, needed);
+        if (!success) {
+          const item = await BillsRepository.findInventoryItemById(scope, itemId);
+          const available = item ? Number(item.quantity) || 0 : 0;
+          const unit = (item?.unit as string) ?? 'pcs';
+          const name = item ? (item.name as string) : 'Item';
+          throw new ValidationError(`Insufficient stock: ${name}: requested ${needed} ${unit}, only ${available} ${unit} in stock`);
+        }
+        appliedIncreases.push({ itemId, qty: needed });
+      }
+    } catch (err) {
+      for (const roll of appliedIncreases) {
+        await BillsRepository.adjustInventoryStockById(scope, roll.itemId, roll.qty);
+      }
+      for (const [itemId, qtyToRestore] of negativeNetDeltas.entries()) {
+        await BillsRepository.adjustInventoryStockById(scope, itemId, -qtyToRestore);
+      }
+      throw err;
+    }
 
     const updateDoc: Partial<BillDoc> = {
       buyer: data.buyer ?? existing.buyer,
@@ -296,9 +415,19 @@ export class BillsService {
       updated_at: new Date(),
     };
 
-    const updated = await BillsRepository.updateBill(scope, id, updateDoc);
-    if (!updated) throw new NotFoundError('Bill not found.');
-    return this.serializeBill(updated, scope);
+    try {
+      const updated = await BillsRepository.updateBill(scope, id, updateDoc);
+      if (!updated) throw new NotFoundError('Bill not found.');
+      return await this.serializeBill(updated, scope);
+    } catch (err) {
+      for (const roll of appliedIncreases) {
+        await BillsRepository.adjustInventoryStockById(scope, roll.itemId, roll.qty);
+      }
+      for (const [itemId, qtyToRestore] of negativeNetDeltas.entries()) {
+        await BillsRepository.adjustInventoryStockById(scope, itemId, -qtyToRestore);
+      }
+      throw err;
+    }
   }
 
   static async deleteBill(scope: TenantScope, id: string) {
@@ -307,19 +436,20 @@ export class BillsService {
     const existing = await BillsRepository.findBillById(scope, id);
     if (!existing) throw new NotFoundError('Bill not found.');
 
-    // Restore stock for linked products
-    if (Array.isArray(existing.products)) {
-      for (const p of existing.products) {
-        if (p.inventory_item_id && ObjectId.isValid(p.inventory_item_id)) {
-          await BillsRepository.adjustInventoryStockById(scope, p.inventory_item_id, Number(p.quantity) || 0);
-        }
+    const deleted = await BillsRepository.deleteBill(scope, id);
+    if (deleted) {
+      const deltas = this.getStockDeltas(existing.products ?? []);
+      for (const [itemId, qty] of deltas.entries()) {
+        await BillsRepository.adjustInventoryStockById(scope, itemId, qty);
       }
     }
-
-    await BillsRepository.deleteBill(scope, id);
   }
 
-  static async convertToPakka(scope: TenantScope, id: string, data: { gst_number?: string; gst_percentage?: number | string; products?: BillInput['products'] }) {
+  static async convertToPakka(
+    scope: TenantScope,
+    id: string,
+    data: { gst_number?: string; gst_percentage?: number | string; products?: BillInput['products'] }
+  ) {
     if (!ObjectId.isValid(id)) throw new ValidationError('Invalid bill id.');
 
     const bill = await BillsRepository.findBillById(scope, id);
@@ -337,25 +467,69 @@ export class BillsService {
     const discount = bill.discount ?? 0;
 
     const totals = calculateBillTotals(rawProducts, discount, gstPercentage);
-    const newInvoiceNumber = await BillsRepository.getNextInvoiceNumber(scope);
+
+    if (data.products) {
+      const oldDeltas = this.getStockDeltas(bill.products ?? []);
+      const newDeltas = this.getStockDeltas(totals.products ?? []);
+      const allItemIds = new Set([...oldDeltas.keys(), ...newDeltas.keys()]);
+      const positiveNetDeltas = new Map<string, number>();
+      const negativeNetDeltas = new Map<string, number>();
+
+      for (const itemId of allItemIds) {
+        const net = (newDeltas.get(itemId) ?? 0) - (oldDeltas.get(itemId) ?? 0);
+        if (net > 0) positiveNetDeltas.set(itemId, net);
+        else if (net < 0) negativeNetDeltas.set(itemId, -net);
+      }
+
+      if (positiveNetDeltas.size > 0) {
+        await this.validateStockAvailable(scope, positiveNetDeltas);
+      }
+
+      for (const [itemId, qtyToRestore] of negativeNetDeltas.entries()) {
+        await BillsRepository.adjustInventoryStockById(scope, itemId, qtyToRestore);
+      }
+
+      for (const [itemId, needed] of positiveNetDeltas.entries()) {
+        const success = await BillsRepository.adjustInventoryStockConditional(scope, itemId, -needed, needed);
+        if (!success) {
+          throw new ValidationError('Insufficient stock during conversion.');
+        }
+      }
+    }
 
     const buyer = {
       ...(bill.buyer ?? {}),
       gst_number: gstNumber,
     };
 
-    const updated = await BillsRepository.updateBill(scope, id, {
-      bill_type: 'pakka',
-      invoice_number: newInvoiceNumber,
-      buyer,
-      products: totals.products,
-      subtotal: totals.subtotal,
-      gst_percentage: totals.gst_percentage,
-      gst_amount: totals.gst_amount,
-      discount: totals.discount,
-      grand_total: totals.grand_total,
-      updated_at: new Date(),
-    });
+    let updated: BillDoc | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const newInvoiceNumber = await BillsRepository.getNextInvoiceNumber(scope, attempt > 0);
+      try {
+        updated = await BillsRepository.updateBill(scope, id, {
+          bill_type: 'pakka',
+          invoice_number: newInvoiceNumber,
+          buyer,
+          products: totals.products,
+          subtotal: totals.subtotal,
+          gst_percentage: totals.gst_percentage,
+          gst_amount: totals.gst_amount,
+          discount: totals.discount,
+          grand_total: totals.grand_total,
+          updated_at: new Date(),
+        });
+        break;
+      } catch (err: unknown) {
+        const isDupKey =
+          (err as { code?: number })?.code === 11000 ||
+          /E11000|duplicate key/i.test((err as Error)?.message || '');
+        if (isDupKey && attempt < 4) continue;
+        if (isDupKey) {
+          throw new ValidationError('Could not generate a unique invoice number, please retry.');
+        }
+        throw err;
+      }
+    }
 
     if (!updated) throw new NotFoundError('Bill not found.');
     return this.serializeBill(updated, scope);
@@ -631,18 +805,18 @@ export class BillsService {
         material_name: item.material_name,
         quantity: qty,
         price_per_unit: price,
-        assignment_date: item.assignment_date ? new Date(item.assignment_date).toISOString() : null,
+        assignment_date: formatDjangoIso(item.assignment_date),
         notes: item.notes ?? '',
         batches: (item.batches ?? []).map((b) => ({
           ...b,
           quantity: Number(b.quantity) || 0,
-          date: b.date ? new Date(b.date).toISOString() : null,
+          date: formatDjangoIso(b.date),
         })),
         delivered_quantity: deliveredQty,
         balance_quantity: balanceQty,
         total_value: totalValue,
         status: item.status || 'open',
-        completed_at: item.completed_at ? new Date(item.completed_at).toISOString() : null,
+        completed_at: formatDjangoIso(item.completed_at),
         wastage_quantity:
           item.wastage_quantity !== undefined && item.wastage_quantity !== null
             ? Number(item.wastage_quantity)

@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { InsightsRepository } from './insights.repository.js';
 import { NotFoundError } from '../../utils/errors.js';
+import { formatDjangoIso } from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
 
 export class InsightsService {
@@ -14,7 +15,7 @@ export class InsightsService {
       labels: i.labels ?? [],
       data_points: i.data_points ?? [],
       note: i.note ?? '',
-      created_at: i.created_at instanceof Date ? i.created_at.toISOString() : ((i.created_at as unknown as string | null) ?? null),
+      created_at: formatDjangoIso(i.created_at),
     }));
   }
 

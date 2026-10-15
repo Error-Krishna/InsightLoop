@@ -11,7 +11,7 @@ export interface ContactMessageDoc extends Document {
 
 export class ContactRepository {
   static async insertMessage(doc: Omit<ContactMessageDoc, '_id'>): Promise<ObjectId> {
-    const col = getCollection<ContactMessageDoc>('contact_messages');
+    const col = getCollection<ContactMessageDoc>('contact_message');
     const res = await col.insertOne(doc as ContactMessageDoc);
     return res.insertedId;
   }

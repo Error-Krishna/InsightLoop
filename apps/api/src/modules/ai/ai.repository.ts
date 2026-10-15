@@ -37,4 +37,15 @@ export class AiRepository {
     const col = getCollection('material_assignments');
     return col.find({ company_id: scope.companyId, worker: workerId }).toArray();
   }
+
+  static async findBatchWorkerPayRecords(scope: TenantScope, workerIds: ObjectId[]): Promise<Document[]> {
+    const col = getCollection('pay_records');
+    return col.find({ company_id: scope.companyId, worker: { $in: workerIds } }).toArray();
+  }
+
+  static async findBatchWorkerMaterials(scope: TenantScope, workerIds: ObjectId[]): Promise<Document[]> {
+    const col = getCollection('material_assignments');
+    return col.find({ company_id: scope.companyId, worker: { $in: workerIds } }).toArray();
+  }
 }
+

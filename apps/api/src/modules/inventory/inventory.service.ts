@@ -2,6 +2,7 @@ import { ObjectId } from 'mongodb';
 import { InventoryRepository, type InventoryItemDoc, type WarehouseDoc } from './inventory.repository.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { roundPy } from '@insightloop/shared';
+import { formatDjangoIso } from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
 
 export interface ItemInput {
@@ -13,6 +14,7 @@ export interface ItemInput {
   reorder_level?: number | string;
   warehouse_id?: string | null;
   image_url?: string | null;
+  sku?: string;
 }
 
 export interface WarehouseInput {
@@ -36,8 +38,8 @@ export class InventoryService {
       image_url: item.image_url ?? null,
       sku: item.sku ?? '',
       status: (Number(item.quantity) || 0) <= 0 ? 'Out of Stock' : 'In Stock',
-      created_at: item.created_at ? new Date(item.created_at).toISOString() : null,
-      updated_at: item.updated_at ? new Date(item.updated_at).toISOString() : null,
+      created_at: formatDjangoIso(item.created_at),
+      updated_at: formatDjangoIso(item.updated_at),
     };
   }
 
@@ -46,7 +48,7 @@ export class InventoryService {
       id: wh._id.toString(),
       name: wh.name,
       location: wh.location ?? '',
-      created_at: wh.created_at ? new Date(wh.created_at).toISOString() : null,
+      created_at: formatDjangoIso(wh.created_at),
     };
   }
 
@@ -65,10 +67,10 @@ export class InventoryService {
       throw new ValidationError('Item name is required.');
     }
 
-    const sku = await InventoryRepository.getNextSku(scope);
+    const sku = data.sku ? data.sku.trim() : undefined;
     const now = new Date();
 
-    const created = await InventoryRepository.insertItem(scope, {
+    const created = await InventoryRepository.insertItemWithRetry(scope, {
       type: itemType,
       name,
       unit: data.unit ?? 'pcs',
@@ -216,7 +218,7 @@ export class InventoryService {
         worker_id: workerId ?? null,
         worker_name: workerName,
         order: orderInfo,
-        assignment_date: assignment.assignment_date ? new Date(assignment.assignment_date).toISOString() : null,
+        assignment_date: formatDjangoIso(assignment.assignment_date),
       });
     }
 

@@ -104,14 +104,14 @@ describe('A5: Error Handler Leakage & Unified Envelope', () => {
   it('maps JWT errors to 401 { detail, code, requestId }', async () => {
     const res1 = await request(app).get('/error/jwt');
     expect(res1.status).toBe(401);
-    expect(res1.body).toHaveProperty('detail', 'Token is invalid');
+    expect(res1.body).toHaveProperty('detail', 'Token is invalid or expired');
     expect(res1.body).toHaveProperty('code', 'token_not_valid');
     expect(res1.body).toHaveProperty('requestId');
 
     const res2 = await request(app).get('/error/jwt-expired');
     expect(res2.status).toBe(401);
-    expect(res2.body).toHaveProperty('detail', 'Token has expired');
-    expect(res2.body).toHaveProperty('code', 'token_expired');
+    expect(res2.body).toHaveProperty('detail', 'Token is invalid or expired');
+    expect(res2.body).toHaveProperty('code', 'token_not_valid');
     expect(res2.body).toHaveProperty('requestId');
   });
 

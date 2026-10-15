@@ -23,9 +23,17 @@ export async function connectMongo(customUri?: string, customDbName?: string): P
   client = new MongoClient(uri);
   await client.connect();
   db = client.db(dbName);
+  await ensureIndexes(db);
 
   console.log(`Connected to MongoDB: ${dbName}`);
   return db;
+}
+
+export async function ensureIndexes(database: Db): Promise<void> {
+  await database.collection('user').createIndex({ email: 1 }, { unique: true });
+  await database.collection('company').createIndex({ company_id: 1 }, { unique: true });
+  await database.collection('bills').createIndex({ company_id: 1, invoice_number: 1 }, { unique: true });
+  await database.collection('inventory_items').createIndex({ company_id: 1, sku: 1 }, { unique: true });
 }
 
 export function getDb(): Db {

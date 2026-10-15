@@ -51,7 +51,11 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
 
       // 1. DASHBOARD CONSUMER: /ws/dashboard/:companyId/
       if (pathname.startsWith('/ws/dashboard/')) {
-        const token = parsedUrl.searchParams.get('token');
+        const authHeader = typeof request.headers.authorization === 'string' ? request.headers.authorization : '';
+        const token =
+          parsedUrl.searchParams.get('token') ||
+          (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null);
+
         if (!token) {
           ws.close(4001, 'Authentication token required');
           return;
@@ -87,6 +91,13 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
 
         if (!companyId) {
           ws.close(4001, 'No company associated with user');
+          return;
+        }
+
+        // Cross-company verification: check URL companyId against resolved companyId
+        const match = /^\/ws\/dashboard\/([^/]+)\/?$/.exec(pathname);
+        if (match?.[1] && match[1] !== companyId) {
+          ws.close(4001, 'Cross-company dashboard access forbidden');
           return;
         }
 
@@ -130,7 +141,11 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
         let companyId = '';
         let userEmail = '';
 
-        const tokenParam = parsedUrl.searchParams.get('token');
+        const authHeader = typeof request.headers.authorization === 'string' ? request.headers.authorization : '';
+        const tokenParam =
+          parsedUrl.searchParams.get('token') ||
+          (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null);
+
         if (tokenParam) {
           try {
             const payload = verifyAccessToken(tokenParam);
@@ -247,6 +262,7 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
               if (!liveUser) {
                 ws.send(
                   JSON.stringify({
+                    type: 'error',
                     action: 'error',
                     content: 'User account has been deactivated.',
                   })
@@ -264,6 +280,7 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
             } catch {
               ws.send(
                 JSON.stringify({
+                  type: 'error',
                   action: 'error',
                   content: 'Error processing your request: An unexpected error occurred while processing your command.',
                 })

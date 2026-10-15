@@ -203,16 +203,35 @@ export class WorkersRepository {
 
   static async syncFinishedInventory(scope: TenantScope, materialName: string, quantity: number): Promise<void> {
     const itemsCol = getCollection('inventory_items');
-    const escapedName = materialName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    await itemsCol.updateOne(
-      {
+    const name = (materialName ?? '').trim();
+    if (!name || quantity <= 0) return;
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await itemsCol.findOne({
+      company_id: scope.companyId,
+      type: 'finished',
+      // eslint-disable-next-line security/detect-non-literal-regexp
+      name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
+    });
+
+    if (existing) {
+      await itemsCol.updateOne(
+        { _id: existing._id, company_id: scope.companyId },
+        { $inc: { quantity } }
+      );
+    } else {
+      await itemsCol.insertOne({
         company_id: scope.companyId,
         type: 'finished',
-        // eslint-disable-next-line security/detect-non-literal-regexp
-        name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
-      },
-      { $inc: { quantity } }
-    );
+        name,
+        unit: 'pcs',
+        quantity,
+        sku: '',
+        selling_price: 0,
+        cost_price: 0,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    }
   }
 
   static async linkBillWorkerAssignment(scope: TenantScope, billId: string, assignmentId: string): Promise<void> {

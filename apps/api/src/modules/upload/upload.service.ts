@@ -132,9 +132,17 @@ export class UploadService {
       throw new BadRequestError('Please upload a valid CSV file.');
     }
 
+    if (!buffer || buffer.length === 0) {
+      throw new BadRequestError('CSV file is empty.');
+    }
+
     let csvString = buffer.toString('utf-8');
     if (csvString.charCodeAt(0) === 0xfeff) {
       csvString = csvString.slice(1);
+    }
+
+    if (csvString.trim().length === 0) {
+      throw new BadRequestError('CSV file is empty.');
     }
 
     let records: Record<string, string>[];
@@ -149,7 +157,12 @@ export class UploadService {
     }
 
     if (!records || records.length === 0) {
-      return { created: 0, warnings: [] };
+      throw new BadRequestError('CSV file contains no data rows.');
+    }
+
+    const MAX_CSV_ROWS = 10000;
+    if (records.length > MAX_CSV_ROWS) {
+      throw new BadRequestError(`CSV file exceeds maximum limit of ${MAX_CSV_ROWS} rows.`);
     }
 
     const requiredColumns = ['date', 'product', 'quantity', 'production_cost', 'selling_price', 'region', 'customer_type'];
@@ -161,11 +174,39 @@ export class UploadService {
       throw new BadRequestError(`Missing required columns: ${missing.sort().join(', ')}`);
     }
 
-    // Security check 2: Formula injection detection
-    for (const row of records) {
-      for (const val of Object.values(row)) {
-        if (typeof val === 'string' && /^[=+\-@]/.test(val.trim())) {
-          throw new BadRequestError('CSV contains disallowed formula expression.');
+    const numericColumns = ['quantity', 'production_cost', 'selling_price'];
+
+    // Security check 2: Negative numbers in numeric columns & formula injection detection
+    for (let i = 0; i < records.length; i++) {
+      const rowNum = i + 1;
+      const row = records[i];
+
+      // Negative number check on numeric columns
+      for (const col of numericColumns) {
+        const rawVal = row[col];
+        if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+          const numVal = parseFloat(String(rawVal));
+          if (!isNaN(numVal) && numVal < 0) {
+            throw new BadRequestError(`Row ${rowNum}: column '${col}' cannot be negative.`);
+          }
+        }
+      }
+
+      // Formula injection check:
+      for (const [col, val] of Object.entries(row)) {
+        if (typeof val === 'string') {
+          const trimmed = val.trim();
+          if (numericColumns.includes(col)) {
+            if (/^[=+\-@]/.test(trimmed)) {
+              if (/^[=@]/.test(trimmed) || isNaN(Number(trimmed)) || /[a-zA-Z|!']/.test(trimmed)) {
+                throw new BadRequestError('CSV contains disallowed formula expression.');
+              }
+            }
+          } else {
+            if (/^[=+\-@]/.test(trimmed)) {
+              throw new BadRequestError('CSV contains disallowed formula expression.');
+            }
+          }
         }
       }
     }

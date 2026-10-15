@@ -58,31 +58,56 @@ export interface InventoryBillDoc extends Document {
 }
 
 export class InventoryRepository {
-  static async getNextSku(scope: TenantScope): Promise<string> {
+  static async getNextSku(scope: TenantScope, forceResync = false): Promise<string> {
     const countersCol = getCollection<CounterDoc>('counters');
     const itemsCol = getCollection<InventoryItemDoc>('inventory_items');
 
     const counterId = `sku_${scope.companyId}`;
-    const counter = await countersCol.findOne({ _id: counterId });
 
-    if (!counter) {
+    const resyncCounter = async (): Promise<number> => {
       const lastItem = await itemsCol
         .find({ company_id: scope.companyId, sku: { $regex: /^SKU-\d+$/ } })
         .sort({ sku: -1 })
         .limit(1)
         .toArray();
 
-      let startingSeq = 0;
+      let currentMax = 0;
       if (lastItem.length > 0 && lastItem[0].sku) {
         const match = /^SKU-(\d+)$/.exec(lastItem[0].sku);
-        if (match) startingSeq = parseInt(match[1], 10);
+        if (match) currentMax = parseInt(match[1], 10);
       }
 
       await countersCol.updateOne(
         { _id: counterId },
-        { $setOnInsert: { seq: startingSeq } },
+        { $max: { seq: currentMax } },
         { upsert: true }
       );
+      return currentMax;
+    };
+
+    const counter = await countersCol.findOne({ _id: counterId });
+    if (!counter || forceResync) {
+      await resyncCounter();
+    } else {
+      const lastItem = await itemsCol
+        .find({ company_id: scope.companyId, sku: { $regex: /^SKU-\d+$/ } })
+        .sort({ sku: -1 })
+        .limit(1)
+        .toArray();
+      if (lastItem.length > 0 && lastItem[0].sku) {
+        const match = /^SKU-(\d+)$/.exec(lastItem[0].sku);
+        if (match) {
+          const itemMax = parseInt(match[1], 10);
+          const currentSeq = counter.seq ?? 0;
+          if (itemMax >= currentSeq) {
+            await countersCol.updateOne(
+              { _id: counterId },
+              { $max: { seq: itemMax } },
+              { upsert: true }
+            );
+          }
+        }
+      }
     }
 
     const updated = await countersCol.findOneAndUpdate(
@@ -93,6 +118,39 @@ export class InventoryRepository {
 
     const seq = updated?.seq ?? 1;
     return `SKU-${String(seq).padStart(5, '0')}`;
+  }
+
+  static async insertItemWithRetry(
+    scope: TenantScope,
+    doc: Omit<InventoryItemDoc, '_id' | 'company_id'>,
+    maxAttempts = 5
+  ): Promise<InventoryItemDoc> {
+    const itemsCol = getCollection<InventoryItemDoc>('inventory_items');
+    const autoSku = !doc.sku;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      let currentSku: string | undefined = typeof doc.sku === 'string' ? doc.sku : undefined;
+      if (autoSku) {
+        currentSku = await this.getNextSku(scope, attempt > 0);
+      }
+      const fullDoc = { ...(doc as Record<string, unknown>), sku: currentSku, company_id: scope.companyId } as unknown as InventoryItemDoc;
+      try {
+        const res = await itemsCol.insertOne(fullDoc);
+        return { ...fullDoc, _id: res.insertedId };
+      } catch (err: unknown) {
+        const isDupKey =
+          (err as { code?: number })?.code === 11000 ||
+          /E11000|duplicate key/i.test((err as Error)?.message || '');
+        if (isDupKey && autoSku && attempt < maxAttempts - 1) {
+          continue;
+        }
+        if (isDupKey && autoSku) {
+          throw new Error('Could not generate a unique SKU, please retry.', { cause: err });
+        }
+        throw err;
+      }
+    }
+    throw new Error('Could not generate a unique SKU, please retry.');
   }
 
   static async findItems(scope: TenantScope, filter: Filter<InventoryItemDoc> = {}): Promise<InventoryItemDoc[]> {

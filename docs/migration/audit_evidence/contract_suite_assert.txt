@@ -1,0 +1,117 @@
+=======================================================
+INSIGHTLOOP CONTRACT SUITE
+Target: http://127.0.0.1:8000 | Mode: assert
+=======================================================
+
+--- Seeding test database (InsightLoop_test) ---
+Seeding test database: InsightLoop_test at mongodb://localhost:27017/InsightLoop_test
+Test database seeded successfully with deterministic fixtures for Company A and Company B.
+Seed IDs:
+  Company A ID: adb12cc8-3057-4580-87f1-39531ab8c9d4
+  User A Email: alice@company-a.com / password123
+  Company B ID: 8abbc1bb-f761-48e3-b62b-51cc8416fecc
+  User B Email: bob@company-b.com / password123
+  Finished Item A ID: 6ad11e54e9567b5e54753fa3
+  Bill Kacha ID: 6ad11e54e9567b5e54753faa (INV-2026-00001)
+  Bill Pakka ID: 6ad11e54e9567b5e54753fab (INV-2026-00002)
+  Worker 1 ID: 6ad11e54e9567b5e54753fa7
+  Assignment 1 ID: 6ad11e54e9567b5e54753fa9
+
+--- Module: Auth ---
+  [PASS] auth/login_success_company_a
+  [PASS] auth/login_success_company_b
+  [PASS] auth/login_invalid_password
+  [PASS] auth/login_unknown_email
+  [PASS] auth/refresh_success
+  [PASS] auth/refresh_invalid
+  [PASS] auth/signup_duplicate_email
+  [PASS] auth/signup_missing_fields
+  [PASS] auth/google_invalid_credential
+
+--- Module: Profile & Settings ---
+  [PASS] profile/profile_get
+  [PASS] profile/profile_update
+  [PASS] profile/settings_get
+  [PASS] profile/settings_update
+
+--- Module: Inventory ---
+  [PASS] inventory/warehouses_list
+  [PASS] inventory/warehouses_create
+  [PASS] inventory/warehouse_summary
+  [PASS] inventory/finished_list
+  [PASS] inventory/finished_create
+  [PASS] inventory/finished_update
+  [PASS] inventory/finished_delete
+  [PASS] inventory/semi_finished_list
+  [PASS] inventory/semi_finished_live
+  [PASS] inventory/raw_list
+
+--- Module: Workers ---
+  [PASS] workers/workers_list
+  [PASS] workers/workers_detail
+  [PASS] workers/workers_create
+  [PASS] workers/workers_materials_list
+  [PASS] workers/workers_materials_create
+  [PASS] workers/workers_batches_create
+  [PASS] workers/workers_complete
+  [PASS] workers/workers_complete_idempotent
+  [PASS] workers/workers_payments_list
+  [PASS] workers/workers_payments_create
+  [PASS] workers/workers_record_payment
+  [PASS] workers/workers_mark_paid
+
+--- Module: Bills ---
+  [PASS] bills/bills_list_all
+  [PASS] bills/bills_list_filter_kacha
+  [PASS] bills/bills_list_filter_pakka
+  [PASS] bills/bills_detail
+  [PASS] bills/bills_create_kacha
+  [PASS] bills/bills_convert_kacha
+  [PASS] bills/bills_record_payment
+  [PASS] bills/bills_profit_preview
+  [PASS] bills/bills_confirm_profit
+  [PASS] bills/bills_reopen_profit
+  [PASS] bills/bills_transportation_cost
+  [PASS] bills/bills_misc_cost
+  [PASS] bills/bills_ready_to_deliver
+  [PASS] bills/bills_confirm_shipment
+  [PASS] bills/bills_delete
+
+--- Module: Dashboard ---
+  [PASS] dashboard/dashboard_summary
+  [PASS] dashboard/dashboard_rev_exp
+  [PASS] dashboard/dashboard_profit_trends
+  [PASS] dashboard/dashboard_workers
+  [PASS] dashboard/dashboard_top_workers
+
+--- Module: Insights ---
+  [PASS] insights/insights_list
+  [PASS] insights/insights_analyze
+  [PASS] insights/insights_export
+
+--- Module: Upload ---
+  [PASS] upload/upload_manual
+
+--- Module: AI Assistant ---
+  [PASS] ai/ai_config
+  [PASS] ai/ai_command
+
+--- Module: Tenancy Isolation ---
+  [PASS] tenancy/tenancy_bill_cross_tenant_forbidden
+  [PASS] tenancy/tenancy_worker_cross_tenant_forbidden
+  [PASS] tenancy/tenancy_inventory_cross_tenant_forbidden
+  [PASS] tenancy/tenancy_warehouse_cross_tenant_forbidden
+
+--- Module: Contact ---
+  [PASS] contact/contact_get_method_not_allowed
+
+=======================================================
+CONTRACT SUITE EXECUTION SUMMARY
+=======================================================
+Total tests executed: 66
+Passed:               66
+Failed:               0
+Skipped:              0
+
+ALL CONTRACT TESTS COMPLETED SUCCESSFULLY.
+EXIT_CODE: 0

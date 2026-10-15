@@ -74,16 +74,60 @@ export class AiService {
 
     if (insightType === 'worker_performance') {
       const workers = await AiRepository.findActiveWorkers(scope);
+      if (workers.length === 0) return [];
+
+      const workerIds = workers.map((w) => w._id as ObjectId);
+      const [allPayments, allMaterials] = await Promise.all([
+        AiRepository.findBatchWorkerPayRecords(scope, workerIds),
+        AiRepository.findBatchWorkerMaterials(scope, workerIds),
+      ]);
+
+      interface PayItem {
+        worker?: { toString(): string } | null;
+        units_produced?: number;
+        rate_per_unit?: number;
+      }
+      interface MatItem {
+        worker?: { toString(): string } | null;
+        quantity?: number;
+        price_per_unit?: number;
+      }
+
+      const typedPayments = allPayments as unknown as PayItem[];
+      const typedMaterials = allMaterials as unknown as MatItem[];
+
+      const paymentsByWorker = new Map<string, PayItem[]>();
+      for (const p of typedPayments) {
+        const wid = p.worker?.toString();
+        if (wid) {
+          const list = paymentsByWorker.get(wid) ?? [];
+          list.push(p);
+          paymentsByWorker.set(wid, list);
+        }
+      }
+
+      const materialsByWorker = new Map<string, MatItem[]>();
+      for (const m of typedMaterials) {
+        const wid = m.worker?.toString();
+        if (wid) {
+          const list = materialsByWorker.get(wid) ?? [];
+          list.push(m);
+          materialsByWorker.set(wid, list);
+        }
+      }
+
       const performanceData = [];
-
       for (const worker of workers) {
-        const payments = await AiRepository.findWorkerPayRecords(scope, worker._id as ObjectId);
-        const totalUnits = payments.reduce((sum, p) => sum + (Number(p.units_produced) || 0), 0);
-        const avgPayRate = payments.length > 0
-          ? payments.reduce((sum, p) => sum + (Number(p.rate_per_unit) || 0), 0) / payments.length
-          : 0;
+        const widStr = (worker._id as ObjectId).toString();
+        const payments = paymentsByWorker.get(widStr) ?? [];
+        const materials = materialsByWorker.get(widStr) ?? [];
 
-        const materials = await AiRepository.findWorkerMaterials(scope, worker._id as ObjectId);
+        const totalUnits = payments.reduce((sum, p) => sum + (Number(p.units_produced) || 0), 0);
+        const avgPayRate =
+          payments.length > 0
+            ? payments.reduce((sum, p) => sum + (Number(p.rate_per_unit) || 0), 0) / payments.length
+            : 0;
+
         const materialCost = materials.reduce(
           (sum, m) => sum + (Number(m.quantity) || 0) * (Number(m.price_per_unit) || 0),
           0

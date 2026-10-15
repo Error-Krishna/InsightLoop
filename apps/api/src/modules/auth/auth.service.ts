@@ -99,6 +99,12 @@ export class AuthService {
     } catch (err: unknown) {
       // Clean up orphan company if signup fails
       await AuthRepository.deleteCompanyById(compId);
+      const isDupKey =
+        (err as { code?: number })?.code === 11000 ||
+        /E11000|duplicate key/i.test((err as Error)?.message || '');
+      if (isDupKey) {
+        throw new BadRequestError('Email already registered.');
+      }
       throw err;
     }
 
