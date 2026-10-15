@@ -43,6 +43,10 @@ export function getDb(): Db {
   return db;
 }
 
+export function getClient(): MongoClient | null {
+  return client;
+}
+
 export function getCollection<T extends import('mongodb').Document = import('mongodb').Document>(name: string) {
   return getDb().collection<T>(name);
 }

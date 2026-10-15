@@ -1,0 +1,52 @@
+services:
+  # -------------------------------------------------------------
+  # InsightLoop Node.js TypeScript Backend API Service
+  # -------------------------------------------------------------
+  - name: insightloop-api
+    type: web
+    env: node
+    plan: standard
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @insightloop/shared build && pnpm --filter @insightloop/api build
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: TRUST_PROXY
+        value: 1
+      - key: APP_TIME_ZONE
+        value: Asia/Kolkata
+      # Sensitive production credentials to be populated in Render Dashboard:
+      # - key: MONGODB_URI
+      #   sync: false
+      # - key: MONGODB_DB_NAME
+      #   sync: false
+      # - key: JWT_SECRET
+      #   sync: false
+      # - key: CORS_ORIGIN
+      #   sync: false
+      # - key: GOOGLE_CLIENT_ID
+      #   sync: false
+      # - key: REDIS_URL
+      #   sync: false
+
+  # -------------------------------------------------------------
+  # InsightLoop React TypeScript Frontend (Static Site CDN)
+  # -------------------------------------------------------------
+  - name: insightloop-web
+    type: web
+    env: static
+    plan: standard
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @insightloop/shared build && pnpm --filter @insightloop/web build
+    staticPublishPath: apps/web/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://insightloop-api.onrender.com

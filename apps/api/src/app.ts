@@ -1,12 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import cors from 'cors';
 import express, { type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { env } from './config/env.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { asyncHandler } from './utils/asyncHandler.js';
 
 // Route modules
 import { healthRouter } from './modules/health/health.routes.js';
+import { HealthController } from './modules/health/health.controller.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { profileRouter } from './modules/profile/profile.routes.js';
 import { inventoryRouter } from './modules/inventory/inventory.routes.js';
@@ -53,13 +57,16 @@ app.use(requestIdMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Root health check endpoint
+// Root health check and observability endpoints
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'InsightLoop Node API' });
 });
+app.get('/health/detailed', asyncHandler(HealthController.getDetailed));
+app.get('/metrics', asyncHandler(HealthController.getMetrics));
 
 // Mount module routers
 app.use('/api/v1/health', healthRouter);
+app.use('/api/v1/metrics', asyncHandler(HealthController.getMetrics));
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/inventory', inventoryRouter);
@@ -71,6 +78,20 @@ app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/ai', aiRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/contact', contactRouter);
+
+// Static asset serving (optional single-container deployment)
+const staticDir = path.resolve(process.cwd(), 'apps/web/dist');
+// eslint-disable-next-line security/detect-non-literal-fs-filename
+if (process.env.SERVE_STATIC === 'true' && fs.existsSync(staticDir)) {
+  app.use(express.static(staticDir));
+  app.get('*', (req: Request, res: Response, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/ws') || req.path.startsWith('/health') || req.path.startsWith('/metrics')) {
+      next();
+      return;
+    }
+    res.sendFile(path.join(staticDir, 'index.html'));
+  });
+}
 
 // 404 handler for undefined routes
 app.use(notFoundHandler);

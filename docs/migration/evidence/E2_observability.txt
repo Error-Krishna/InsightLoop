@@ -1,0 +1,14 @@
+$ vitest run e2_observability.test.ts
+
+ RUN  v3.2.7 /Users/krishnagoyal/Development/personal projects/Insightloop/apps/api
+
+stdout | test/e2_observability.test.ts > E2: Observability & Metrics Endpoints Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/e2_observability.test.ts (4 tests) 36ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  03:45:18
+   Duration  597ms (transform 150ms, setup 0ms, collect 426ms, tests 36ms, environment 0ms, prepare 40ms)
+

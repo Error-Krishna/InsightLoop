@@ -2,10 +2,10 @@
 
 ## 1. Status Header
 - **Current Phase**: Phase 5.7 (Full-Codebase Fix Pass & Complete Migration to Staging-Ready)
-- **Current Module**: Section D (Frontend) Completed; Proceeding to Section E (Remaining Migration Work)
+- **Current Module**: Section E (Remaining Migration Work) Completed; Proceeding to Section F (Gate & Staging Readiness)
 - **Status**: PHASE 5.7 IN PROGRESS (Phases 6, 7, 8 Strictly Locked)
-- **Last Updated**: 2026-10-16 03:40 UTC
-- **Next Action**: Execute Section E (Remaining Migration Work & Phase 8 Removal Plan)
+- **Last Updated**: 2026-10-16 03:50 UTC
+- **Next Action**: Execute Section F (Final Verification Gate & Staging Readiness Sign-Off)
 
 ---
 
@@ -74,6 +74,16 @@
   *Evidence:* [`docs/migration/evidence/D3_e2e.txt`](file:///docs/migration/evidence/D3_e2e.txt)
 - **D4. Dashboard Render Numeric Parity**: Verified exact numeric parity across all dashboard endpoints (`/dashboard/summary`, `/dashboard/rev-exp`, `/dashboard/profit-trends`, `/dashboard/workers`, `/dashboard/top-workers`) between Django and Node. 0 mismatches across all revenue, expense, profit, and worker metrics.  
   *Evidence:* [`docs/migration/evidence/D4_dashboard_parity.txt`](file:///docs/migration/evidence/D4_dashboard_parity.txt) and [`scripts/verify_dashboard_parity.mjs`](file:///scripts/verify_dashboard_parity.mjs)
+
+### Section E: Remaining Migration Work & Operational Readiness (All items verified)
+- **E1. Ephemeral Storage Cleanup & Production Blob Runbook**: `scripts/verify_storage_cleanup.mjs` scans and prunes stale upload artifacts (> 1 hr TTL) and monitors container disk thresholds (< 500MB). `docs/runbooks/storage.md` documents runtime storage architecture, in-memory CSV parsing via `multer.memoryStorage()`, ephemeral container disk guards, and S3 / GridFS production migration paths.  
+  *Evidence:* [`docs/migration/evidence/E1_storage.txt`](file:///docs/migration/evidence/E1_storage.txt), [`scripts/verify_storage_cleanup.mjs`](file:///scripts/verify_storage_cleanup.mjs), [`docs/runbooks/storage.md`](file:///docs/runbooks/storage.md)
+- **E2. Observability & Metrics Endpoints**: Implemented `/health/detailed` and `/metrics` (Prometheus exposition format). Exposes event loop lag (sub-millisecond resolution), V8 memory statistics (`rss_bytes`, `heap_used_bytes`, `heap_total_bytes`), process uptime, MongoDB ping latency & pool stats (`maxPoolSize`, `minPoolSize`), and Redis status. Returns 503 degraded when MongoDB connection drops. `docs/runbooks/observability.md` documents observability architecture, endpoint specifications, and legacy Django vs modern Node observability delta analysis.  
+  *Evidence:* [`docs/migration/evidence/E2_observability.txt`](file:///docs/migration/evidence/E2_observability.txt), [`apps/api/test/e2_observability.test.ts`](file:///apps/api/test/e2_observability.test.ts), [`docs/runbooks/observability.md`](file:///docs/runbooks/observability.md)
+- **E3. Render/Vercel Blueprint & Secret Rotation Runbooks**: Created `render-blueprint.yaml` matching Phase 5.7 real build/start commands (`pnpm install --frozen-lockfile && pnpm --filter @insightloop/shared build && pnpm --filter @insightloop/api build`, `node apps/api/dist/server.js`), health check paths, and production environment variables. Added optional static asset SPA serving from Node API via `SERVE_STATIC=true`. Created `docs/runbooks/secret_rotation.md` documenting zero-downtime rotation for `JWT_SECRET` (15-min token drain window), MongoDB Atlas credentials, and Google OAuth credentials. Created `docs/runbooks/canary_rollback.md` specifying exact baseline verification (`git diff --stat pre-mern-migration-2026-10-15..HEAD -- insightloop/`), canary staging, and emergency circuit breakers.  
+  *Evidence:* [`render-blueprint.yaml`](file:///render-blueprint.yaml), [`docs/runbooks/secret_rotation.md`](file:///docs/runbooks/secret_rotation.md), [`docs/runbooks/canary_rollback.md`](file:///docs/runbooks/canary_rollback.md)
+- **E4. Phase 8 Django Decommissioning Plan (Written Only — Execution Strictly Locked)**: Created `docs/migration/phase8_django_decommissioning_plan.md` defining exact inventory of legacy Django files to delete, Docker compose cleanup, Python virtualenv removal, DNS/routing switchover, and the mandatory 14-day post-cutover rollback observation window.  
+  *Evidence:* [`docs/migration/phase8_django_decommissioning_plan.md`](file:///docs/migration/phase8_django_decommissioning_plan.md)
 
 ---
 
