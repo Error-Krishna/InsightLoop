@@ -12,7 +12,7 @@ This document catalogs every HTTP route, ViewSet action, internal and external s
 - **Default Error Envelope**:
   - Current (DRF): `{"detail": "<message>"}` (or specific field dicts on validation errors).
   - Target (Node): `{ "detail": string, "code": "<MACHINE_CODE>", "errors"?: {...}, "requestId": string }`.
-- **Data Serialization Conventions** (`insightloop/api_utils.py`):
+- **Data Serialization Conventions** (`insightloop/insightloop/api_utils.py`):
   - ObjectIds: 24-character hexadecimal string (`str(doc.id)`).
   - Decimals: Serialized as floating-point numbers (`float(val)`).
   - Dates & Datetimes: ISO 8601 strings (`val.isoformat()`).
@@ -102,12 +102,12 @@ This document catalogs every HTTP route, ViewSet action, internal and external s
 ## 3. External Integrations & Side Effects
 
 ### 3.1 Redis Usage
-- **In Django**: Configured in `insightloop/settings.py` via `REDIS_URL`. If set, used as the Channel Layer backend (`channels_redis.core.RedisChannelLayer`). If unset or invalid, falls back to in-memory channels with a warning.
-- **Beyond Channels**: A `redis_client` variable is initialized in `settings.py` if `REDIS_URL` is set, but **is never called or referenced anywhere else in the backend codebase**. There are no Redis caches, lock managers, or celery queues.
+- **In Django**: Configured in `insightloop/insightloop/settings.py` via `REDIS_URL`. If set, used as the Channel Layer backend (`channels_redis.core.RedisChannelLayer`). If unset or invalid, falls back to in-memory channels with a warning.
+- **Beyond Channels**: A `redis_client` variable is initialized in `insightloop/insightloop/settings.py` if `REDIS_URL` is set, but **is never called or referenced anywhere else in the backend codebase**. There are no Redis caches, lock managers, or celery queues.
 - **Target Node Stack**: Express API uses `ws` with `ioredis` for multi-instance WebSocket pub/sub fan-out when `REDIS_URL` is present, with an in-memory EventEmitter fallback when absent.
 
 ### 3.2 SMTP / Email Integration
-- **Configured In**: `insightloop/settings.py` (`EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, `ADMIN_EMAIL`).
+- **Configured In**: `insightloop/insightloop/settings.py` (`EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, `ADMIN_EMAIL`).
 - **Call Sites**: Exactly one active endpoint: `POST /contact` in `landing/views.py`. When a contact message is received, it saves `ContactMessage` to MongoDB and sends an `EmailMessage` to `ADMIN_EMAIL`.
 - **Side Effect Handling**: The email dispatch is wrapped in a `try...except` block; failure to send does not prevent the `ContactMessage` from persisting or return a 500 error.
 

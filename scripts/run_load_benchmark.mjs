@@ -55,13 +55,14 @@ async function benchmarkEndpoint(name, url, token, numRequests = 100, concurrenc
   return { name, count, rps: Number(rps), p50: Number(p50), p95: Number(p95), p99: Number(p99) };
 }
 
-async function main() {
-  console.log("=======================================================");
-  console.log("INSIGHTLOOP LOAD & LATENCY BENCHMARK SUITE");
-  console.log(`Node API:   ${NODE_URL}`);
-  console.log(`Django API: ${DJANGO_URL}`);
-  console.log("Concurrency: 10 | Requests per endpoint: 100");
-  console.log("=======================================================\n");
+async function runSuite(concurrency, requestsPerEndpoint) {
+  console.log(`\n>>> RUNNING BENCHMARK: Concurrency = ${concurrency} | Requests per endpoint = ${requestsPerEndpoint} (Total = ${requestsPerEndpoint * 4})`);
+  console.log(
+    "| Endpoint             | Stack  | Requests | Req/Sec | p50 (ms) | p95 (ms) | p99 (ms) | Faster? |",
+  );
+  console.log(
+    "| :------------------- | :----- | :------- | :------ | :------- | :------- | :------- | :------ |",
+  );
 
   const [nodeToken, djangoToken] = await Promise.all([login(NODE_URL), login(DJANGO_URL)]);
 
@@ -72,13 +73,6 @@ async function main() {
     { name: "Raw Inventory List", path: "/api/v1/inventory/raw/", auth: true },
   ];
 
-  console.log(
-    "| Endpoint             | Stack  | Requests | Req/Sec | p50 (ms) | p95 (ms) | p99 (ms) | Faster? |",
-  );
-  console.log(
-    "| :------------------- | :----- | :------- | :------ | :------- | :------- | :------- | :------ |",
-  );
-
   let nodeFasterCount = 0;
 
   for (const ep of endpoints) {
@@ -86,15 +80,15 @@ async function main() {
       ep.name,
       `${NODE_URL}${ep.path}`,
       ep.auth ? nodeToken : null,
-      100,
-      10,
+      requestsPerEndpoint,
+      concurrency,
     );
     const djangoRes = await benchmarkEndpoint(
       ep.name,
       `${DJANGO_URL}${ep.path}`,
       ep.auth ? djangoToken : null,
-      100,
-      10,
+      requestsPerEndpoint,
+      concurrency,
     );
 
     let faster = "Django";
@@ -114,8 +108,25 @@ async function main() {
     );
   }
 
+  console.log(`\nSUMMARY (C=${concurrency}): Node API matched or outperformed Django on ${nodeFasterCount}/${endpoints.length} endpoints.`);
+}
+
+async function main() {
+  console.log("=======================================================");
+  console.log("INSIGHTLOOP LOAD & LATENCY BENCHMARK SUITE");
+  console.log(`Node API:   ${NODE_URL}`);
+  console.log(`Django API: ${DJANGO_URL}`);
+  console.log("Scenarios: 5,000 total requests (Concurrency 10 and 50)");
+  console.log("=======================================================");
+
+  // Scenario 1: Concurrency 10 (1250 per endpoint * 4 = 5000 requests)
+  await runSuite(10, 1250);
+
+  // Scenario 2: Concurrency 50 (1250 per endpoint * 4 = 5000 requests)
+  await runSuite(50, 1250);
+
   console.log("\n=======================================================");
-  console.log(`BENCHMARK SUMMARY: Node API matched or outperformed Django on ${nodeFasterCount}/${endpoints.length} endpoints.`);
+  console.log("ALL BENCHMARK SCENARIOS COMPLETED SUCCESSFULLY");
   console.log("=======================================================");
 }
 

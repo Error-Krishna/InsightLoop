@@ -6,6 +6,7 @@ import {
   getMonthBoundaries,
   buildZonedDateRange,
   getZonedDateParts,
+  formatDjangoIso,
 } from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
 
@@ -472,12 +473,7 @@ export class DashboardService {
     }>(scope, pipeline);
     return results.map((w) => {
       const latest = w.latest_payment;
-      let latestStr = 'N/A';
-      if (latest instanceof Date) {
-        latestStr = latest.toISOString();
-      } else if (latest) {
-        latestStr = new Date(latest).toISOString();
-      }
+      const latestStr = latest ? formatDjangoIso(latest) : 'N/A';
       return {
         name: w.name ?? 'Unknown',
         total_payout: Number(w.total_payout) || 0,

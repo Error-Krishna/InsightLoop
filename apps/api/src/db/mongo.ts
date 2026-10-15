@@ -47,10 +47,15 @@ export function getCollection<T extends import('mongodb').Document = import('mon
   return getDb().collection<T>(name);
 }
 
-export async function closeMongo(): Promise<void> {
+export async function closeMongo(force = false): Promise<void> {
   if (client) {
-    await client.close();
+    const c = client;
     client = null;
     db = null;
+    try {
+      await c.close(force);
+    } catch {
+      // Pool connection interruptions during shutdown are safely swallowed
+    }
   }
 }

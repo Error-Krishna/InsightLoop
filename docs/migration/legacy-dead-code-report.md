@@ -42,7 +42,7 @@ All HTML templates (with one critical exception) reside in the top-level `insigh
 
 ## 3. Legacy Non-API Routes Audit
 
-The routes below are registered in `insightloop/urls.py` outside `/api/v1/`:
+The routes below are registered in `insightloop/insightloop/urls.py` outside `/api/v1/`:
 
 | Route Path | Handler / View | Code Evidence | Traffic Verdict | Proposed Migration Handling |
 | :--- | :--- | :--- | :--- | :--- |

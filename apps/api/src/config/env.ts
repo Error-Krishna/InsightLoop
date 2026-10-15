@@ -78,7 +78,11 @@ export function validateEnv(raw: NodeJS.ProcessEnv = process.env) {
       );
       /* v8 ignore stop */
     }
-    if (!parsed.MONGODB_URI.includes('localhost') && !parsed.MONGODB_URI.includes('127.0.0.1')) {
+    if (
+      !parsed.MONGODB_URI.includes('localhost') &&
+      !parsed.MONGODB_URI.includes('127.0.0.1') &&
+      !parsed.MONGODB_URI.includes('host.docker.internal')
+    ) {
       /* v8 ignore start */
       throw new Error(
         `CRITICAL SAFETY VIOLATION: Test database host must be local. Got: ${parsed.MONGODB_URI}`

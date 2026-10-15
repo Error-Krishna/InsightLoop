@@ -1,0 +1,47 @@
+=======================================================
+INSIGHTLOOP DUAL-STACK CROSS-COMPATIBILITY VERIFICATION
+Node API:   http://127.0.0.1:4000
+Django API: http://127.0.0.1:8000
+MongoDB:    mongodb://localhost:27017/InsightLoop_test
+=======================================================
+
+--- 1. Resetting test DB with deterministic seed ---
+Seeded successfully.
+
+--- 2. Authenticating User A on both stacks ---
+Tokens acquired on both stacks.
+
+--- 3. Round-Trip 1: Inventory Warehouse ---
+[PASS] Node created warehouse ID 6ad144d81a80c23bc58d8b38
+[PASS] Django cleanly read warehouse created by Node (name: "CrossStack WH 1792099544344")
+
+--- 4. Round-Trip 2: Worker & Material Lifecycle ---
+[PASS] Node created worker ID 6ad144d81a80c23bc58d8b39
+[PASS] Django cleanly read worker created by Node
+[PASS] Django created material assignment ID 6ad144d8cf4be071c98eda93
+[PASS] Node cleanly read material assignment created by Django
+[PASS] Node added batch delivery to Django assignment
+[PASS] Django completed assignment with auto-generated pay record
+[PASS] Node verified pay record: amount 1250, paid: false
+[PASS] Node recorded partial payment of ₹500
+[PASS] Django marked payment record as fully paid
+
+--- 5. Round-Trip 3: Bill Flow (Node create Kacha -> Django convert to Pakka -> Node record payment -> Django confirm profit) ---
+[PASS] Node created Kacha bill INV-2026-00003 (ID 6ad144d81a80c23bc58d8b3a)
+[PASS] Django cleanly read Kacha bill created by Node
+[PASS] Django converted bill to Pakka (taxable: 9800, GST 18%: 1764, grand total: 11564)
+[PASS] Node recorded full payment on converted Pakka bill
+[PASS] Django confirmed profit on bill
+[PASS] Node verified profit confirmed by Django
+
+--- 6. Direct MongoDB BSON Type Audit ---
+Validating BSON types on dual-stack modified document:
+  ✓ _id: BSON ObjectId
+  ✓ created_at, updated_at, profit_confirmed_at: BSON Date
+  ✓ grand_total, subtotal, gst_percentage: BSON Double/Number
+  ✓ profit_confirmed, shipment_confirmed: BSON Boolean
+  ✓ Zero schema-corruption exceptions across Django and Node.
+
+=======================================================
+ALL DUAL-STACK CROSS-COMPATIBILITY CHECKS PASSED (100%)
+=======================================================

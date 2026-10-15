@@ -38,7 +38,7 @@ In accordance with Section 7 (The Quirk Policy), all quirks and behavioral anoma
 
 ### QRK-06: File Upload Storage Defaults to Ephemeral Container Disk
 - **What It Does**: `Company` logos, stamps, signatures, and exported CSVs use Django `default_storage.save()`. Because `django-storages` is not in `requirements.txt`, `USE_S3_STORAGE` is disabled and files are written to the local container disk (`BASE_DIR / "media"`), which is ephemeral on Render.
-- **Evidence**: `insightloop/settings.py:448` and `requirements.txt`.
+- **Evidence**: `insightloop/insightloop/settings.py:448` and `requirements.txt`.
 - **Risk If Changed**: Files saved locally are lost on restart.
 - **Recommendation**: **`PROPOSE-FIX`**: In Node, support S3/Cloud Storage upload with fallback to MongoDB GridFS or local directory, preventing data loss on container cycling.
 

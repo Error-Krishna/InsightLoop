@@ -20,7 +20,7 @@ describe('Concurrency & Race Conditions Suite', () => {
 
   it('generates strictly unique, monotonic invoice numbers under high concurrent bill creations', async () => {
     const user = await createTestUser();
-    const concurrentRequests = 25;
+    const concurrentRequests = 100;
 
     const payload = {
       bill_type: 'pakka',
@@ -41,7 +41,7 @@ describe('Concurrency & Race Conditions Suite', () => {
       gst_percentage: 18,
     };
 
-    // Fire 25 concurrent requests simultaneously
+    // Fire 100 concurrent requests simultaneously
     const responses = await Promise.all(
       Array.from({ length: concurrentRequests }).map(() =>
         request(app)
@@ -81,9 +81,9 @@ describe('Concurrency & Race Conditions Suite', () => {
     const user = await createTestUser();
     const itemsCol = getCollection('inventory_items');
 
-    const initialStock = 500;
+    const initialStock = 1000;
     const decrementPerOp = 5;
-    const concurrentOperations = 40;
+    const concurrentOperations = 100;
 
     const itemId = new ObjectId();
     await itemsCol.insertOne({

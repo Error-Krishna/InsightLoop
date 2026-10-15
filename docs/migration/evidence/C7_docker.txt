@@ -1,0 +1,28 @@
+=== C7 DOCKER & GRACEFUL SHUTDOWN VERIFICATION ===
+Starting Node API server on port 4005...
+[PASS] Server is listening and healthy: {"status":"ok","service":"InsightLoop Node API"}
+Connecting authenticated WebSocket to /ws/dashboard/?token=...
+[PASS] WebSocket connected successfully.
+Sending SIGTERM to process (PID 90787)...
+WebSocket closed: code = 1001, reason = "Going Away"
+Server exited with code 0.
+--- Server Shutdown Logs ---
+Connected to MongoDB: InsightLoop_test
+InsightLoop Node API listening on http://127.0.0.1:4005
+{"level":"info","time":"2026-10-15T21:34:27.234Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","requestId":"a8a4b20a-45e3-4c95-ad17-c58c6a9f9b80","method":"GET","url":"/health","msg":"Incoming request"}
+{"level":"info","time":"2026-10-15T21:34:27.238Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","requestId":"6e915e66-62cb-4e7b-bd19-91a5503da199","method":"POST","url":"/api/v1/auth/login/","msg":"Incoming request"}
+{"level":"info","time":"2026-10-15T21:34:27.317Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","signal":"SIGTERM","msg":"Graceful shutdown initiated"}
+{"level":"info","time":"2026-10-15T21:34:27.318Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"HTTP server closed"}
+{"level":"info","time":"2026-10-15T21:34:27.421Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"MongoDB connection closed"}
+{"level":"info","time":"2026-10-15T21:34:27.421Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"Redis connection closed"}
+{"level":"info","time":"2026-10-15T21:34:27.421Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"Graceful shutdown completed successfully"}
+----------------------------
+[PASS] Exit code is 0
+[PASS] Logs show "Graceful shutdown initiated"
+[PASS] Logs show "HTTP server closed"
+[PASS] Logs show "MongoDB connection closed"
+[PASS] Logs show "Redis connection closed"
+[PASS] Logs show "Graceful shutdown completed successfully"
+[PASS] WebSocket received 1001 "Going Away"
+
+=== C7 VERIFICATION PASSED (ALL ASSERTIONS SATISFIED) ===

@@ -13,10 +13,16 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const VECTORS_PATH = path.resolve(
-  __dirname,
-  '../../../apps/api/test/contracts/fixtures/math_vectors.json'
-);
+let current = __dirname;
+let VECTORS_PATH = '';
+for (let i = 0; i < 10; i++) {
+  const candidate = path.join(current, 'apps/api/test/contracts/fixtures/math_vectors.json');
+  if (fs.existsSync(candidate)) {
+    VECTORS_PATH = candidate;
+    break;
+  }
+  current = path.dirname(current);
+}
 
 describe('Mathematical Compatibility Engine', () => {
   it('passes 100,036 golden banker rounding test vectors with 0 mismatches', () => {
@@ -83,5 +89,89 @@ describe('Mathematical Compatibility Engine', () => {
     expect(calcPercentageChange(50, 100)).toBe(-50.0);
     expect(calcPercentageChange(100, 0)).toBe(100.0);
     expect(calcPercentageChange(0, 0)).toBe(0.0);
+    expect(calcPercentageChange(-50, 0)).toBe(-100.0);
+    expect(calcPercentageChange(0, 100)).toBe(-100.0);
+    expect(calcPercentageChange(50, -100)).toBe(150.0);
+  });
+
+  it('covers all order_status state machine transitions and derived defaults', () => {
+    // 1. Defaults when arguments omitted
+    const def = calculateBillDerived(1000);
+    expect(def.order_status).toBe('draft');
+    expect(def.payment_status).toBe('unpaid');
+    expect(def.balance_due).toBe(1000);
+
+    // 2. profitConfirmed + paid -> closed
+    const closed = calculateBillDerived(1000, [{ amount: 1000 }], true, 'pakka', false, []);
+    expect(closed.order_status).toBe('closed');
+    expect(closed.payment_status).toBe('paid');
+
+    // 3. profitConfirmed + unpaid -> not closed
+    const notClosed = calculateBillDerived(1000, [{ amount: 500 }], true, 'pakka', false, []);
+    expect(notClosed.order_status).toBe('confirmed');
+
+    // 4. shipmentConfirmed -> shipped
+    const shipped = calculateBillDerived(1000, [], false, 'pakka', true, []);
+    expect(shipped.order_status).toBe('shipped');
+
+    // 5. kacha -> draft
+    const kacha = calculateBillDerived(1000, [], false, 'kacha', false, []);
+    expect(kacha.order_status).toBe('draft');
+
+    // 6. pakka with 0 assignments -> confirmed
+    const confirmed = calculateBillDerived(1000, [], false, 'pakka', false, []);
+    expect(confirmed.order_status).toBe('confirmed');
+
+    // 7. pakka with all assignments completed -> ready_to_ship
+    const ready = calculateBillDerived(1000, [], false, 'pakka', false, [
+      { status: 'completed' },
+      { status: 'completed' },
+    ]);
+    expect(ready.order_status).toBe('ready_to_ship');
+
+    // 8. pakka with any incomplete assignment -> in_production
+    const inProd1 = calculateBillDerived(1000, [], false, 'pakka', false, [
+      { status: 'completed' },
+      { status: 'pending' },
+    ]);
+    expect(inProd1.order_status).toBe('in_production');
+
+    const inProd2 = calculateBillDerived(1000, [], false, 'pakka', false, [
+      { status: 'in_progress' },
+    ]);
+    expect(inProd2.order_status).toBe('in_production');
+  });
+
+  it('covers calculateBillTotals fallback fields and calculateSuggestedProfit boundaries', () => {
+    // product_name fallback, unit fallback, description fallback, inventory_item_id fallback
+    const totals = calculateBillTotals([
+      { product_name: 'Fallback Item', quantity: 2, price: 100 },
+      { name: 'Item 2', quantity: 1, unit_price: 50, unit: 'meters', description: 'Desc', inventory_item_id: 'inv-123' },
+      { quantity: 0, rate: 0 },
+    ]);
+
+    expect(totals.products[0].name).toBe('Fallback Item');
+    expect(totals.products[0].unit).toBe('pcs');
+    expect(totals.products[0].description).toBe('');
+    expect(totals.products[0].inventory_item_id).toBeNull();
+
+    expect(totals.products[1].name).toBe('Item 2');
+    expect(totals.products[1].unit).toBe('meters');
+    expect(totals.products[1].description).toBe('Desc');
+    expect(totals.products[1].inventory_item_id).toBe('inv-123');
+
+    expect(totals.products[2].name).toBe('');
+
+    // calculateSuggestedProfit when grandTotal is 0 or negative
+    const zeroTotal = calculateSuggestedProfit(100, 50, 0);
+    expect(zeroTotal.payment_fraction).toBe(0);
+    expect(zeroTotal.cost_basis_scaled).toBe(0);
+    expect(zeroTotal.suggested_profit).toBe(100);
+
+    // calculateSuggestedProfit when revenueCollected > grandTotal (fraction clamped to 1.0)
+    const overCollected = calculateSuggestedProfit(200, 50, 100);
+    expect(overCollected.payment_fraction).toBe(1.0);
+    expect(overCollected.cost_basis_scaled).toBe(50);
+    expect(overCollected.suggested_profit).toBe(150);
   });
 });

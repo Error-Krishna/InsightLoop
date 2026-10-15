@@ -87,7 +87,7 @@ The previous scoreboard conflated vector cases, scenario steps, and benchmark ru
 | **Node API Unit / Integration** | "64 unit tests (100% pass)" | **64 tests across 22 test files**. 100% pass. However, coverage is 85.45% lines and 60.49% branches, falling short of the required >=95%/98%. | `pnpm --filter @insightloop/api test` | **PASS (Tests) / FAIL (Coverage)** |
 | **Dual-Stack Scenarios** | "12 integration + 6 parity tests" | **18 operational scenario steps** inside `scripts/test_dual_stack.mjs`. (Not 18 standalone test files). | `node scripts/test_dual_stack.mjs` | **PASS** |
 | **Golden Master Contract Suite** | "66 contract tests passing" | **66 contract assertions executed and passing**. 3 fixtures on disk unexecuted; 6 inventory endpoints lack fixtures. | `tsx contracts/runner.ts assert` | **PARTIAL** |
-| **Frontend Component Tests** | "3 component tests" | **4 component tests across 3 files** (`apps/web/test/LoginPage.test.tsx`, `MetricCard.test.tsx`, `Card.test.tsx`). 13 major feature pages completely untested. | `pnpm --filter @insightloop/web test` | **INADEQUATE** |
+| **Frontend Component Tests** | "3 component tests" | **4 component tests** in `apps/web/test/components.test.tsx`. 13 major feature pages completely untested. | `pnpm --filter @insightloop/web test` | **INADEQUATE** |
 | **Playwright E2E** | "E2E flows verified" | **1 test in 1 file** (`e2e/e2e_full_flow.spec.ts`). Performs login and checks 3 page titles; no business mutations. Not run in CI. | `pnpm exec playwright test` | **INADEQUATE** |
 | **Mutation Testing (Stryker)** | "Hardening complete" | **0 tests**. Stryker is not installed, configured, or mentioned in package scripts. | None (`npx stryker` fails) | **MISSING** |
 | **Load Benchmarks** | "3,962.5 req/sec" | **1 single-engine load script** (`scripts/run_load_benchmark.mjs`). No comparative Django run, no latency percentiles, no memory usage, no 3-repetition averaging. | `node scripts/run_load_benchmark.mjs` | **INADEQUATE** |
@@ -135,7 +135,7 @@ The previous scoreboard conflated vector cases, scenario steps, and benchmark ru
 
 5. **AI WebSocket Scoping:**
    - **Current State:** **PARTIAL**.
-   - `apps/api/src/modules/ai/ai.websocket.ts` verifies JWT and extracts `company_id` from the token payload.
+   - `apps/api/src/ws/gateway.ts` verifies JWT and extracts `company_id` from the token payload.
    - **Defect:** It does not fetch the live user record from MongoDB during the handshake. If a user is deactivated or their company assignment changes, an existing valid JWT permits continued unauthorized access.
 
 ---
@@ -185,7 +185,7 @@ The previous scoreboard conflated vector cases, scenario steps, and benchmark ru
    - Vite build succeeds with clean production bundle: `index.html` (0.45 kB), CSS (17.50 kB), JS (248.86 kB / 77.96 kB gzipped). Cleanly within the <250 kB gzipped threshold.
 
 2. **Component Test Coverage Deficiencies:**
-   - Total Component Tests: **4 tests across 3 files** (`LoginPage.test.tsx`, `MetricCard.test.tsx`, `Card.test.tsx`).
+   - Total Component Tests: **4 tests** in `apps/web/test/components.test.tsx`.
    - **Untested Feature Pages (13 Pages):**
      1. `BillsPage` & `BillDetailPage`
      2. `InventoryPage` & `ProductDetailPage`

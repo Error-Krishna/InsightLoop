@@ -2,6 +2,7 @@ import { type ObjectId } from 'mongodb';
 import { AiRepository } from './ai.repository.js';
 import type { TenantScope } from '../../types/tenant.js';
 import { logger } from '../../utils/logger.js';
+import { formatDjangoIso } from '../../utils/timezone.js';
 
 export class AiService {
   static getConfig() {
@@ -157,7 +158,7 @@ export class AiService {
     const cmd = (command || '').toLowerCase();
     const response: Record<string, unknown> = {
       assistant: assistantType,
-      timestamp: new Date().toISOString(),
+      timestamp: formatDjangoIso(new Date()),
     };
 
     try {

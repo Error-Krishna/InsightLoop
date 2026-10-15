@@ -11,7 +11,13 @@ billsRouter.use(requireAuth);
 billsRouter.get('/', asyncHandler(BillsController.listBills));
 billsRouter.post('/', asyncHandler(BillsController.createBill));
 billsRouter.post('/kacha', asyncHandler(BillsController.createKacha));
+billsRouter.all('/kacha', (req, res) => {
+  res.status(405).json({ detail: `Method "${req.method}" not allowed.` });
+});
 billsRouter.post('/pakka', asyncHandler(BillsController.createPakka));
+billsRouter.all('/pakka', (req, res) => {
+  res.status(405).json({ detail: `Method "${req.method}" not allowed.` });
+});
 
 // 2. Specific Bill Actions
 billsRouter.get('/:id', asyncHandler(BillsController.getBill));

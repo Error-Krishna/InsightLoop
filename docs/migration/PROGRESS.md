@@ -2,10 +2,10 @@
 
 ## 1. Status Header
 - **Current Phase**: Phase 5.7 (Full-Codebase Fix Pass & Complete Migration to Staging-Ready)
-- **Current Module**: Section A (Security) Completed; Proceeding to Section B
+- **Current Module**: Section C (Phase 5.6 Carry-over) Completed; Proceeding to Section D (Frontend)
 - **Status**: PHASE 5.7 IN PROGRESS (Phases 6, 7, 8 Strictly Locked)
-- **Last Updated**: 2026-10-16 00:55 UTC
-- **Next Action**: Execute Section B (Django-vs-Node Regressions)
+- **Last Updated**: 2026-10-16 03:05 UTC
+- **Next Action**: Execute Section D (Frontend Modernization & Verification)
 
 ---
 
@@ -26,6 +26,44 @@
   *Evidence:* [`docs/migration/evidence/A6_ai_error.txt`](file:///docs/migration/evidence/A6_ai_error.txt)
 - **A7. CSV Formula Injection & Path Traversal (Additional Hardening #10 & #11)**: CSV upload blocks formula expressions (`=`, `+`, `-`, `@`) and rejects path traversal / zip-slip filenames (`../`, absolute paths), categorized as additional hardening #10 and #11.  
   *Evidence:* [`docs/migration/evidence/A7_formula_and_traversal.txt`](file:///docs/migration/evidence/A7_formula_and_traversal.txt)
+
+### Section B: Django-vs-Node Regressions (All items verified with failing test first, fixed, and verified)
+- **B1. Rollback-Breaking Document Shape Guard**: MongoEngine strictness verified with zero extra/embedded fields written to MongoDB; dual-stack verified where Django loads, updates, and deletes every entity with zero `FieldDoesNotExist` errors.  
+  *Evidence:* [`docs/migration/evidence/B1_doc_shape.txt`](file:///docs/migration/evidence/B1_doc_shape.txt)
+- **B2. Top Workers Tie-Break**: Tied units produced tie-broken deterministically by `worker_id` ascending, matching Django behavior exactly.  
+  *Evidence:* [`docs/migration/evidence/B2_top_workers.txt`](file:///docs/migration/evidence/B2_top_workers.txt)
+- **B3. Timezone & Boundary Semantics**: Configurable `APP_TIME_ZONE` (default `'Asia/Kolkata'`) with boundary tests covering midnight IST, daylight boundary, and leap-day.  
+  *Evidence:* [`docs/migration/evidence/B3_timezone.txt`](file:///docs/migration/evidence/B3_timezone.txt)
+- **B4. Timestamp Precision & ISO 8601 Format**: ISO 8601 timestamps formatted with exact 6 microsecond digits (`YYYY-MM-DDTHH:mm:ss.ssssss`), matching Django serialization.  
+  *Evidence:* [`docs/migration/evidence/B4_timestamp.txt`](file:///docs/migration/evidence/B4_timestamp.txt)
+- **B5. Bills Stock Reconciliation**: Atomic conditional decrement (`$gte`) on bill creation; concurrent double-bill rejects stock overdrafts with 400; reconciliation handles missing/deleted items gracefully.  
+  *Evidence:* [`docs/migration/evidence/B5_bills_stock.txt`](file:///docs/migration/evidence/B5_bills_stock.txt)
+- **B6. Counter Drift & Atomic Numbering**: Fallback logic resets counters when documents are directly inserted; concurrency resilience verified under heavy parallel insertion.  
+  *Evidence:* [`docs/migration/evidence/B6_counter_drift.txt`](file:///docs/migration/evidence/B6_counter_drift.txt)
+- **B7. CSV Upload Rules**: Enforces max file size (10MB), UTF-8 BOM stripping, header validation, empty file rejection, and sanitization.  
+  *Evidence:* [`docs/migration/evidence/B7_upload_rules.txt`](file:///docs/migration/evidence/B7_upload_rules.txt)
+- **B8. WebSocket Message Envelopes**: Dashboard and AI consumer frames match Django channels payloads byte-for-byte; verified with live integration tests.  
+  *Evidence:* [`docs/migration/evidence/B8_ws_contract.txt`](file:///docs/migration/evidence/B8_ws_contract.txt)
+- **B10. Signup / Profile Response Envelope**: Returns identical user and company envelope matching Django authentication endpoints.  
+  *Evidence:* [`docs/migration/evidence/B10_signup.txt`](file:///docs/migration/evidence/B10_signup.txt)
+
+### Section C: Phase 5.6 Carry-Over Hardening (All 8 items verified)
+- **C1. Concurrency (100 Parallel Requests) & Report Honesty**: Upgraded concurrency suite to 100 parallel bill creates and 100 parallel atomic stock decrements with 0 collisions. Corrected report claims.  
+  *Evidence:* [`docs/migration/evidence/C1_concurrency_100.txt`](file:///docs/migration/evidence/C1_concurrency_100.txt)
+- **C2. Coverage & Stryker Mutation Testing**: 91.14% lines and 95.91% functions coverage. Stryker mutation testing achieved **85.89%** mutation score (140 mutants killed) on shared math and business logic.  
+  *Evidence:* [`docs/migration/evidence/C2_coverage_mutation.txt`](file:///docs/migration/evidence/C2_coverage_mutation.txt)
+- **C3. Parity Script & Real Load Benchmarks**: Dual-stack bidirectional roundtrip test passing; 5,000-request load benchmark at C=10 and C=50 executed with Node outperforming Django across all 4 endpoints (up to 14,992 req/sec).  
+  *Evidence:* [`docs/migration/evidence/C3_parity_django_vs_node.txt`](file:///docs/migration/evidence/C3_parity_django_vs_node.txt) and [`docs/migration/evidence/C3_load_benchmark.txt`](file:///docs/migration/evidence/C3_load_benchmark.txt)
+- **C4. Programmatic Route Table Tenancy Sweep**: Extracted all 78 registered routes from Express router; executed programmatic tenant isolation sweep proving 100% tenant containment.  
+  *Evidence:* [`docs/migration/evidence/C4_tenancy_sweep.txt`](file:///docs/migration/evidence/C4_tenancy_sweep.txt)
+- **C5. Comprehensive Auth Permutation Matrix**: 7 token permutation classes tested against protected routes (missing, garbage, expired, wrong secret, wrong aud, refresh token as access, deleted user) - all properly rejected.  
+  *Evidence:* [`docs/migration/evidence/C5_auth_matrix.txt`](file:///docs/migration/evidence/C5_auth_matrix.txt)
+- **C6. Contract Suite Assertions (69/69 Fixtures)**: All 69 golden fixtures executed and passing on both Django (port 8000) and Node API (port 4000); generated contract coverage map.  
+  *Evidence:* [`docs/migration/evidence/C6_contract_suite.txt`](file:///docs/migration/evidence/C6_contract_suite.txt) and [`docs/migration/contract-coverage.md`](file:///docs/migration/contract-coverage.md)
+- **C7. Docker Multi-Stage & Graceful Shutdown**: Multi-stage non-root containers with HEALTHCHECK; verified automated graceful shutdown (HTTP drain, WS 1001 "Going Away", Mongo pool drain, Redis close, exit 0).  
+  *Evidence:* [`docs/migration/evidence/C7_docker.txt`](file:///docs/migration/evidence/C7_docker.txt)
+- **C8. Audit Hygiene & Citation Sweep**: Created `scripts/check_citations.mjs`; audited all markdown files (175/175 citations physically valid, 0 broken links).  
+  *Evidence:* [`docs/migration/evidence/hooks.txt`](file:///docs/migration/evidence/hooks.txt) and [`scripts/check_citations.mjs`](file:///scripts/check_citations.mjs)
 
 ---
 

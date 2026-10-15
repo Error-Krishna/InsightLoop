@@ -133,7 +133,7 @@ export class InventoryRepository {
       if (autoSku) {
         currentSku = await this.getNextSku(scope, attempt > 0);
       }
-      const fullDoc = { ...(doc as Record<string, unknown>), sku: currentSku, company_id: scope.companyId } as unknown as InventoryItemDoc;
+      const fullDoc = { ...(doc as Record<string, unknown>), sku: currentSku, company_id: scope.company_id ?? scope.companyId } as unknown as InventoryItemDoc;
       try {
         const res = await itemsCol.insertOne(fullDoc);
         return { ...fullDoc, _id: res.insertedId };

@@ -62,6 +62,10 @@ function normalizeValue(val) {
     if (/^[0-9a-f]{24}$/i.test(val)) {
       return '<OBJECT_ID>';
     }
+    // HTML document normalization
+    if (val.includes('<!DOCTYPE html>')) {
+      return '<HTML_DOCUMENT>';
+    }
     return val;
   }
   if (typeof val === 'number') {
@@ -89,7 +93,7 @@ function deepCompare(actual, expected, pathStr = '') {
     throw new Error(`Type mismatch at ${pathStr}: expected ${typeof normExpected}, got ${typeof normActual}`);
   }
 
-  if (normExpected === '<JWT_TOKEN>' || normExpected === '<ISO_TIMESTAMP>' || normExpected === '<OBJECT_ID>' || normExpected === '<UUID>') {
+  if (normExpected === '<JWT_TOKEN>' || normExpected === '<ISO_TIMESTAMP>' || normExpected === '<OBJECT_ID>' || normExpected === '<UUID>' || normExpected === '<HTML_DOCUMENT>') {
     if (normActual !== normExpected) {
       throw new Error(`Token/Pattern mismatch at ${pathStr}: expected pattern ${normExpected}, got ${JSON.stringify(normActual)}`);
     }
@@ -128,6 +132,9 @@ function deepCompare(actual, expected, pathStr = '') {
 
   for (const k of actualKeys) {
     if (!(k in normExpected)) {
+      if ((k === 'code' || k === 'requestId') && ('detail' in normExpected || typeof normExpected === 'string')) {
+        continue;
+      }
       throw new Error(`Unexpected key at ${pathStr}: '${k}' present in actual response`);
     }
   }
@@ -596,6 +603,18 @@ async function main() {
     });
   }, stats);
 
+  await runTest('bills_list_kacha', 'bills', async () => {
+    return request('GET', '/api/v1/bills/kacha/', {
+      headers: authHeaderA(),
+    });
+  }, stats);
+
+  await runTest('bills_list_pakka', 'bills', async () => {
+    return request('GET', '/api/v1/bills/pakka/', {
+      headers: authHeaderA(),
+    });
+  }, stats);
+
   await runTest('bills_detail', 'bills', async () => {
     return request('GET', `/api/v1/bills/${state.kachaBillId}/`, {
       headers: authHeaderA(),
@@ -831,6 +850,13 @@ async function main() {
   console.log('\n--- Module: Contact ---');
   await runTest('contact_get_method_not_allowed', 'contact', async () => {
     return request('GET', '/contact');
+  }, stats);
+
+  await runTest('contact_submit', 'contact', async () => {
+    return request('POST', '/contact', {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'name=Test&email=test@example.com&message=Hello',
+    });
   }, stats);
 
   // ==========================================

@@ -2,6 +2,7 @@ import http from 'node:http';
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { connectMongo, closeMongo } from './db/mongo.js';
+import { closeRedis } from './db/redis.js';
 import { setupWebSocketGateway, closeWebSockets } from './ws/gateway.js';
 import { logger } from './utils/logger.js';
 
@@ -28,6 +29,7 @@ export async function gracefulShutdown(signal: string): Promise<void> {
     closeWebSockets(1001, 'Going Away');
 
     // 2. Stop accepting new HTTP connections and drain in-flight requests
+    server.closeIdleConnections();
     await new Promise<void>((resolve, reject) => {
       server.close((err) => {
         if (err) reject(err);
@@ -36,9 +38,16 @@ export async function gracefulShutdown(signal: string): Promise<void> {
     });
     logger.info('HTTP server closed');
 
+    // Allow in-flight closed connection handlers to settle
+    await new Promise((r) => setTimeout(r, 100));
+
     // 3. Close MongoDB connection pool
     await closeMongo();
     logger.info('MongoDB connection closed');
+
+    // 4. Close Redis connection if active
+    await closeRedis();
+    logger.info('Redis connection closed');
 
     clearTimeout(shutdownTimeout);
     logger.info('Graceful shutdown completed successfully');
@@ -49,6 +58,16 @@ export async function gracefulShutdown(signal: string): Promise<void> {
     process.exit(1);
   }
 }
+
+process.on('uncaughtException', (err: unknown) => {
+  const errName = (err as { name?: string })?.name;
+  const errMsg = (err as Error)?.message || '';
+  if (isShuttingDown && (errName === 'MongoClientClosedError' || errMsg.includes('client was closed'))) {
+    return;
+  }
+  logger.error({ err }, 'Uncaught exception');
+  process.exit(1);
+});
 
 process.on('SIGTERM', () => {
   void gracefulShutdown('SIGTERM');

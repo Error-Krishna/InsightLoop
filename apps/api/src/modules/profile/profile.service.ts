@@ -1,5 +1,5 @@
 import { ProfileRepository } from './profile.repository.js';
-import { NotFoundError } from '../../utils/errors.js';
+import { UnauthorizedError } from '../../utils/errors.js';
 import type { TenantScope } from '../../types/tenant.js';
 
 export interface UpdateProfileInput {
@@ -29,7 +29,7 @@ export interface UpdateSettingsInput {
 export class ProfileService {
   static async getProfile(userId: string, scope: TenantScope) {
     const user = await ProfileRepository.getUserById(userId);
-    if (!user) throw new NotFoundError('User not found.');
+    if (!user) throw new UnauthorizedError('User not found.', 'user_not_found');
 
     const company = await ProfileRepository.getCompany(scope);
 

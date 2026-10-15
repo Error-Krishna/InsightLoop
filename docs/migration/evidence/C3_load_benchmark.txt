@@ -1,0 +1,38 @@
+=======================================================
+INSIGHTLOOP LOAD & LATENCY BENCHMARK SUITE
+Node API:   http://127.0.0.1:4000
+Django API: http://127.0.0.1:8000
+Scenarios: 5,000 total requests (Concurrency 10 and 50)
+=======================================================
+
+>>> RUNNING BENCHMARK: Concurrency = 10 | Requests per endpoint = 1250 (Total = 5000)
+| Endpoint             | Stack  | Requests | Req/Sec | p50 (ms) | p95 (ms) | p99 (ms) | Faster? |
+| :------------------- | :----- | :------- | :------ | :------- | :------- | :------- | :------ |
+| Health (Liveness)    | Node   |     1250 |  5313.6 |      1.8 |      3.6 |      6.3 | Node (Native) |
+| Health (Liveness)    | Django |        0 |       0 |        0 |        0 |        0 |         |
+| Dashboard Summary    | Node   |     1250 |  1010.8 |      7.4 |     14.7 |     20.4 | Node (WIN) |
+| Dashboard Summary    | Django |     1250 |   283.8 |     31.8 |     70.8 |     80.5 |         |
+| Bills List (Kacha)   | Node   |     1250 |  3013.4 |      2.6 |      5.6 |     17.3 | Node (WIN) |
+| Bills List (Kacha)   | Django |     1250 |   409.6 |     21.4 |     49.5 |     72.7 |         |
+| Raw Inventory List   | Node   |     1250 |  3406.4 |      2.2 |      5.1 |     21.5 | Node (WIN) |
+| Raw Inventory List   | Django |     1250 |   430.9 |     20.5 |     48.2 |     70.5 |         |
+
+SUMMARY (C=10): Node API matched or outperformed Django on 4/4 endpoints.
+
+>>> RUNNING BENCHMARK: Concurrency = 50 | Requests per endpoint = 1250 (Total = 5000)
+| Endpoint             | Stack  | Requests | Req/Sec | p50 (ms) | p95 (ms) | p99 (ms) | Faster? |
+| :------------------- | :----- | :------- | :------ | :------- | :------- | :------- | :------ |
+| Health (Liveness)    | Node   |     1250 | 14992.4 |      2.7 |      6.9 |     12.6 | Node (Native) |
+| Health (Liveness)    | Django |        0 |       0 |        0 |        0 |        0 |         |
+| Dashboard Summary    | Node   |     1250 |  1109.3 |     32.2 |    106.7 |    136.9 | Node (WIN) |
+| Dashboard Summary    | Django |     1250 |   253.8 |    190.6 |    265.7 |      304 |         |
+| Bills List (Kacha)   | Node   |     1250 |  2494.6 |     13.3 |     39.6 |    184.5 | Node (WIN) |
+| Bills List (Kacha)   | Django |     1250 |   386.7 |    118.5 |    169.5 |    200.6 |         |
+| Raw Inventory List   | Node   |     1250 |  3981.2 |      9.5 |     31.7 |     43.6 | Node (WIN) |
+| Raw Inventory List   | Django |     1250 |   373.1 |    111.8 |      220 |    431.2 |         |
+
+SUMMARY (C=50): Node API matched or outperformed Django on 4/4 endpoints.
+
+=======================================================
+ALL BENCHMARK SCENARIOS COMPLETED SUCCESSFULLY
+=======================================================
