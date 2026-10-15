@@ -150,6 +150,7 @@ All numbers strictly derived from raw command outputs in [`docs/migration/eviden
 ---
 
 ## 9. Commit Log (Newest First)
+- `0d7c184` `chore(hardening): complete Phase 5.5 hardening, architectural layering, and honest re-baseline`
 - `b7cea69` `chore(re-baseline): execute Phase 5.5 Step 1 honest re-baseline and evidence audit`
 - `1282434` `docs: finalize PROGRESS.md with Phase 5 completion record`
 - `dfa34b0` `feat(parity): complete Phase 5 verification, load benchmarks, chaos resilience, and tenancy security sweeps`
