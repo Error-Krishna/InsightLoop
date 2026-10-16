@@ -231,7 +231,7 @@ print('DJANGO_PAY_LOAD_OK')
         MONGODB_DB_NAME: 'InsightLoop_test',
       },
     });
-    expect(shapeOutput).toContain('PASSED: All checked documents conform strictly');
+    expect(shapeOutput).toContain('conform strictly to Django MongoEngine models');
 
     // Run Django verification: Load, List, Update, and Delete each entity via Django MongoEngine
     const dualStackPy = execSync(
