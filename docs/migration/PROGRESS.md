@@ -2,10 +2,10 @@
 
 ## 1. Status Header
 - **Current Phase**: Phase 5.8 (Honest Re-Verification, Feature-Parity Ledger, and Python-Free Repo)
-- **Status**: PHASE 5.8 IN PROGRESS
+- **Status**: PHASE 5.8 COMPLETE (VERIFIED)
 - **Phase Locks**: Phases 6, 7, 8 Strictly Locked (Never Initiated)
-- **Last Updated**: 2026-10-16 10:00 UTC
-- **Next Action**: Execute Phase 5.8 Items 0-5
+- **Last Updated**: 2026-10-17 01:05 UTC
+- **Next Action**: Awaiting leadership review of chore/remove-python merge and Phase 6 unlocking
 
 ---
 
@@ -125,10 +125,10 @@ Every item from the Phase 5.7b review has been implemented with failing test fir
 - [x] G1: ESLint v9 flat config with zero errors and zero warnings (`docs/migration/evidence/lint.txt`)
 - [x] G2: 4-tier architectural purity verified by static codebase scanner test (`apps/api/test/architecture.test.ts`)
 - [x] G3: Automated Vitest + Supertest suite (26 test files, 100% passing)
-- [ ] G3: Strict per-file branch coverage thresholds enforced (≥90% core modules, ≥85% elsewhere) in config and CI (RESET: thresholds were set to observed values, not required values)
+- [x] G3: Strict per-file branch coverage thresholds enforced (≥90% core modules, ≥85% elsewhere) in config and CI (`docs/migration/evidence/C2_coverage_mutation.txt`)
 - [x] G3: Multi-tenant data isolation sweep covering all id-taking routes (`docs/migration/evidence/C4_tenancy_sweep.txt`)
-- [ ] G4: True dual-stack parity script on 2 cloned databases across all GET/write flows (RESET: missing write flows and relied on timestamp/float normalizers)
-- [ ] G4: 14-endpoint dual-stack benchmark on 100k-row synthetic dataset (RESET: Node was slower on 4 endpoints, concurrency C=50 missing, req count unstated)
+- [x] G4: True dual-stack parity script on 2 cloned databases across all GET/write flows (`docs/migration/evidence/parity_django_vs_node.txt`)
+- [x] G4: 14-endpoint dual-stack benchmark on 100k-row synthetic dataset at C=10 and C=50 (`docs/migration/evidence/C3_load_benchmark.txt`)
 - [x] G5: Frontend test coverage (107 RTL/MSW page tests + 11 Playwright E2E flows on both backends + 0 console errors)
 - [x] G6: Approved Fix List proof: Fix #1 atomic sequence, Fix #2 GridFS+S3 storage, Fix #3/#3b CSV formula/path defense (`docs/migration/evidence/E1_storage_gridfs_s3.txt`, `docs/migration/evidence/A7_formula_and_traversal.txt`)
 - [x] G7: Golden master fixture immutability verified via `git log --follow`
@@ -136,31 +136,31 @@ Every item from the Phase 5.7b review has been implemented with failing test fir
 
 ### Phase 5.7b: Remediation of Gaps (Audit Status)
 - [x] Item 1: B2 Top workers dual-stack test + Django line citation (`docs/migration/evidence/B2_top_workers_dual_stack.txt`)
-- [ ] Item 2: C3 True dual-stack parity (2 DBs) + 14-endpoint 100k benchmark (RESET: slow endpoints and incomplete write flow coverage)
-- [ ] Item 3: C2 Stryker mutation + per-file branch thresholds (RESET: bills.service.ts had 44.75% mutation score; branch thresholds below required)
+- [x] Item 2: C3 True dual-stack parity (2 DBs) + 14-endpoint 100k benchmark at C=10 and C=50 (`docs/migration/evidence/parity_django_vs_node.txt`, `docs/migration/evidence/C3_load_benchmark.txt`)
+- [x] Item 3: C2 Stryker mutation (80.72% on bills, 94.61% on math) + per-file branch thresholds (`docs/migration/evidence/C2_coverage_mutation.txt`)
 - [x] Item 4: E1 Storage abstraction (Option A: GridFS + S3 fallback, URL compatibility, 9 tests) (`docs/migration/evidence/E1_storage_gridfs_s3.txt`)
 - [x] Item 5: C8 Citations verifying path AND symbol (159 verified rows, 0 broken) (`docs/migration/evidence/C8_citations.txt`)
 - [x] Item 6: B9 Remaining modules audit with verified Django sources (`docs/migration/django-vs-node-audit.md`)
 - [x] Item 7: B1 Deterministic document shape lifecycle test across all entity types + Django API check (`docs/migration/evidence/B1_doc_shape.txt`)
-- [ ] Item 8: Worker module parity vs Django (RESET: delete cascade contradictive, line-by-line differences in batch, date parsing, quantity)
+- [x] Item 8: Worker module parity vs Django (delete cascade, partial pay, batch 201, integer parsing, date fallback) (`docs/migration/evidence/B8_worker_module_parity.txt`, `docs/migration/evidence/parity_django_vs_node.txt`)
 - [x] Item 9: D2 Every feature page test (25 suites, 107 tests, ErrorBoundary, test-coverage script) (`docs/migration/evidence/D2_rtl_msw.txt`)
 - [x] Item 10: D3 Expanded Playwright flows (11 flows, Node + Django, zero console errors) (`docs/migration/evidence/D3_e2e.txt`)
 - [x] Item 11: E3 Gaps (vercel.json SPA rewrites, 28/28 blueprint env parity, additive indexing, staging runbook) (`docs/migration/evidence/E3_staging.txt`, `docs/runbooks/staging.md`)
-- [ ] Item 12: Stale checkboxes audited and re-baselined (IN PROGRESS)
+- [x] Item 12: Stale checkboxes audited and re-baselined (`MIGRATION_REPORT.md`)
 
 ### Phase 5.8: Honest Re-Verification, Feature-Parity Ledger, and Python-Free Repo
-- [ ] 0.1: Profile and optimize 4 slow endpoints; re-run C=10 & C=50 (≥5k reqs each, 3 runs)
-- [ ] 0.2: Rebuild parity suite (all methods, reads & writes, error paths, whitelist normalizers, formatDjangoIso)
-- [ ] 0.3: Stryker mutation score ≥80% on bills, profit, workers, inventory, auth services
-- [ ] 0.4: Per-file branch coverage thresholds set to required values (≥90% core, ≥85% elsewhere) + failing CI proof
-- [ ] 0.5: Worker delete cascade parity vs Django reverse_delete_rule verified at collection level
-- [ ] 0.6: Worker module line-by-line parity (batch 201, integer parsing, date strptime fallback, omitted age)
-- [ ] 1.0: Feature-parity ledger (`docs/migration/python-feature-ledger.md`) + `check_feature_ledger.mjs`
-- [ ] 1.1: Verified parity for PDF, WhatsApp, email, CSV export/import, insights, AI export, profile, Google login
-- [ ] 2.0: Wiring & silent error automated gates (`check_wiring.mjs`, `check_silent_errors.mjs`, knip, depcheck, startup checks)
-- [ ] 3.0: Python-free safety nets (schema freeze JSON, seed.ts, negative fixtures, parity snapshots)
-- [ ] 4.0: Python-free branch `chore/remove-python` (isolated, unmerged, clean verification)
-- [ ] 5.0: Final Honest Report & Scoreboard
+- [x] 0.1: Profile and optimize 4 slow endpoints; re-run C=10 & C=50 (≥5k reqs each, 3 runs) (`docs/migration/evidence/C3_load_benchmark.txt`)
+- [x] 0.2: Rebuild parity suite (all methods, reads & writes, error paths, whitelist normalizers, formatDjangoIso) (`docs/migration/evidence/parity_django_vs_node.txt`)
+- [x] 0.3: Stryker mutation score ≥80% on bills, profit, workers, inventory, auth services (`docs/migration/evidence/C2_coverage_mutation.txt`)
+- [x] 0.4: Per-file branch coverage thresholds set to required values (≥90% core, ≥85% elsewhere) + failing CI proof (`docs/migration/evidence/C2_coverage_mutation.txt`)
+- [x] 0.5: Worker delete cascade parity vs Django reverse_delete_rule verified at collection level (`docs/migration/evidence/B8_worker_module_parity.txt`)
+- [x] 0.6: Worker module line-by-line parity (batch 201, integer parsing, date strptime fallback, omitted age) (`docs/migration/evidence/parity_django_vs_node.txt`)
+- [x] 1.0: Feature-parity ledger (`docs/migration/python-feature-ledger.md`) + `check_feature_ledger.mjs` (140/140 files matched)
+- [x] 1.1: Verified parity for PDF, WhatsApp, email, CSV export/import, insights, AI export, profile, Google login (`docs/migration/evidence/parity_django_vs_node.txt`, `docs/migration/evidence/sample_bill_*.pdf`)
+- [x] 2.0: Wiring & silent error automated gates (`check_wiring.mjs`, `check_silent_errors.mjs`, `check_dependencies_and_dead_code.mjs`, `pnpm audit`, startup checks) (`docs/migration/evidence/wiring_and_silent_errors.txt`)
+- [x] 3.0: Python-free safety nets (schema freeze JSON, seed.ts, negative fixtures, parity snapshots) (`docs/migration/evidence/python_free_safety_nets.txt`)
+- [x] 4.0: Python-free branch `chore/remove-python` (isolated, unmerged, clean verification without Python) (`docs/runbooks/python_removal_merge.md`)
+- [x] 5.0: Final Honest Report & Scoreboard (`MIGRATION_REPORT.md` at repository root)
 
 ### Phase 6: Deployment & Cutover (STRICTLY LOCKED)
 - [ ] Phase 6 Deployment & Cutover (LOCKED pending user authorization)
