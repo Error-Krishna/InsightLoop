@@ -1,6 +1,6 @@
 =================================================================
 B2: TOP WORKERS & WORKER PAYMENTS DUAL-STACK PARITY AUDIT
-Timestamp: 2026-10-16T06:44:44.871Z
+Timestamp: 2026-10-16T09:02:47.580Z
 =================================================================
 
 Step 1: Reseeding clean test DB...
@@ -10,12 +10,12 @@ Django Token Acquired: eyJhbGciOiJIUzI...
 Node Token Acquired:   eyJhbGciOiJIUzI...
 
 Step 3: Creating Worker via Django and Worker via Node...
-Django Created Worker ID: 6ad1c7decf4be071c98edabd (Django Created Artisan)
-Node Created Worker ID:   6ad1c7de1a80c23bc58d8b42 (Node Created Weaver)
-Temporary Worker ID:      6ad1c7de1a80c23bc58d8b43 (Worker To Delete)
+Django Created Worker ID: 6ad1e839cf4be071c98edb29 (Django Created Artisan)
+Node Created Worker ID:   6ad1e83938bd36e8c2990d15 (Node Created Weaver)
+Temporary Worker ID:      6ad1e83938bd36e8c2990d16 (Worker To Delete)
 
 Step 4: Creating Pay Records across both stacks...
-Deleted worker 6ad1c7de1a80c23bc58d8b43 directly from workers collection to simulate orphaned reference.
+Deleted worker 6ad1e83938bd36e8c2990d16 directly from workers collection to simulate orphaned reference.
 
 Step 5: Querying and comparing /api/v1/dashboard/top-workers/ from Django and Node...
 Django Top Workers: [

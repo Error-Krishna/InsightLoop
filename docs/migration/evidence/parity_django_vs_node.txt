@@ -1,7 +1,7 @@
 =======================================================
 INSIGHTLOOP DUAL-STACK TRUE PARITY AUDIT EVIDENCE
 =======================================================
-Date: 2026-10-16T08:05:32.714Z
+Date: 2026-10-16T09:03:53.210Z
 Database A (Django): InsightLoop_django_test
 Database B (Node):   InsightLoop_node_test
 Seeded Dataset: Realistic fixture dataset + 100,000-row synthetic company (Company C)
@@ -30,13 +30,13 @@ Total Failures: 0
 [PASS] GET    /api/v1/dashboard/top-workers/                | Django: 200 | Node: 200 | Diffs: 0
 [PASS] GET    /api/v1/insights/                             | Django: 200 | Node: 200 | Diffs: 0
 [PASS] GET    /api/v1/ai/config/                            | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/6ad1dab608e130ee5324d44e/       | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/6ad1dab608e130ee5324d44e/profit-preview/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/6ad1dab608e130ee5324d44e/assignments/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/workers/6ad1dab608e130ee5324d44a/     | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/workers/6ad1dab608e130ee5324d44a/materials/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/workers/6ad1dab608e130ee5324d44a/payments/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/insights/6ad1dab608e130ee5324d46c/export/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/6ad1e863e7cfa00d1a62d7a4/       | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/6ad1e863e7cfa00d1a62d7a4/profit-preview/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/6ad1e863e7cfa00d1a62d7a4/assignments/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/workers/6ad1e863e7cfa00d1a62d7a0/     | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/workers/6ad1e863e7cfa00d1a62d7a0/materials/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/workers/6ad1e863e7cfa00d1a62d7a0/payments/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/insights/6ad1e863e7cfa00d1a62d7c2/export/ | Django: 200 | Node: 200 | Diffs: 0
 [PASS] POST   /api/v1/inventory/warehouses/                 | Django: 201 | Node: 201 | Diffs: 0
 [PASS] POST   /api/v1/inventory/raw/                        | Django: 201 | Node: 201 | Diffs: 0
 [PASS] POST   /api/v1/inventory/semi-finished/              | Django: 201 | Node: 201 | Diffs: 0

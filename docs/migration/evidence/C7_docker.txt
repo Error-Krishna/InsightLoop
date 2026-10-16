@@ -1,28 +1,72 @@
-=== C7 DOCKER & GRACEFUL SHUTDOWN VERIFICATION ===
-Starting Node API server on port 4005...
-[PASS] Server is listening and healthy: {"status":"ok","service":"InsightLoop Node API"}
-Connecting authenticated WebSocket to /ws/dashboard/?token=...
-[PASS] WebSocket connected successfully.
-Sending SIGTERM to process (PID 90787)...
-WebSocket closed: code = 1001, reason = "Going Away"
-Server exited with code 0.
---- Server Shutdown Logs ---
-Connected to MongoDB: InsightLoop_test
-InsightLoop Node API listening on http://127.0.0.1:4005
-{"level":"info","time":"2026-10-15T21:34:27.234Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","requestId":"a8a4b20a-45e3-4c95-ad17-c58c6a9f9b80","method":"GET","url":"/health","msg":"Incoming request"}
-{"level":"info","time":"2026-10-15T21:34:27.238Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","requestId":"6e915e66-62cb-4e7b-bd19-91a5503da199","method":"POST","url":"/api/v1/auth/login/","msg":"Incoming request"}
-{"level":"info","time":"2026-10-15T21:34:27.317Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","signal":"SIGTERM","msg":"Graceful shutdown initiated"}
-{"level":"info","time":"2026-10-15T21:34:27.318Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"HTTP server closed"}
-{"level":"info","time":"2026-10-15T21:34:27.421Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"MongoDB connection closed"}
-{"level":"info","time":"2026-10-15T21:34:27.421Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"Redis connection closed"}
-{"level":"info","time":"2026-10-15T21:34:27.421Z","pid":90787,"hostname":"KRISHNAs-MacBook-Air-3.local","msg":"Graceful shutdown completed successfully"}
-----------------------------
-[PASS] Exit code is 0
-[PASS] Logs show "Graceful shutdown initiated"
-[PASS] Logs show "HTTP server closed"
-[PASS] Logs show "MongoDB connection closed"
-[PASS] Logs show "Redis connection closed"
-[PASS] Logs show "Graceful shutdown completed successfully"
-[PASS] WebSocket received 1001 "Going Away"
+=== C7 DOCKER & CONTAINER VERIFICATION ===
+Timestamp: 2026-10-16T09:19:33Z
 
+1. Starting insightloop-api:test container...
+2. Starting insightloop-web:test container...
+
+3. Inspecting Process Tables (Non-root user verification)...
+--- API Process Table ---
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+1001                51728               51704               20                  09:19               ?                   00:00:00            node apps/api/dist/server.js
+--- Web Process Table ---
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+1001                51787               51764               0                   09:19               ?                   00:00:00            nginx: master process nginx -g daemon off;
+1001                51830               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+1001                51831               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+1001                51832               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+1001                51833               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+1001                51834               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+1001                51835               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+1001                51836               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+1001                51837               51787               0                   09:19               ?                   00:00:00            nginx: worker process
+
+4. Testing HTTP Endpoints...
+--- API Healthcheck (http://127.0.0.1:4099/health) ---
+HTTP/1.1 200 OK
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: Content-Disposition,Retry-After,X-Request-ID,X-RateLimit-Limit,X-RateLimit-Remaining
+X-Request-ID: cc19bc62-803c-41a1-ad51-c91fe46f690c
+Content-Type: application/json; charset=utf-8
+Content-Length: 48
+ETag: W/"30-45/9OqIKrkO0bteoRVayUNIpnvg"
+Date: Fri, 16 Oct 2026 09:19:37 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"status":"ok","service":"InsightLoop Node API"}
+--- Web Static Root (http://127.0.0.1:8085/) ---
+HTTP/1.1 200 OK
+Server: nginx/1.31.7
+Date: Fri, 16 Oct 2026 09:19:37 GMT
+Content-Type: text/html
+Content-Length: 558
+Last-Modified: Fri, 16 Oct 2026 09:10:43 GMT
+Connection: keep-alive
+ETag: "6ad1ea13-22e"
+Accept-Ranges: bytes
+
+<!doctype html>
+<html lang="en">
+
+5. Verifying Container Health Status...
+running (running=true)
+running (running=true)
+
+6. Cleaning up containers...
+gate-api-test
+gate-web-test
+
+[PASS] Both Docker containers build, run as non-root (UID 1001), and respond with 200 OK.
 === C7 VERIFICATION PASSED (ALL ASSERTIONS SATISFIED) ===
