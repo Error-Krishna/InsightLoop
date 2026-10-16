@@ -10,6 +10,9 @@ import {
 } from '@insightloop/shared';
 import { formatDjangoIso } from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
+import { BillPdfService } from './pdf.service.js';
+import { WhatsAppService } from './whatsapp.service.js';
+import { getCollection } from '../../db/mongo.js';
 
 export interface BillInput {
   bill_type?: string;
@@ -60,7 +63,7 @@ export interface ReadyToDeliverInput {
 }
 
 export class BillsService {
-  private static async serializeBill(bill: BillDoc, scope: TenantScope) {
+  private static serializeBillSync(bill: BillDoc, linkedPayRecords: Document[], linkedAssignments: Document[]) {
     const grandTotal = Number(bill.grand_total) || 0;
     const payments = bill.payments ?? [];
     const profitConfirmed = Boolean(bill.profit_confirmed);
@@ -74,11 +77,6 @@ export class BillsService {
 
     const shipmentConfirmed = Boolean(bill.shipment_confirmed);
     const billIdStr = bill._id.toString();
-
-    const [linkedPayRecords, linkedAssignments] = await Promise.all([
-      BillsRepository.findLinkedPayRecords(scope, billIdStr, bill.worker_assignment_ids ?? []),
-      BillsRepository.findLinkedAssignments(scope, billIdStr),
-    ]);
 
     const derived = calculateBillDerived(
       grandTotal,
@@ -108,8 +106,10 @@ export class BillsService {
     }
 
     let workerCostTotal = 0;
-    for (const p of linkedPayRecords) {
-      workerCostTotal += (Number(p.units_produced) || 0) * (Number(p.rate_per_unit) || 0);
+    for (const a of linkedAssignments) {
+      if (a.status === 'completed') {
+        workerCostTotal += Number(a.wage_amount) || 0;
+      }
     }
 
     const buyerRaw = bill.buyer ?? {};
@@ -188,6 +188,12 @@ export class BillsService {
     };
   }
 
+  private static async serializeBill(bill: BillDoc, scope: TenantScope) {
+    const billIdStr = bill._id.toString();
+    const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, billIdStr);
+    return this.serializeBillSync(bill, [], linkedAssignments);
+  }
+
   static async listBills(scope: TenantScope, billType?: string) {
     const query: Record<string, unknown> = {};
     if (billType) {
@@ -195,7 +201,25 @@ export class BillsService {
     }
 
     const bills = await BillsRepository.findBills(scope, query);
-    return Promise.all(bills.map((b) => this.serializeBill(b, scope)));
+    if (bills.length === 0) return [];
+
+    const billIds = bills.map((b) => b._id.toString());
+    const allAssignments = await BillsRepository.findLinkedAssignmentsForBills(scope, billIds);
+
+    const assignmentsByBill = new Map<string, MaterialAssignmentDoc[]>();
+    for (const a of allAssignments) {
+      const bId = a.bill_id ? String(a.bill_id) : null;
+      if (bId) {
+        if (!assignmentsByBill.has(bId)) assignmentsByBill.set(bId, []);
+        assignmentsByBill.get(bId)!.push(a);
+      }
+    }
+
+    return bills.map((b) => {
+      const bIdStr = b._id.toString();
+      const linkedAssigns = assignmentsByBill.get(bIdStr) ?? [];
+      return this.serializeBillSync(b, [], linkedAssigns);
+    });
   }
 
   static async getBill(scope: TenantScope, id: string) {
@@ -765,6 +789,13 @@ export class BillsService {
     const bill = await BillsRepository.findBillById(scope, id);
     if (!bill) throw new NotFoundError('Bill not found.');
 
+    if (bill.shipment_confirmed) {
+      throw new ValidationError('This order is already marked shipped.');
+    }
+    if (!bill.ready_to_deliver || !Array.isArray(bill.ready_to_deliver) || bill.ready_to_deliver.length === 0) {
+      throw new ValidationError('No ready-to-deliver batches recorded for this order yet.');
+    }
+
     if (Array.isArray(bill.ready_to_deliver)) {
       for (const r of bill.ready_to_deliver) {
         if (r.inventory_item_id && ObjectId.isValid(r.inventory_item_id)) {
@@ -827,6 +858,26 @@ export class BillsService {
         pay_record_id: item.pay_record_id ?? null,
       };
     });
+  }
+
+  static async getBillPdf(scope: TenantScope, id: string): Promise<{ pdf: Buffer; filename: string }> {
+    const bill = await BillsRepository.findBillById(scope, id);
+    if (!bill) throw new NotFoundError('Bill not found.');
+    const company = await getCollection('company').findOne({ company_id: scope.companyId });
+    const pdf = await BillPdfService.renderBillPdf(bill, (company || {}) as unknown as import('./pdf.service.js').CompanyPdfContext);
+    const filename = `${bill.invoice_number || 'invoice'}.pdf`;
+    return { pdf, filename };
+  }
+
+  static async shareWhatsApp(
+    scope: TenantScope,
+    id: string,
+    phone?: string
+  ): Promise<{ detail: string; whatsapp_response: unknown }> {
+    const bill = await BillsRepository.findBillById(scope, id);
+    if (!bill) throw new NotFoundError('Bill not found.');
+    const company = await getCollection('company').findOne({ company_id: scope.companyId });
+    return WhatsAppService.shareBillPdf(bill, (company || {}) as unknown as import('./pdf.service.js').CompanyPdfContext, phone);
   }
 }
 

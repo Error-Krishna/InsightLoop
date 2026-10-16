@@ -43,7 +43,7 @@ export class AuthRepository {
     const usersCol = getCollection<UserDoc>('user');
     const sanitizedEmail = email.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return usersCol.findOne({
-      // eslint-disable-next-line security/detect-non-literal-regexp
+      // eslint-disable-next-line security/detect-non-literal-regexp -- reason: sanitizedEmail is escaped to prevent injection
       email: { $regex: new RegExp(`^${sanitizedEmail}$`, 'i') },
     });
   }

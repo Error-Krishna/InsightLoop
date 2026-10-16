@@ -42,6 +42,19 @@ export function getEnvSchema(isProduction: boolean) {
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
     AUTH_RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().default(10),
     TRUST_PROXY: z.string().default('1'),
+    STORAGE_DRIVER: z.enum(['gridfs', 's3', 'local']).default('gridfs'),
+    S3_BUCKET_NAME: z.string().optional().default(''),
+    AWS_REGION: z.string().optional().default(''),
+    AWS_ACCESS_KEY_ID: z.string().optional().default(''),
+    AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
+    OPENWA_API_KEY: z.string().optional().default(''),
+    OPENWA_BASE_URL: z.string().optional().default(''),
+    WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(''),
+    WHATSAPP_ACCESS_TOKEN: z.string().optional().default(''),
+    WHATSAPP_API_VERSION: z.string().default('v18.0'),
+    WHATSAPP_BILL_TEMPLATE_NAME: z.string().default('bill_share'),
+    GOOGLE_TOKENINFO_URL: z.string().default('https://oauth2.googleapis.com/tokeninfo'),
+    SERVE_STATIC: z.string().optional().default('false'),
   });
 }
 

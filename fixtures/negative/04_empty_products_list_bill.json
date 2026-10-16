@@ -1,0 +1,15 @@
+{
+  "id": "04_empty_products_list_bill",
+  "description": "Bill with empty products array",
+  "endpoint": "/api/v1/bills/pakka",
+  "method": "POST",
+  "payload": {
+    "buyer": {
+      "name": "Buyer Test"
+    },
+    "products": []
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "At least one product is required",
+  "useAuth": true
+}

@@ -246,6 +246,7 @@ export class UploadService {
 
         created++;
       } catch (err: unknown) {
+        // SILENT-FALLBACK-REASON: Individual row insertion errors collected into warnings array returned to caller
         warnings.push({ row: rowNum, detail: err instanceof Error ? err.message : String(err) });
       }
     }

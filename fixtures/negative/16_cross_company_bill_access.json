@@ -1,0 +1,10 @@
+{
+  "id": "16_cross_company_bill_access",
+  "description": "Accessing bill belonging to another company",
+  "endpoint": "/api/v1/bills/670d8a000000000000000099",
+  "method": "GET",
+  "payload": {},
+  "expectedStatus": 404,
+  "expectedErrorSubstring": "Bill not found",
+  "useAuth": true
+}

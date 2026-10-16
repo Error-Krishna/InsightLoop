@@ -65,7 +65,7 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reason: load runs when billType or refreshKey changes
   }, [billType, refreshKey]);
 
   const filteredSortedBills = useMemo(() => {

@@ -102,10 +102,20 @@ export function formatDjangoIso(val: unknown): string | null {
     return `${base}.${String(ms * 1000).padStart(6, '0')}`;
   }
   if (typeof val === 'string') {
-    if (val.endsWith('Z') && val.includes('T')) {
-      return val.slice(0, -1);
+    let s = val.trim();
+    if (s.endsWith('Z')) s = s.slice(0, -1);
+    if (s.includes('T')) {
+      const [datePart, timePart] = s.split('T');
+      if (timePart) {
+        const [timeWithoutFrac, frac] = timePart.split('.');
+        if (!frac || frac.length === 0 || /^0+$/.test(frac)) {
+          return `${datePart}T${timeWithoutFrac}`;
+        }
+        const micro = frac.padEnd(6, '0').slice(0, 6);
+        return `${datePart}T${timeWithoutFrac}.${micro}`;
+      }
     }
-    return val;
+    return s;
   }
   return String(val);
 }

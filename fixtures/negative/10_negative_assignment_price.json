@@ -1,0 +1,14 @@
+{
+  "id": "10_negative_assignment_price",
+  "description": "Material assignment with negative price per unit",
+  "endpoint": "/api/v1/workers/:workerId/materials",
+  "method": "POST",
+  "payload": {
+    "material_name": "Wood",
+    "quantity": 10,
+    "price_per_unit": -5
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Price per unit must be a positive number",
+  "useAuth": true
+}

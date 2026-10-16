@@ -33,3 +33,5 @@ billsRouter.post('/:id/misc-cost', asyncHandler(BillsController.addMiscCost));
 billsRouter.post('/:id/ready-to-deliver', asyncHandler(BillsController.addReadyToDeliver));
 billsRouter.post('/:id/confirm-shipment', asyncHandler(BillsController.confirmShipment));
 billsRouter.get('/:id/assignments', asyncHandler(BillsController.getBillAssignments));
+billsRouter.get('/:id/pdf', asyncHandler(BillsController.getBillPdf));
+billsRouter.post('/:id/share-whatsapp', asyncHandler(BillsController.shareWhatsApp));

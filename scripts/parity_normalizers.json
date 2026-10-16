@@ -1,0 +1,75 @@
+{
+  "description": "Explicit whitelist of path-pattern to normalizer rule pairs for dual-stack JSON comparison. Global timestamp and float normalizations are strictly prohibited.",
+  "rules": [
+    {
+      "pattern": "^(.*\\.)?_?id$",
+      "rule": "REPLACE_OBJECT_ID",
+      "regex": "^[0-9a-fA-F]{24}$",
+      "replacement": "<OBJECT_ID>",
+      "justification": "MongoDB generates unique, non-deterministic 24-character hex ObjectIds upon document creation on each stack independently."
+    },
+    {
+      "pattern": "^(.*\\.)?worker_id$",
+      "rule": "REPLACE_OBJECT_ID",
+      "regex": "^[0-9a-fA-F]{24}$",
+      "replacement": "<OBJECT_ID>",
+      "justification": "Foreign key reference to newly created Worker ObjectId generated during write flows."
+    },
+    {
+      "pattern": "^(.*\\.)?assignment_id$",
+      "rule": "REPLACE_OBJECT_ID",
+      "regex": "^[0-9a-fA-F]{24}$",
+      "replacement": "<OBJECT_ID>",
+      "justification": "Foreign key reference to newly created Assignment ObjectId generated during write flows."
+    },
+    {
+      "pattern": "^(.*\\.)?payment_id$",
+      "rule": "REPLACE_OBJECT_ID",
+      "regex": "^[0-9a-fA-F]{24}$",
+      "replacement": "<OBJECT_ID>",
+      "justification": "Foreign key reference to newly created Payment ObjectId generated during write flows."
+    },
+    {
+      "pattern": "^(.*\\.)?bill_id$",
+      "rule": "REPLACE_OBJECT_ID",
+      "regex": "^[0-9a-fA-F]{24}$",
+      "replacement": "<OBJECT_ID>",
+      "justification": "Foreign key reference to newly created Bill ObjectId generated during write flows."
+    },
+    {
+      "pattern": "^(.*\\.)?inventory_item_id$",
+      "rule": "REPLACE_OBJECT_ID",
+      "regex": "^[0-9a-fA-F]{24}$",
+      "replacement": "<OBJECT_ID>",
+      "justification": "Foreign key reference to newly created Inventory Item ObjectId generated during write flows."
+    },
+    {
+      "pattern": "^(.*\\.)?tokens\\.(access|refresh)$",
+      "rule": "REPLACE_JWT",
+      "regex": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+      "replacement": "<JWT_TOKEN>",
+      "justification": "JWT signatures and issued-at timestamps (iat/jti) are dynamically computed per authentication request."
+    },
+    {
+      "pattern": "^requestId$",
+      "rule": "REPLACE_UUID",
+      "regex": "^[0-9a-fA-F-]{36}$",
+      "replacement": "<UUID>",
+      "justification": "Unique request tracing UUID generated per HTTP request."
+    },
+    {
+      "pattern": "^(.*\\.)?(created_at|updated_at|timestamp|joining_date|assignment_date|shipment_confirmed_at|profit_confirmed_at|completed_at|(payments|transportation_costs|misc_costs|ready_to_deliver|batches)\\[\\d+\\]\\.date)$",
+      "rule": "REPLACE_TIMESTAMP_NOW",
+      "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{6})?$",
+      "replacement": "<TIMESTAMP_NOW>",
+      "justification": "Timestamp recorded at the instant of write execution. Both stacks emit naive ISO 8601 (formatDjangoIso) but exact wall-clock second/microsecond differs between sequential HTTP calls."
+    },
+    {
+      "pattern": "^(.*\\.)?invoice_number$",
+      "rule": "REPLACE_INVOICE_NUM",
+      "regex": "^INV-\\d{4}-\\d{5}$",
+      "replacement": "<INVOICE_NUM>",
+      "justification": "Sequence number generated on invoice creation. Preserves prefix format while normalizing atomic sequence counter state across test runs."
+    }
+  ]
+}

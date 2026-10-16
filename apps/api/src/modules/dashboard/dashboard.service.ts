@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb';
+import { ObjectId, type Document } from 'mongodb';
 import { DashboardRepository } from './dashboard.repository.js';
 import { StorageService } from '../upload/storage.service.js';
 import { env } from '../../config/env.js';
@@ -34,25 +34,29 @@ export class DashboardService {
       filter.profit_confirmed_at = dateRange;
     }
 
-    const bills = await DashboardRepository.findBills(scope, filter, {
-      payments: 1,
-      grand_total: 1,
-      profit_confirmed_amount: 1,
-    });
+    const pipeline: Document[] = [
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          revenue: {
+            $sum: {
+              $reduce: {
+                input: { $ifNull: ['$payments', []] },
+                initialValue: 0,
+                in: { $add: ['$$value', { $ifNull: ['$$this.amount', 0] }] },
+              },
+            },
+          },
+          profit: { $sum: { $ifNull: ['$profit_confirmed_amount', 0] } },
+        },
+      },
+    ];
 
-    let totalRevenue = 0.0;
-    let totalProfit = 0.0;
-
-    for (const b of bills) {
-      let amountReceived = 0.0;
-      if (Array.isArray(b.payments)) {
-        for (const p of b.payments) {
-          amountReceived += Number((p as { amount?: unknown }).amount) || 0;
-        }
-      }
-      totalRevenue += amountReceived;
-      totalProfit += Number(b.profit_confirmed_amount) || 0.0;
-    }
+    const results = await DashboardRepository.aggregateBills(scope, pipeline);
+    const result = results[0] || {};
+    const totalRevenue = Number(result.revenue) || 0;
+    const totalProfit = Number(result.profit) || 0;
 
     return {
       revenue: Math.round(totalRevenue * 100) / 100,
@@ -139,23 +143,27 @@ export class DashboardService {
   }
 
   static async getSummaryData(scope: TenantScope) {
-    const live = await this.getLiveFinancialSummary(scope);
-
     const { currentMonthStart, prevMonthStart, prevMonthEnd } = getMonthBoundaries(
       new Date(),
       env.APP_TIME_ZONE
     );
 
-    const [prevBills, prevUploaded, prevWorkerPaid] = await Promise.all([
+    const [
+      bills,
+      uploaded,
+      workerPaid,
+      prevBills,
+      prevUploaded,
+      prevWorkerPaid,
+      activeWorkers,
+      prevWorkers,
+    ] = await Promise.all([
+      this.getBillFinancials(scope),
+      this.getUploadedDataFinancials(scope),
+      this.getWorkerPaymentsPaid(scope),
       this.getBillFinancials(scope, prevMonthStart, prevMonthEnd),
       this.getUploadedDataFinancials(scope, prevMonthStart, prevMonthEnd),
       this.getWorkerPaymentsPaid(scope, prevMonthStart, prevMonthEnd),
-    ]);
-
-    const prevRevenue = Math.round((prevBills.revenue + prevUploaded.revenue) * 100) / 100;
-    const prevProfit = Math.round((prevBills.profit + prevUploaded.profit - prevWorkerPaid) * 100) / 100;
-
-    const [activeWorkers, prevWorkers] = await Promise.all([
       DashboardRepository.countWorkers(scope, { is_active: true }),
       DashboardRepository.countWorkers(scope, {
         is_active: true,
@@ -163,14 +171,23 @@ export class DashboardService {
       }),
     ]);
 
+    const liveTotalRevenue = Math.round((bills.revenue + uploaded.revenue) * 100) / 100;
+    const liveTotalProfit = Math.round((bills.profit + uploaded.profit - workerPaid) * 100) / 100;
+
+    const prevRevenue = Math.round((prevBills.revenue + prevUploaded.revenue) * 100) / 100;
+    const prevProfit = Math.round((prevBills.profit + prevUploaded.profit - prevWorkerPaid) * 100) / 100;
+
     return {
-      total_revenue: live.total_revenue,
-      total_profit: live.total_profit,
-      worker_payments: live.worker_payments,
-      breakdown: live.breakdown,
+      total_revenue: liveTotalRevenue,
+      total_profit: liveTotalProfit,
+      worker_payments: workerPaid,
+      breakdown: {
+        bills: { revenue: bills.revenue, profit: bills.profit },
+        uploaded_data: { revenue: uploaded.revenue, profit: uploaded.profit },
+      },
       active_workers: activeWorkers,
-      revenue_change: calcChange(prevRevenue, live.total_revenue),
-      profit_change: calcChange(prevProfit, live.total_profit),
+      revenue_change: calcChange(prevRevenue, liveTotalRevenue),
+      profit_change: calcChange(prevProfit, liveTotalProfit),
       workers_change: calcChange(prevWorkers, activeWorkers),
     };
   }

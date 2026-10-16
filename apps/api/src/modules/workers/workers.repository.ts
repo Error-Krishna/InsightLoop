@@ -210,7 +210,7 @@ export class WorkersRepository {
     const existing = await itemsCol.findOne({
       company_id: scope.companyId,
       type: 'finished',
-      // eslint-disable-next-line security/detect-non-literal-regexp
+      // eslint-disable-next-line security/detect-non-literal-regexp -- reason: escapedName is sanitized with regex escaping
       name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
     });
 
@@ -248,4 +248,72 @@ export class WorkersRepository {
     const billsCol = getCollection('bills');
     return billsCol.findOne({ _id: new ObjectId(id), company_id: scope.companyId });
   }
+
+  static async aggregateWorkerAssignmentSummaries(scope: TenantScope, workerIds?: ObjectId[]): Promise<Document[]> {
+    const col = getCollection('material_assignments');
+    const match: Record<string, unknown> = { company_id: scope.companyId };
+    if (workerIds && workerIds.length > 0) {
+      match.worker = { $in: workerIds };
+    }
+    return col.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: { $toString: { $ifNull: ['$worker_id', '$worker'] } },
+          material_assigned: { $sum: { $ifNull: ['$quantity', 0] } },
+          material_delivered: {
+            $sum: {
+              $reduce: {
+                input: { $ifNull: ['$batches', []] },
+                initialValue: 0,
+                in: { $add: ['$$value', { $ifNull: ['$$this.quantity', 0] }] },
+              },
+            },
+          },
+          open_assignments: {
+            $sum: { $cond: [{ $eq: ['$status', 'open'] }, 1, 0] },
+          },
+          total_assigned_completed: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, { $ifNull: ['$quantity', 0] }, 0] },
+          },
+          total_wasted: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, { $ifNull: ['$wastage_quantity', 0] }, 0] },
+          },
+        },
+      },
+    ]).toArray();
+  }
+
+  static async aggregateWorkerPaymentSummaries(scope: TenantScope, workerIds?: ObjectId[]): Promise<Document[]> {
+    const col = getCollection('pay_records');
+    const match: Record<string, unknown> = { company_id: scope.companyId };
+    if (workerIds && workerIds.length > 0) {
+      match.worker = { $in: workerIds };
+    }
+    return col.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: { $toString: { $ifNull: ['$worker_id', '$worker'] } },
+          pending_amount: {
+            $sum: {
+              $let: {
+                vars: {
+                  total: { $multiply: [{ $ifNull: ['$units_produced', 0] }, { $ifNull: ['$rate_per_unit', 0] }] },
+                },
+                in: {
+                  $cond: [
+                    { $or: [{ $eq: ['$paid', true] }, { $gte: [{ $ifNull: ['$amount_paid', 0] }, '$$total'] }] },
+                    0,
+                    { $subtract: ['$$total', { $ifNull: ['$amount_paid', 0] }] },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    ]).toArray();
+  }
 }
+

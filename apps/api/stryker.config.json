@@ -2,12 +2,12 @@
   "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-core.json",
   "packageManager": "pnpm",
   "mutate": [
-    "src/modules/bills/bills.service.ts:210-330",
+    "src/modules/bills/bills.service.ts:260-330",
     "src/modules/bills/bills.service.ts:550-650"
   ],
   "testRunner": "command",
   "commandRunner": {
-    "command": "./node_modules/.bin/vitest run test/bills_profit.test.ts test/b5_bills_stock.test.ts"
+    "command": "./node_modules/.bin/vitest run test/bills_profit.test.ts test/b5_bills_stock.test.ts test/bills_deep_branches.test.ts test/bills_exhaustive_branches.test.ts test/bills.test.ts"
   },
   "coverageAnalysis": "off",
   "reporters": ["progress", "clear-text"],

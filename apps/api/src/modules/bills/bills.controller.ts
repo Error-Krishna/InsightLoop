@@ -130,4 +130,22 @@ export class BillsController {
     const assignments = await BillsService.getBillAssignments(scope, id);
     res.status(200).json(assignments);
   }
+
+  static async getBillPdf(req: Request, res: Response): Promise<void> {
+    const scope: TenantScope = { companyId: req.companyId! };
+    const id = req.params.id as string;
+    const { pdf, filename } = await BillsService.getBillPdf(scope, id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.status(200).send(pdf);
+  }
+
+  static async shareWhatsApp(req: Request, res: Response): Promise<void> {
+    const scope: TenantScope = { companyId: req.companyId! };
+    const id = req.params.id as string;
+    const body = req.body as { phone?: string } | undefined;
+    const phone = typeof body?.phone === 'string' ? body.phone : undefined;
+    const result = await BillsService.shareWhatsApp(scope, id, phone);
+    res.status(200).json(result);
+  }
 }

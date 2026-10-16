@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { MongoClient, ObjectId } from '../apps/api/node_modules/mongodb/lib/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -229,8 +230,13 @@ await assertDualStack('MarkPaymentPaid on already-paid record idempotency', asyn
   }
 });
 
-// Check 6: Delete Worker Cascade
-await assertDualStack('Delete Worker Cascades to Assignments and Payments in both stacks', async () => {
+// Connect directly to MongoDB to inspect collections
+const mongoClient = new MongoClient('mongodb://localhost:27017');
+await mongoClient.connect();
+const mongoDb = mongoClient.db('InsightLoop_test');
+
+// Check 6: Delete Worker Cascade (Verified at direct collection level in both stacks)
+await assertDualStack('Delete Worker Cascades to Assignments and Payments in both stacks (direct DB collection check)', async () => {
   // Create worker with assignment and payment in Django
   const dWorkerRes = await fetch('http://127.0.0.1:8000/api/v1/workers/', {
     method: 'POST',
@@ -250,21 +256,26 @@ await assertDualStack('Delete Worker Cascades to Assignments and Payments in bot
     body: JSON.stringify({ product_name: 'Cascade Carpet', units_produced: 5, rate_per_unit: 500 }),
   });
 
-  // Delete worker via Django
+  // Verify records exist in MongoDB before delete
+  const dAssBefore = await mongoDb.collection('material_assignments').countDocuments({ worker: new ObjectId(dWorker.id) });
+  const dPayBefore = await mongoDb.collection('pay_records').countDocuments({ worker: new ObjectId(dWorker.id) });
+  log(`Django Worker ${dWorker.id} before delete in DB: assignments=${dAssBefore}, pay_records=${dPayBefore}`);
+  if (dAssBefore === 0 || dPayBefore === 0) throw new Error('Setup failed: records missing in DB before delete');
+
+  // Delete worker via Django API
   const delDRes = await fetch(`http://127.0.0.1:8000/api/v1/workers/${dWorker.id}/`, {
     method: 'DELETE',
     headers: djangoHeaders,
   });
   log(`Django Worker DELETE Status: ${delDRes.status}`);
 
-  // Query assignments and payments via Node for deleted worker
-  const [dAssAfter, dPayAfter] = await Promise.all([
-    fetch(`http://127.0.0.1:4000/api/v1/workers/${dWorker.id}/materials`, { headers: nodeHeaders }),
-    fetch(`http://127.0.0.1:4000/api/v1/workers/${dWorker.id}/payments`, { headers: nodeHeaders }),
-  ]);
-
-  log(`Materials lookup after Django delete status: ${dAssAfter.status}`);
-  log(`Payments lookup after Django delete status:  ${dPayAfter.status}`);
+  // Query MongoDB directly for orphaned records
+  const dAssCount = await mongoDb.collection('material_assignments').countDocuments({ worker: new ObjectId(dWorker.id) });
+  const dPayCount = await mongoDb.collection('pay_records').countDocuments({ worker: new ObjectId(dWorker.id) });
+  log(`Django Worker ${dWorker.id} after delete in DB: orphaned assignments=${dAssCount}, pay_records=${dPayCount}`);
+  if (dAssCount !== 0 || dPayCount !== 0) {
+    throw new Error(`Django failed cascade delete: assignments=${dAssCount}, pay_records=${dPayCount}`);
+  }
 
   // Now create worker with assignment and payment in Node and delete via Node
   const nWorkerRes = await fetch('http://127.0.0.1:4000/api/v1/workers', {
@@ -285,25 +296,148 @@ await assertDualStack('Delete Worker Cascades to Assignments and Payments in bot
     body: JSON.stringify({ product_name: 'Cascade Shawl', units_produced: 5, rate_per_unit: 500 }),
   });
 
+  const nAssBefore = await mongoDb.collection('material_assignments').countDocuments({ worker: new ObjectId(nWorker.id) });
+  const nPayBefore = await mongoDb.collection('pay_records').countDocuments({ worker: new ObjectId(nWorker.id) });
+  log(`Node Worker ${nWorker.id} before delete in DB: assignments=${nAssBefore}, pay_records=${nPayBefore}`);
+  if (nAssBefore === 0 || nPayBefore === 0) throw new Error('Setup failed: records missing in DB before delete');
+
   const delNRes = await fetch(`http://127.0.0.1:4000/api/v1/workers/${nWorker.id}`, {
     method: 'DELETE',
     headers: nodeHeaders,
   });
   log(`Node Worker DELETE Status: ${delNRes.status}`);
 
-  // Query assignments and payments via Django for deleted worker
-  const [nAssAfter, nPayAfter] = await Promise.all([
-    fetch(`http://127.0.0.1:8000/api/v1/workers/${nWorker.id}/materials/`, { headers: djangoHeaders }),
-    fetch(`http://127.0.0.1:8000/api/v1/workers/${nWorker.id}/payments/`, { headers: djangoHeaders }),
+  const nAssCount = await mongoDb.collection('material_assignments').countDocuments({ worker: new ObjectId(nWorker.id) });
+  const nPayCount = await mongoDb.collection('pay_records').countDocuments({ worker: new ObjectId(nWorker.id) });
+  log(`Node Worker ${nWorker.id} after delete in DB: orphaned assignments=${nAssCount}, pay_records=${nPayCount}`);
+  if (nAssCount !== 0 || nPayCount !== 0) {
+    throw new Error(`Node failed cascade delete: assignments=${nAssCount}, pay_records=${nPayCount}`);
+  }
+
+  log('Confirmed: Worker delete cleanly cascades to assignments and pay_records in BOTH stacks at the collection level.');
+});
+
+// Check 7: Batch Messages, Quantity Int Parsing, and Completed Status
+await assertDualStack('Batch Creation Messages, Integer Parsing, and Completed Status Parity', async () => {
+  // Get an existing worker
+  const workersRes = await fetch('http://127.0.0.1:4000/api/v1/workers', { headers: nodeHeaders });
+  const workerId = (await workersRes.json())[0].id;
+
+  // Create an assignment
+  const matRes = await fetch(`http://127.0.0.1:4000/api/v1/workers/${workerId}/materials`, {
+    method: 'POST',
+    headers: nodeHeaders,
+    body: JSON.stringify({ material_name: 'BatchParityMaterial', quantity: 100, price_per_unit: 20 }),
+  });
+  const mat = await matRes.json();
+
+  // Test 1: Batch quantity <= 0 message
+  const [dZeroRes, nZeroRes] = await Promise.all([
+    fetch(`http://127.0.0.1:8000/api/v1/workers/materials/${mat.id}/batches/`, {
+      method: 'POST',
+      headers: djangoHeaders,
+      body: JSON.stringify({ quantity: 0 }),
+    }),
+    fetch(`http://127.0.0.1:4000/api/v1/workers/materials/${mat.id}/batches`, {
+      method: 'POST',
+      headers: nodeHeaders,
+      body: JSON.stringify({ quantity: 0 }),
+    }),
   ]);
+  const dZero = await dZeroRes.json();
+  const nZero = await nZeroRes.json();
+  log(`Django qty<=0 detail: ${JSON.stringify(dZero.detail)}`);
+  log(`Node qty<=0 detail:   ${JSON.stringify(nZero.detail)}`);
+  if (dZero.detail !== 'Batch quantity must be a positive number.' || nZero.detail !== 'Batch quantity must be a positive number.') {
+    throw new Error('Message mismatch on batch quantity <= 0');
+  }
 
-  log(`Materials lookup after Node delete status: ${nAssAfter.status}`);
-  log(`Payments lookup after Node delete status:  ${nPayAfter.status}`);
+  // Test 2: Add valid batch and verify date formatting (naive ISO, no .000, no Z)
+  const [dValidRes, nValidRes] = await Promise.all([
+    fetch(`http://127.0.0.1:8000/api/v1/workers/materials/${mat.id}/batches/`, {
+      method: 'POST',
+      headers: djangoHeaders,
+      body: JSON.stringify({ quantity: 20, date: '2026-10-15' }),
+    }),
+    fetch(`http://127.0.0.1:4000/api/v1/workers/materials/${mat.id}/batches`, {
+      method: 'POST',
+      headers: nodeHeaders,
+      body: JSON.stringify({ quantity: 20, date: '2026-10-15' }),
+    }),
+  ]);
+  const dValid = await dValidRes.json();
+  const nValid = await nValidRes.json();
+  const dDate = dValid.batches[0].date;
+  const nDate = nValid.batches[0].date;
+  log(`Django Batch Date: ${dDate}`);
+  log(`Node Batch Date:   ${nDate}`);
+  if (nDate.endsWith('Z') || nDate.includes('.000')) {
+    throw new Error(`Node batch date contains Z or .000: ${nDate}`);
+  }
 
-  if (dAssAfter.status !== 404 || nAssAfter.status !== 404) {
-    throw new Error('Worker was not properly deleted / not found.');
+  // Test 3: Close assignment
+  await fetch(`http://127.0.0.1:4000/api/v1/workers/materials/${mat.id}/complete`, {
+    method: 'PUT',
+    headers: nodeHeaders,
+  });
+
+  // Test 4: Batch on completed assignment message
+  const [dCompRes, nCompRes] = await Promise.all([
+    fetch(`http://127.0.0.1:8000/api/v1/workers/materials/${mat.id}/batches/`, {
+      method: 'POST',
+      headers: djangoHeaders,
+      body: JSON.stringify({ quantity: 10 }),
+    }),
+    fetch(`http://127.0.0.1:4000/api/v1/workers/materials/${mat.id}/batches`, {
+      method: 'POST',
+      headers: nodeHeaders,
+      body: JSON.stringify({ quantity: 10 }),
+    }),
+  ]);
+  const dComp = await dCompRes.json();
+  const nComp = await nCompRes.json();
+  log(`Django completed detail: ${JSON.stringify(dComp.detail)}`);
+  log(`Node completed detail:   ${JSON.stringify(nComp.detail)}`);
+  if (!dComp.detail.includes('already marked complete. Reopen it') || !nComp.detail.includes('already marked complete. Reopen it')) {
+    throw new Error('Message mismatch on adding batch to completed assignment');
   }
 });
+
+// Check 8: Partial Payment Status 201 Parity
+await assertDualStack('Partial Payment Returns HTTP 201 on both stacks', async () => {
+  const workersRes = await fetch('http://127.0.0.1:4000/api/v1/workers', { headers: nodeHeaders });
+  const workerId = (await workersRes.json())[0].id;
+
+  // Create payment record
+  const pRes = await fetch(`http://127.0.0.1:4000/api/v1/workers/${workerId}/payments`, {
+    method: 'POST',
+    headers: nodeHeaders,
+    body: JSON.stringify({ product_name: 'Status201Test', units_produced: 10, rate_per_unit: 100, amount_paid: 200 }),
+  });
+  const payment = await pRes.json();
+
+  const [dPartRes, nPartRes] = await Promise.all([
+    fetch(`http://127.0.0.1:8000/api/v1/workers/payments/${payment.id}/record-payment/`, {
+      method: 'POST',
+      headers: djangoHeaders,
+      body: JSON.stringify({ amount: 100 }),
+    }),
+    fetch(`http://127.0.0.1:4000/api/v1/workers/payments/${payment.id}/record-payment`, {
+      method: 'POST',
+      headers: nodeHeaders,
+      body: JSON.stringify({ amount: 100 }),
+    }),
+  ]);
+
+  log(`Django Partial Payment Status: ${dPartRes.status}`);
+  log(`Node Partial Payment Status:   ${nPartRes.status}`);
+
+  if (dPartRes.status !== 201 || nPartRes.status !== 201) {
+    throw new Error(`Expected HTTP 201 from both stacks, got Django=${dPartRes.status}, Node=${nPartRes.status}`);
+  }
+});
+
+await mongoClient.close();
 
 log('\n=================================================================');
 log(`SUMMARY: ${passedChecks}/${totalChecks} checks passed.`);
@@ -311,3 +445,4 @@ log('=================================================================');
 
 fs.writeFileSync(path.resolve(ROOT, 'docs/migration/evidence/B8_worker_module_parity.txt'), report.join('\n'), 'utf-8');
 console.log('Saved evidence to docs/migration/evidence/B8_worker_module_parity.txt');
+

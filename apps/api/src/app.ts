@@ -21,6 +21,7 @@ import { insightsRouter } from './modules/insights/insights.routes.js';
 import { uploadRouter } from './modules/upload/upload.routes.js';
 import { aiRouter } from './modules/ai/ai.routes.js';
 import { contactRouter } from './modules/contact/contact.routes.js';
+import { legacyRouter } from './modules/legacy/legacy.routes.js';
 import { StorageService, getMimeType } from './modules/upload/storage.service.js';
 
 export const app: express.Express = express();
@@ -79,6 +80,7 @@ app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/ai', aiRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/contact', contactRouter);
+app.use(legacyRouter);
 
 // Media serving endpoint (persisted via MongoDB GridFS / S3)
 app.get(
@@ -118,7 +120,7 @@ app.get(
 
 // Static asset serving (optional single-container deployment)
 const staticDir = path.resolve(process.cwd(), 'apps/web/dist');
-// eslint-disable-next-line security/detect-non-literal-fs-filename
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- reason: staticDir is resolved from process.cwd() repo root
 if (process.env.SERVE_STATIC === 'true' && fs.existsSync(staticDir)) {
   app.use(express.static(staticDir));
   app.get('*', (req: Request, res: Response, next) => {

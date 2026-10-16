@@ -1,0 +1,20 @@
+{
+  "id": "05_negative_product_quantity",
+  "description": "Bill product with negative quantity",
+  "endpoint": "/api/v1/bills/pakka",
+  "method": "POST",
+  "payload": {
+    "buyer": {
+      "name": "Buyer Test"
+    },
+    "products": [
+      {
+        "name": "Item",
+        "quantity": -5,
+        "rate": 100
+      }
+    ]
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "quantity must be positive"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "03_negative_subtotal_bill",
+  "description": "Bill with negative product rates or subtotal",
+  "endpoint": "/api/v1/bills/pakka",
+  "method": "POST",
+  "payload": {
+    "buyer": {
+      "name": "Buyer Test"
+    },
+    "products": [
+      {
+        "name": "Item",
+        "quantity": 1,
+        "rate": -100
+      }
+    ]
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "rate must be positive"
+}

@@ -80,7 +80,7 @@ export class BillsRepository {
 
     const resyncCounter = async (): Promise<number> => {
       const lastBill = await billsCol
-        // eslint-disable-next-line security/detect-non-literal-regexp
+        // eslint-disable-next-line security/detect-non-literal-regexp -- reason: prefix is hardcoded billing prefix
         .find({ company_id: scope.companyId, invoice_number: { $regex: new RegExp(`^${prefix}\\d+$`) } })
         .sort({ invoice_number: -1 })
         .limit(1)
@@ -105,7 +105,7 @@ export class BillsRepository {
       await resyncCounter();
     } else {
       const lastBill = await billsCol
-        // eslint-disable-next-line security/detect-non-literal-regexp
+        // eslint-disable-next-line security/detect-non-literal-regexp -- reason: prefix is hardcoded billing prefix
         .find({ company_id: scope.companyId, invoice_number: { $regex: new RegExp(`^${prefix}\\d+$`) } })
         .sort({ invoice_number: -1 })
         .limit(1)
@@ -211,12 +211,36 @@ export class BillsRepository {
       .toArray();
   }
 
+  static async findLinkedPayRecordsForBills(scope: TenantScope, billIds: string[], allWorkerAssignmentIds: string[]): Promise<Document[]> {
+    const payRecordsCol = getCollection('pay_records');
+    const clauses: Record<string, unknown>[] = [{ bill_id: { $in: billIds } }];
+    if (allWorkerAssignmentIds.length > 0) {
+      clauses.push({ source_assignment_id: { $in: allWorkerAssignmentIds } });
+    }
+    return payRecordsCol
+      .find({
+        company_id: scope.companyId,
+        $or: clauses,
+      })
+      .toArray();
+  }
+
   static async findLinkedAssignments(scope: TenantScope, billIdStr: string): Promise<MaterialAssignmentDoc[]> {
     const assignmentsCol = getCollection<MaterialAssignmentDoc>('material_assignments');
     return assignmentsCol
       .find({
         company_id: scope.companyId,
         bill_id: billIdStr,
+      })
+      .toArray();
+  }
+
+  static async findLinkedAssignmentsForBills(scope: TenantScope, billIds: string[]): Promise<MaterialAssignmentDoc[]> {
+    const assignmentsCol = getCollection<MaterialAssignmentDoc>('material_assignments');
+    return assignmentsCol
+      .find({
+        company_id: scope.companyId,
+        bill_id: { $in: billIds },
       })
       .toArray();
   }

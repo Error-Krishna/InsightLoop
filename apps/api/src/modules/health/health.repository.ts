@@ -28,6 +28,7 @@ export class HealthRepository {
       const latency_ms = Number((performance.now() - start).toFixed(2));
       return { status: 'up', latency_ms, pool: { maxPoolSize, minPoolSize } };
     } catch {
+      // SILENT-FALLBACK-REASON: Health probe returns down status without throwing to allow readiness check evaluation
       return { status: 'down', latency_ms: -1, pool: { maxPoolSize, minPoolSize } };
     }
   }
@@ -48,6 +49,7 @@ export class HealthRepository {
       const latency_ms = Number((performance.now() - start).toFixed(2));
       return { configured: true, status: 'up', latency_ms };
     } catch {
+      // SILENT-FALLBACK-REASON: Redis probe returns down status without throwing to allow degraded operation
       return { configured: true, status: 'down', latency_ms: -1 };
     }
   }

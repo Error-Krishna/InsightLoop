@@ -1,52 +1,84 @@
 =======================================================
-INSIGHTLOOP DUAL-STACK TRUE PARITY AUDIT EVIDENCE
+INSIGHTLOOP DUAL-STACK TRUE PARITY AUDIT EVIDENCE (PHASE 5.8)
 =======================================================
-Date: 2026-10-16T09:03:53.210Z
+Date: 2026-10-16T18:26:46.373Z
 Database A (Django): InsightLoop_django_test
 Database B (Node):   InsightLoop_node_test
 Seeded Dataset: Realistic fixture dataset + 100,000-row synthetic company (Company C)
-Total GET & Write Operations Verified: 32
-Total Matches: 32
-Total Failures: 0
+Normalizer Configuration: scripts/parity_normalizers.json (Whitelist only, no global float/timestamp normalizers)
+Total GET, Write & Error Path Checks: 62
+Total Passing: 62
+Total Differences: 0
 
 --- ENDPOINT EXECUTION DETAILS ---
-[PASS] GET    /api/v1/profile/                              | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/profile/settings/                     | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/inventory/warehouses/                 | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/inventory/meta/warehouse-summary/     | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/inventory/finished/                   | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/inventory/semi-finished/              | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/inventory/semi-finished/live/         | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/inventory/raw/                        | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/workers/                              | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/                                | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/?type=pakka                     | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/?type=kacha                     | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/dashboard/overview/                   | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/dashboard/summary/                    | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/dashboard/rev-exp/                    | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/dashboard/profit-trends/              | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/dashboard/workers/                    | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/dashboard/top-workers/                | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/insights/                             | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/ai/config/                            | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/6ad1e863e7cfa00d1a62d7a4/       | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/6ad1e863e7cfa00d1a62d7a4/profit-preview/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/bills/6ad1e863e7cfa00d1a62d7a4/assignments/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/workers/6ad1e863e7cfa00d1a62d7a0/     | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/workers/6ad1e863e7cfa00d1a62d7a0/materials/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/workers/6ad1e863e7cfa00d1a62d7a0/payments/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] GET    /api/v1/insights/6ad1e863e7cfa00d1a62d7c2/export/ | Django: 200 | Node: 200 | Diffs: 0
-[PASS] POST   /api/v1/inventory/warehouses/                 | Django: 201 | Node: 201 | Diffs: 0
-[PASS] POST   /api/v1/inventory/raw/                        | Django: 201 | Node: 201 | Diffs: 0
-[PASS] POST   /api/v1/inventory/semi-finished/              | Django: 201 | Node: 201 | Diffs: 0
-[PASS] POST   /api/v1/inventory/finished/                   | Django: 201 | Node: 201 | Diffs: 0
-[PASS] POST   /api/v1/workers/                              | Django: 201 | Node: 201 | Diffs: 0
+[PASS] GET    /api/v1/profile/                                 | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/profile/settings/                        | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/inventory/warehouses/                    | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/inventory/meta/warehouse-summary/        | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/inventory/finished/                      | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/inventory/semi-finished/                 | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/inventory/semi-finished/live/            | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/inventory/raw/                           | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/workers/                                 | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/                                   | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/?type=pakka                        | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/?type=kacha                        | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/dashboard/overview/                      | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/dashboard/summary/                       | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/dashboard/rev-exp/                       | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/dashboard/profit-trends/                 | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/dashboard/workers/                       | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/dashboard/top-workers/                   | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/insights/                                | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/ai/config/                               | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/6ad26b3e2465e478fa8de3ae/          | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/6ad26b3e2465e478fa8de3ae/profit-preview/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/6ad26b3e2465e478fa8de3ae/assignments/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/workers/6ad26b3e2465e478fa8de3aa/        | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/workers/6ad26b3e2465e478fa8de3aa/materials/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/workers/6ad26b3e2465e478fa8de3aa/payments/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/insights/6ad26b3e2465e478fa8de3cc/export/ | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/inventory/warehouses/                    | Django: 201 | Node: 201 | Diffs: 0
+[PASS] PUT    /api/v1/inventory/warehouses/:id/                | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/inventory/raw/                           | Django: 201 | Node: 201 | Diffs: 0
+[PASS] PUT    /api/v1/inventory/raw/:id/                       | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/inventory/semi-finished/                 | Django: 201 | Node: 201 | Diffs: 0
+[PASS] PUT    /api/v1/inventory/semi-finished/:id/             | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/inventory/finished/                      | Django: 201 | Node: 201 | Diffs: 0
+[PASS] PUT    /api/v1/inventory/finished/:id/                  | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/workers/                                 | Django: 201 | Node: 201 | Diffs: 0
+[PASS] PUT    /api/v1/workers/:id/                             | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/workers/:id/materials/                   | Django: 201 | Node: 201 | Diffs: 0
+[PASS] POST   /api/v1/workers/materials/:id/batches/           | Django: 201 | Node: 201 | Diffs: 0
+[PASS] PUT    /api/v1/workers/materials/:id/complete/          | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/workers/:id/payments/                    | Django: 201 | Node: 201 | Diffs: 0
+[PASS] POST   /api/v1/workers/payments/:id/record-payment/     | Django: 201 | Node: 201 | Diffs: 0
+[PASS] PUT    /api/v1/workers/payments/:id/mark-paid/          | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/bills/kacha/                             | Django: 201 | Node: 201 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/record-payment/                | Django: 201 | Node: 201 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/transportation-cost/           | Django: 201 | Node: 201 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/misc-cost/                     | Django: 201 | Node: 201 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/ready-to-deliver/              | Django: 201 | Node: 201 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/confirm-shipment/              | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/confirm-profit/                | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/reopen-profit/                 | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /api/v1/bills/:id/convert/                       | Django: 200 | Node: 200 | Diffs: 0
+[PASS] DELETE /api/v1/bills/:id/                               | Django: 204 | Node: 204 | Diffs: 0
+[PASS] PUT    /api/v1/profile/settings/                        | Django: 200 | Node: 200 | Diffs: 0
+[PASS] POST   /contact                                         | Django: 403 | Node: 403 | Diffs: 0
+[PASS] POST   /api/v1/ai/command/                              | Django: 200 | Node: 200 | Diffs: 0
+[PASS] GET    /api/v1/bills/                                   | Django: 401 | Node: 401 | Diffs: 0
+[PASS] GET    /api/v1/bills/670d8a000000000000000099/          | Django: 404 | Node: 404 | Diffs: 0
+[PASS] GET    /api/v1/workers/670d8a000000000000000099/        | Django: 404 | Node: 404 | Diffs: 0
+[PASS] POST   /api/v1/workers/                                 | Django: 400 | Node: 400 | Diffs: 0
+[PASS] POST   /api/v1/workers/payments/:id/record-payment/ (negative amount) | Django: 400 | Node: 400 | Diffs: 0
+[PASS] GET    /api/v1/bills/6ad26b3e2465e478fa8de3ae/          | Django: 404 | Node: 404 | Diffs: 0
 
---- JUSTIFICATION OF MINOR REPRESENTATIONAL DIFFERENCES ---
-1. ObjectIds and UUIDs: Dynamically generated on write flows; normalized across stacks using deterministic token placeholders (<ID_1>, <UUID_1>).
-2. Floating Point Precision: Python float serialization vs V8 JavaScript Number precision normalized to 2 decimal places (e.g. 15.00 vs 15.0).
-3. ISO 8601 Timestamps: Python datetime string serialization (+00:00) vs JavaScript Date.toISOString() (Z format) normalized consistently.
-4. HTTP 200/201 Status Codes: Exact 100% parity across all routes; authentication and tenancy isolation verified identical.
+--- RESOLUTION OF NORMALIZED VALUES ---
+1. ObjectIds and Foreign Key IDs: Mapped via whitelist regex to deterministic tokens (<OBJECT_ID>).
+2. JWT Tokens: Mapped via whitelist regex to <JWT_TOKEN>.
+3. Timestamps: Write-time now() fields mapped via whitelist regex to <TIMESTAMP_NOW>. Read-only domain dates verified for exact naive ISO equality.
+4. Numeric floats and monetary calculations: Zero float rounding applied; verified for exact decimal parity.
+5. Error codes: 400, 401, 403, 404 response codes verified identical across stacks.
 
 STATUS: TRUE DUAL-STACK PARITY VERIFIED (PASS)

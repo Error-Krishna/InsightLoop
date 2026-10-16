@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb';
+import { ObjectId, type Document } from 'mongodb';
 import {
   WorkersRepository,
   type MaterialAssignmentDoc,
@@ -171,34 +171,52 @@ export class WorkersService {
 
   static async listWorkers(scope: TenantScope) {
     const workers = await WorkersRepository.findWorkers(scope);
-    const assignments = await WorkersRepository.findAssignments(scope);
-    const payments = await WorkersRepository.findPayments(scope);
+    if (workers.length === 0) return [];
 
-    const assignmentsByWorker = new Map<string, MaterialAssignmentDoc[]>();
-    for (const a of assignments) {
-      const wid = (a.worker_id ?? (a.worker as { _id?: unknown })?._id ?? a.worker)?.toString();
-      if (wid) {
-        if (!assignmentsByWorker.has(wid)) assignmentsByWorker.set(wid, []);
-        assignmentsByWorker.get(wid)!.push(a);
-      }
+    const workerIds = workers.map((w) => w._id);
+    const [assignmentSummaries, paymentSummaries] = await Promise.all([
+      WorkersRepository.aggregateWorkerAssignmentSummaries(scope, workerIds),
+      WorkersRepository.aggregateWorkerPaymentSummaries(scope, workerIds),
+    ]);
+
+    const aMap = new Map<string, Document>();
+    for (const a of assignmentSummaries) {
+      if (a._id) aMap.set(String(a._id), a);
     }
 
-    const paymentsByWorker = new Map<string, PayRecordDoc[]>();
-    for (const p of payments) {
-      const wid = (p.worker_id ?? (p.worker as { _id?: unknown })?._id ?? p.worker)?.toString();
-      if (wid) {
-        if (!paymentsByWorker.has(wid)) paymentsByWorker.set(wid, []);
-        paymentsByWorker.get(wid)!.push(p);
-      }
+    const pMap = new Map<string, Document>();
+    for (const p of paymentSummaries) {
+      if (p._id) pMap.set(String(p._id), p);
     }
 
-    return workers.map((w) =>
-      this.serializeWorker(
-        w,
-        assignmentsByWorker.get(w._id.toString()) ?? [],
-        paymentsByWorker.get(w._id.toString()) ?? []
-      )
-    );
+    return workers.map((w) => {
+      const wid = w._id.toString();
+      const a = aMap.get(wid);
+      const p = pMap.get(wid);
+
+      const totalCompleted = Number(a?.total_assigned_completed) || 0;
+      const totalWasted = Number(a?.total_wasted) || 0;
+      const wastageRate = totalCompleted > 0 ? roundPy((totalWasted / totalCompleted) * 100, 1) : 0.0;
+
+      return {
+        id: wid,
+        name: w.name,
+        age: w.age ?? null,
+        address: w.address ?? null,
+        phone: w.phone ?? null,
+        image_url: w.image_url ?? null,
+        joining_date: formatDjangoIso(w.joining_date),
+        is_active: w.is_active !== false,
+        material_assigned: Number(a?.material_assigned) || 0,
+        material_delivered: Number(a?.material_delivered) || 0,
+        pending_amount: roundPy(Number(p?.pending_amount) || 0, 2),
+        open_assignments: Number(a?.open_assignments) || 0,
+        total_wasted: totalWasted,
+        wastage_rate: wastageRate,
+        created_at: formatDjangoIso(w.created_at),
+        updated_at: formatDjangoIso(w.updated_at),
+      };
+    });
   }
 
   static async getWorker(scope: TenantScope, id: string) {
@@ -332,21 +350,42 @@ export class WorkersService {
     if (!assignment) throw new NotFoundError('Material assignment not found.');
 
     if (assignment.status === 'completed') {
-      throw new ValidationError('Cannot add batches to a completed assignment.');
+      throw new ValidationError('This assignment is already marked complete. Reopen it before adding more batches.');
     }
 
-    const qty = parseFloat(String(data.quantity ?? 0)) || 0;
-    if (qty <= 0) throw new ValidationError('Quantity must be a positive number.');
+    const rawQty = data.quantity;
+    let qty: number;
+    if (typeof rawQty === 'string') {
+      if (rawQty.includes('.')) {
+        throw new ValidationError('Batch quantity must be an integer.');
+      }
+      qty = parseInt(rawQty, 10);
+    } else if (typeof rawQty === 'number') {
+      qty = Math.trunc(rawQty);
+    } else {
+      qty = 0;
+    }
+    if (Number.isNaN(qty) || qty <= 0) {
+      throw new ValidationError('Batch quantity must be a positive number.');
+    }
 
-    const delivered = (assignment.batches ?? []).reduce((acc, b) => acc + (Number(b.quantity) || 0), 0);
-    const balance = assignment.quantity - delivered;
-    if (qty > balance) {
-      throw new ValidationError(`Cannot add batch: quantity exceeds balance (${balance} units available)`);
+    let batchDate = new Date();
+    const rawDate = data.date;
+    if (rawDate && typeof rawDate === 'string' && rawDate.trim()) {
+      try {
+        const [y, m, d] = rawDate.slice(0, 10).split('-').map(Number);
+        if (y && m && d) {
+          batchDate = new Date(Date.UTC(y, m - 1, d));
+        }
+      } catch {
+        // SILENT-FALLBACK-REASON: Django strptime fallback to datetime.now() on invalid batch date format
+        batchDate = new Date();
+      }
     }
 
     const batch = {
       quantity: qty,
-      date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
+      date: formatDjangoIso(batchDate) ?? batchDate.toISOString(),
       notes: (data.notes ?? '').trim(),
     };
 

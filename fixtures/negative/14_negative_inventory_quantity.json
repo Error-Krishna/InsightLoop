@@ -1,0 +1,16 @@
+{
+  "id": "14_negative_inventory_quantity",
+  "description": "Inventory item with negative initial quantity",
+  "endpoint": "/api/v1/inventory/finished",
+  "method": "POST",
+  "payload": {
+    "sku": "SKU-NEG-1",
+    "name": "Negative Stock Item",
+    "unit": "pcs",
+    "selling_price": 100,
+    "cost_price": 50,
+    "quantity": -20
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Quantity cannot be negative"
+}

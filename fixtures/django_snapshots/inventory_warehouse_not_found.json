@@ -1,0 +1,11 @@
+{
+  "id": "inventory_warehouse_not_found",
+  "description": "Update non-existent warehouse",
+  "nodeEndpoint": "/api/v1/inventory/warehouses/670d8a000000000000000099",
+  "djangoEndpoint": "/api/v1/inventory/warehouses/670d8a000000000000000099/",
+  "method": "PUT",
+  "status": 404,
+  "body": {
+    "detail": "Warehouse not found."
+  }
+}

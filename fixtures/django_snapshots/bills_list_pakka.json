@@ -1,0 +1,66 @@
+{
+  "id": "bills_list_pakka",
+  "description": "List pakka bills for Company A",
+  "nodeEndpoint": "/api/v1/bills?type=pakka",
+  "djangoEndpoint": "/api/v1/bills/?type=pakka",
+  "method": "GET",
+  "status": 200,
+  "body": [
+    {
+      "id": "670d8a000000000000000051",
+      "company_id": "company-a-uuid-0000-000000000001",
+      "bill_type": "pakka",
+      "buyer": {
+        "name": "Pakka Buyer Ltd",
+        "address": "Corporate Park",
+        "gst_number": "27AAAAA1234A1Z1",
+        "phone": "9822334455"
+      },
+      "products": [
+        {
+          "name": "Finished Desk",
+          "description": "Premium",
+          "quantity": 5,
+          "rate": 6000,
+          "unit": "pcs",
+          "total": 30000,
+          "inventory_item_id": "670d8a000000000000000020"
+        }
+      ],
+      "subtotal": 30000,
+      "gst_percentage": 18,
+      "gst_amount": 5400,
+      "discount": 0,
+      "grand_total": 35400,
+      "invoice_number": "INV-2026-00002",
+      "payments": [
+        {
+          "amount": 35400,
+          "date": "2026-10-13T21:00:00",
+          "notes": "Full payment"
+        }
+      ],
+      "amount_received": 35400,
+      "balance_due": 0,
+      "payment_status": "paid",
+      "over_received": false,
+      "profit_confirmed": true,
+      "profit_suggested_amount": 15000,
+      "profit_confirmed_amount": 15000,
+      "profit_confirmed_at": "2026-10-13T21:00:00",
+      "worker_assignment_ids": [],
+      "worker_cost_total": 0,
+      "transportation_costs": [],
+      "transportation_cost_total": 0,
+      "misc_costs": [],
+      "misc_cost_total": 0,
+      "ready_to_deliver": [],
+      "ready_to_deliver_quantity": 0,
+      "shipment_confirmed": false,
+      "shipment_confirmed_at": null,
+      "order_status": "closed",
+      "created_at": "2026-10-13T21:00:00",
+      "updated_at": "2026-10-13T21:00:00"
+    }
+  ]
+}

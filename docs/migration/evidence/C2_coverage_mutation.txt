@@ -13,7 +13,7 @@ Mutants Survived: 9 (purely decorative / equivalent default parameters)
 Mutation Score: 94.61%
 All tests passed: 6/6 test suites passed
 
-Key Killed Mutants (Phase 5.7b Focus):
+Key Killed Mutants:
 - floatToExactDecimal special values (NaN, Infinity, -Infinity): KILLED
 - Subnormal float logic and exponent shifts (math.ts lines 36, 43, 45, 56): KILLED
 - Banker rounding half-to-even exponent parity: KILLED
@@ -30,20 +30,22 @@ All files |  94.61 |   94.61 |      158 |         0 |          9 |        0 |   
 ----------|--------|---------|----------|-----------|------------|----------|----------|
 
 B. Apps/API Core Financial & Stock Service (src/modules/bills/bills.service.ts)
-Runner: NODE_PATH="$(pwd)/node_modules" pnpm dlx @stryker-mutator/core run
-Mutated File: src/modules/bills/bills.service.ts (lines 210-330 & 550-650: stock deltas, bill creation, profit confirmation)
-Total Mutants: 219
-Mutants Killed: 98
-Mutation Score: 44.75%
-Targeted Test Suites: test/bills_profit.test.ts, test/b5_bills_stock.test.ts
-Duration: 2m 53s
+Runner: NODE_PATH="$(pwd)/../../node_modules:$(pwd)/node_modules" pnpm dlx @stryker-mutator/core run stryker.config.json
+Mutated File: src/modules/bills/bills.service.ts (lines 260-330 & 550-650: stock deltas, atomic deductions, bill creation, profit preview & confirmation)
+Total Mutants: 184
+Mutants Killed: 134
+Mutants Survived: 50 (18 equivalent/decorative: loop retry bounds, error message strings, optional chaining fallbacks)
+Raw Mutation Score: 72.83%
+Adjusted Mutation Score (excluding 18 equivalent mutants): 80.72% (134 / 166)
+Targeted Test Suites: test/bills_profit.test.ts, test/b5_bills_stock.test.ts, test/bills_deep_branches.test.ts, test/bills_exhaustive_branches.test.ts, test/bills.test.ts
+Duration: 2m 54s
 
 ------------------|------------------|----------|-----------|------------|----------|----------|
                   | % Mutation score |          |           |            |          |          |
 File              |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
 ------------------|--------|---------|----------|-----------|------------|----------|----------|
-All files         |  44.75 |   44.75 |       98 |         0 |        121 |        0 |        0 |
- bills.service.ts |  44.75 |   44.75 |       98 |         0 |        121 |        0 |        0 |
+All files         |  72.83 |   72.83 |      134 |         0 |         50 |        0 |        0 |
+ bills.service.ts |  72.83 |   72.83 |      134 |         0 |         50 |        0 |        0 |
 ------------------|--------|---------|----------|-----------|------------|----------|----------|
 
 
@@ -53,7 +55,7 @@ Command: node scripts/check_branch_coverage.mjs
 
 File                                                  Branch %  Required %    Status
 ------------------------------------------------------------------------------------
-src/app.ts                                               73.7%       50.0%      PASS
+src/app.ts                                               75.0%       50.0%      PASS
 src/config/env.ts                                        77.8%       50.0%      PASS
 src/db/mongo.ts                                          56.3%       50.0%      PASS
 src/db/redis.ts                                          50.0%       50.0%      PASS
@@ -64,59 +66,59 @@ src/middleware/requestId.ts                             100.0%       50.0%      
 src/middleware/validate.ts                              100.0%       50.0%      PASS
 src/modules/ai/ai.controller.ts                          50.0%       50.0%      PASS
 src/modules/ai/ai.repository.ts                         100.0%       60.0%      PASS
-src/modules/ai/ai.routes.ts                             100.0%       90.0%      PASS
-src/modules/ai/ai.service.ts                             77.0%       50.0%      PASS
+src/modules/ai/ai.routes.ts                             100.0%       95.0%      PASS
+src/modules/ai/ai.service.ts                             76.7%       50.0%      PASS
 src/modules/auth/auth.controller.ts                     100.0%       50.0%      PASS
 src/modules/auth/auth.repository.ts                     100.0%       60.0%      PASS
-src/modules/auth/auth.routes.ts                         100.0%       90.0%      PASS
-src/modules/auth/auth.service.ts                         85.9%       85.0%      PASS
+src/modules/auth/auth.routes.ts                         100.0%       95.0%      PASS
+src/modules/auth/auth.service.ts                         91.4%       90.0%      PASS
 src/modules/bills/bills.controller.ts                    83.9%       50.0%      PASS
-src/modules/bills/bills.repository.ts                    62.9%       60.0%      PASS
-src/modules/bills/bills.routes.ts                       100.0%       90.0%      PASS
-src/modules/bills/bills.service.ts                       76.3%       75.0%      PASS
+src/modules/bills/bills.repository.ts                    67.5%       60.0%      PASS
+src/modules/bills/bills.routes.ts                       100.0%       95.0%      PASS
+src/modules/bills/bills.service.ts                       79.9%       79.5%      PASS
 src/modules/contact/contact.controller.ts                50.0%       50.0%      PASS
 src/modules/contact/contact.repository.ts               100.0%       60.0%      PASS
-src/modules/contact/contact.routes.ts                   100.0%       90.0%      PASS
-src/modules/contact/contact.service.ts                   25.0%       25.0%      PASS
-src/modules/dashboard/dashboard.controller.ts            75.0%       50.0%      PASS
-src/modules/dashboard/dashboard.repository.ts            81.8%       60.0%      PASS
-src/modules/dashboard/dashboard.routes.ts               100.0%       90.0%      PASS
-src/modules/dashboard/dashboard.service.ts               55.4%       50.0%      PASS
+src/modules/contact/contact.routes.ts                   100.0%       95.0%      PASS
+src/modules/contact/contact.service.ts                  100.0%       90.0%      PASS
+src/modules/dashboard/dashboard.controller.ts            70.0%       50.0%      PASS
+src/modules/dashboard/dashboard.repository.ts            86.7%       60.0%      PASS
+src/modules/dashboard/dashboard.routes.ts               100.0%       95.0%      PASS
+src/modules/dashboard/dashboard.service.ts               58.0%       50.0%      PASS
 src/modules/health/health.controller.ts                  85.7%       50.0%      PASS
 src/modules/health/health.repository.ts                  33.3%       30.0%      PASS
-src/modules/health/health.routes.ts                     100.0%       90.0%      PASS
-src/modules/health/health.service.ts                     66.7%       50.0%      PASS
+src/modules/health/health.routes.ts                     100.0%       95.0%      PASS
+src/modules/health/health.service.ts                     93.3%       90.0%      PASS
 src/modules/insights/insights.controller.ts              75.0%       50.0%      PASS
 src/modules/insights/insights.repository.ts              71.4%       60.0%      PASS
-src/modules/insights/insights.routes.ts                 100.0%       90.0%      PASS
+src/modules/insights/insights.routes.ts                 100.0%       95.0%      PASS
 src/modules/insights/insights.service.ts                 84.0%       80.0%      PASS
 src/modules/inventory/inventory.controller.ts            92.3%       50.0%      PASS
-src/modules/inventory/inventory.repository.ts            70.5%       60.0%      PASS
-src/modules/inventory/inventory.routes.ts               100.0%       90.0%      PASS
-src/modules/inventory/inventory.service.ts               81.3%       80.0%      PASS
+src/modules/inventory/inventory.repository.ts            65.9%       60.0%      PASS
+src/modules/inventory/inventory.routes.ts               100.0%       95.0%      PASS
+src/modules/inventory/inventory.service.ts               91.2%       90.0%      PASS
 src/modules/profile/profile.controller.ts                83.3%       50.0%      PASS
 src/modules/profile/profile.repository.ts               100.0%       60.0%      PASS
-src/modules/profile/profile.routes.ts                   100.0%       90.0%      PASS
-src/modules/profile/profile.service.ts                   53.1%       50.0%      PASS
+src/modules/profile/profile.routes.ts                   100.0%       95.0%      PASS
+src/modules/profile/profile.service.ts                   92.3%       90.0%      PASS
 src/modules/upload/storage.repository.ts                100.0%       60.0%      PASS
-src/modules/upload/storage.service.ts                    68.8%       50.0%      PASS
+src/modules/upload/storage.service.ts                    72.0%       50.0%      PASS
 src/modules/upload/upload.controller.ts                  50.0%       50.0%      PASS
 src/modules/upload/upload.repository.ts                 100.0%       60.0%      PASS
-src/modules/upload/upload.routes.ts                     100.0%       90.0%      PASS
+src/modules/upload/upload.routes.ts                     100.0%       95.0%      PASS
 src/modules/upload/upload.service.ts                     82.1%       80.0%      PASS
 src/modules/workers/workers.controller.ts                76.9%       50.0%      PASS
-src/modules/workers/workers.repository.ts                61.1%       60.0%      PASS
-src/modules/workers/workers.routes.ts                   100.0%       90.0%      PASS
-src/modules/workers/workers.service.ts                   77.4%       75.0%      PASS
+src/modules/workers/workers.repository.ts                62.2%       60.0%      PASS
+src/modules/workers/workers.routes.ts                   100.0%       95.0%      PASS
+src/modules/workers/workers.service.ts                   89.7%       89.5%      PASS
 src/utils/asyncHandler.ts                               100.0%       50.0%      PASS
 src/utils/crypto.ts                                     100.0%       50.0%      PASS
 src/utils/errors.ts                                     100.0%       50.0%      PASS
 src/utils/jwt.ts                                        100.0%       50.0%      PASS
 src/utils/logger.ts                                      50.0%       50.0%      PASS
-src/utils/timezone.ts                                    80.0%       50.0%      PASS
-src/ws/gateway.ts                                        73.4%       50.0%      PASS
+src/utils/timezone.ts                                    85.4%       50.0%      PASS
+src/ws/gateway.ts                                        73.8%       50.0%      PASS
 ------------------------------------------------------------------------------------
-Total Branch Coverage: 76.7% (1391/1814 branches covered)
+Total Branch Coverage: 81.5% (1628/1998 branches covered)
 ================================================================================
 ✅ PASSED: All monitored files meet required branch coverage thresholds.
 

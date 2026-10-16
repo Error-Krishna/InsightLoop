@@ -179,7 +179,7 @@ export class StorageService {
 
   public static getDriver(): StorageDriver {
     if (!this.instance) {
-      const driverType = process.env.STORAGE_DRIVER || (env as unknown as { STORAGE_DRIVER?: string }).STORAGE_DRIVER || 'gridfs';
+      const driverType = process.env.STORAGE_DRIVER || env.STORAGE_DRIVER || 'gridfs';
       if (driverType === 's3') {
         this.instance = new S3StorageDriver();
       } else {

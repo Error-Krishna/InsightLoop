@@ -19,7 +19,11 @@ export default defineConfig({
       thresholds: {
         lines: 85,
         functions: 85,
-        branches: 55,
+        branches: 80,
+        'src/modules/auth/auth.service.ts': { branches: 90 },
+        'src/modules/inventory/inventory.service.ts': { branches: 90 },
+        'src/modules/workers/workers.service.ts': { branches: 89 },
+        'src/modules/bills/bills.service.ts': { branches: 79 },
       },
     },
   },

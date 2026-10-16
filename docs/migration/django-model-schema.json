@@ -1,0 +1,1454 @@
+{
+  "bills": {
+    "collection": "bills",
+    "fields": {
+      "bill_type": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": [
+          "kacha",
+          "pakka"
+        ],
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "buyer": {
+        "bson_type": "object",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "discount": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "grand_total": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": true
+      },
+      "gst_amount": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "gst_percentage": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "invoice_number": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "misc_costs": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "payments": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "products": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "profit_confirmed": {
+        "bson_type": "bool",
+        "cascade_rule": null,
+        "choices": null,
+        "default": false,
+        "nullable": false,
+        "required": false
+      },
+      "profit_confirmed_amount": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "profit_confirmed_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "profit_suggested_amount": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "ready_to_deliver": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "shipment_confirmed": {
+        "bson_type": "bool",
+        "cascade_rule": null,
+        "choices": null,
+        "default": false,
+        "nullable": false,
+        "required": false
+      },
+      "shipment_confirmed_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "subtotal": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": true
+      },
+      "transportation_costs": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "updated_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "worker_assignment_ids": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "company_id",
+          "bill_type"
+        ]
+      },
+      {
+        "fields": [
+          "company_id",
+          "invoice_number"
+        ],
+        "unique": true
+      },
+      {
+        "fields": [
+          "company_id",
+          "profit_confirmed"
+        ]
+      },
+      {
+        "fields": [
+          "-created_at"
+        ],
+        "unique": false
+      }
+    ],
+    "model_name": "Bill"
+  },
+  "business_data": {
+    "collection": "business_data",
+    "fields": {
+      "category": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "customer_type": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": [
+          "Retail",
+          "Wholesale",
+          "Online"
+        ],
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "date": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "product": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "production_cost": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "quantity": {
+        "bson_type": "int",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "region": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "selling_price": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "company_id"
+        ]
+      },
+      {
+        "fields": [
+          "date"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "product"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "category"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "date",
+          "region"
+        ],
+        "name": "date_region_idx"
+      }
+    ],
+    "model_name": "BusinessData"
+  },
+  "company": {
+    "collection": "company",
+    "fields": {
+      "address": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "bank_account_number": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "bank_name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "branch_name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "business_type": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "Data & Insights Platform",
+        "nullable": false,
+        "required": false
+      },
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": true
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "email": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "gst_number": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "ifsc_code": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "logo_url": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "phone": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "signature_url": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "stamp_url": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "updated_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "workspace_settings": {
+        "bson_type": "object",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      }
+    },
+    "indexes": [],
+    "model_name": "Company"
+  },
+  "contact_message": {
+    "collection": "contact_message",
+    "fields": {
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "email": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "message": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      }
+    },
+    "indexes": [],
+    "model_name": "ContactMessage"
+  },
+  "financial_summaries": {
+    "collection": "financial_summaries",
+    "fields": {
+      "active_workers": {
+        "bson_type": "int",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": true
+      },
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "timestamp": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": true
+      },
+      "total_profit": {
+        "bson_type": "decimal",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": true
+      },
+      "total_revenue": {
+        "bson_type": "decimal",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": true
+      },
+      "worker_payments": {
+        "bson_type": "decimal",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": true
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "-timestamp"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "company_id",
+          "timestamp"
+        ],
+        "unique": true
+      },
+      {
+        "fields": [
+          "company_id"
+        ]
+      }
+    ],
+    "model_name": "FinancialSummary"
+  },
+  "insights": {
+    "collection": "insights",
+    "fields": {
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "data_points": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "description": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "expires_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "labels": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "note": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "title": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      }
+    },
+    "indexes": [
+      {
+        "expireAfterSeconds": 0,
+        "fields": [
+          "expires_at"
+        ]
+      },
+      {
+        "fields": [
+          "company_id"
+        ]
+      }
+    ],
+    "model_name": "Insight"
+  },
+  "inventory_items": {
+    "collection": "inventory_items",
+    "fields": {
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "cost_price": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "image_url": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "quantity": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "reorder_level": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "selling_price": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "sku": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "type": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": [
+          "finished",
+          "semi_finished",
+          "raw"
+        ],
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "unit": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "pcs",
+        "nullable": false,
+        "required": true
+      },
+      "updated_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "warehouse_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "company_id",
+          "type"
+        ]
+      },
+      {
+        "fields": [
+          "company_id",
+          "sku"
+        ],
+        "unique": true
+      }
+    ],
+    "model_name": "InventoryItem"
+  },
+  "material_assignments": {
+    "collection": "material_assignments",
+    "fields": {
+      "assignment_date": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "batches": {
+        "bson_type": "array",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "bill_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "completed_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "material_name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "notes": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "pay_record_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "price_per_unit": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "quantity": {
+        "bson_type": "int",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "status": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": [
+          "open",
+          "completed"
+        ],
+        "default": "open",
+        "nullable": false,
+        "required": true
+      },
+      "synced_to_inventory": {
+        "bson_type": "bool",
+        "cascade_rule": null,
+        "choices": null,
+        "default": false,
+        "nullable": false,
+        "required": false
+      },
+      "updated_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "wage_amount": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "wastage_quantity": {
+        "bson_type": "int",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "worker": {
+        "bson_type": "objectId",
+        "cascade_rule": "DO_NOTHING",
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "worker"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "assignment_date"
+        ],
+        "name": "assignment_date_idx"
+      },
+      {
+        "fields": [
+          "material_name"
+        ],
+        "name": "material_name_idx"
+      },
+      {
+        "fields": [
+          "status"
+        ],
+        "name": "status_idx"
+      },
+      {
+        "fields": [
+          "bill_id"
+        ],
+        "name": "bill_id_idx"
+      }
+    ],
+    "model_name": "MaterialAssignment"
+  },
+  "pay_records": {
+    "collection": "pay_records",
+    "fields": {
+      "amount_paid": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": 0,
+        "nullable": false,
+        "required": false
+      },
+      "bill_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "date": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "paid": {
+        "bson_type": "bool",
+        "cascade_rule": null,
+        "choices": null,
+        "default": false,
+        "nullable": false,
+        "required": false
+      },
+      "product_name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "rate_per_unit": {
+        "bson_type": "double",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "source_assignment_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "units_produced": {
+        "bson_type": "int",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "updated_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "worker": {
+        "bson_type": "objectId",
+        "cascade_rule": "DO_NOTHING",
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "worker"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "paid"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "date"
+        ],
+        "name": "date_idx"
+      },
+      {
+        "fields": [
+          "bill_id"
+        ],
+        "name": "pay_bill_id_idx"
+      }
+    ],
+    "model_name": "PayRecord"
+  },
+  "user": {
+    "collection": "user",
+    "fields": {
+      "company": {
+        "bson_type": "objectId",
+        "cascade_rule": "DO_NOTHING",
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "email": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "last_login": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "location": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "notifications": {
+        "bson_type": "object",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "password": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "phone": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "profile_pic": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": true,
+        "required": false
+      },
+      "subscription": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "Pro Plan (\u20b9499/mo)",
+        "nullable": false,
+        "required": false
+      },
+      "username": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      }
+    },
+    "indexes": [],
+    "model_name": "User"
+  },
+  "warehouses": {
+    "collection": "warehouses",
+    "fields": {
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "location": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "company_id",
+          "name"
+        ]
+      }
+    ],
+    "model_name": "Warehouse"
+  },
+  "workers": {
+    "collection": "workers",
+    "fields": {
+      "address": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "age": {
+        "bson_type": "int",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "company_id": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "created_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "id": {
+        "bson_type": "objectId",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "image_url": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "is_active": {
+        "bson_type": "bool",
+        "cascade_rule": null,
+        "choices": null,
+        "default": true,
+        "nullable": false,
+        "required": false
+      },
+      "joining_date": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      },
+      "name": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": true
+      },
+      "phone": {
+        "bson_type": "string",
+        "cascade_rule": null,
+        "choices": null,
+        "default": null,
+        "nullable": false,
+        "required": false
+      },
+      "updated_at": {
+        "bson_type": "date",
+        "cascade_rule": null,
+        "choices": null,
+        "default": "<callable>",
+        "nullable": false,
+        "required": false
+      }
+    },
+    "indexes": [
+      {
+        "fields": [
+          "name"
+        ],
+        "unique": false
+      },
+      {
+        "fields": [
+          "joining_date"
+        ],
+        "name": "joining_date_idx"
+      }
+    ],
+    "model_name": "Worker"
+  }
+}

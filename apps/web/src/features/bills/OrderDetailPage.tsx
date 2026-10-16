@@ -75,7 +75,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     void loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reason: loadAll is stable and depends only on id
   }, [id]);
 
   if (loading) {

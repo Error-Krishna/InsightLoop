@@ -1,0 +1,14 @@
+{
+  "id": "13_missing_inventory_name",
+  "description": "Inventory item missing required name",
+  "endpoint": "/api/v1/inventory/finished",
+  "method": "POST",
+  "payload": {
+    "name": "   ",
+    "unit": "pcs",
+    "selling_price": 100
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Item name is required",
+  "useAuth": true
+}

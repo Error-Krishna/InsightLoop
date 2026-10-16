@@ -52,20 +52,21 @@ for (const [absPath, stats] of Object.entries(data)) {
 
   const pct = total === 0 ? 100.0 : parseFloat(((covered / total) * 100).toFixed(1));
 
-  // Target thresholds per module
+  // Target thresholds per module (Phase 5.8 Required Thresholds)
   let required = 50.0;
-  if (relPath.includes('auth.service')) required = 85.0;
-  else if (relPath.includes('inventory.service')) required = 80.0;
-  else if (relPath.includes('bills.service')) required = 75.0;
-  else if (relPath.includes('workers.service')) required = 75.0;
+  if (relPath.includes('auth.service')) required = 90.0;
+  else if (relPath.includes('inventory.service')) required = 90.0;
+  else if (relPath.includes('bills.service')) required = 79.5;
+  else if (relPath.includes('workers.service')) required = 89.5;
   else if (relPath.includes('insights.service')) required = 80.0;
   else if (relPath.includes('upload.service')) required = 80.0;
   else if (relPath.includes('errorHandler')) required = 80.0;
   else if (relPath.includes('utils/')) required = 50.0;
-  else if (relPath.includes('contact.service')) required = 25.0;
+  else if (relPath.includes('contact.service')) required = 90.0;
   else if (relPath.includes('health.repository')) required = 30.0;
-  else if (relPath.includes('profile.service')) required = 50.0;
-  else if (relPath.endsWith('.routes.ts')) required = 90.0;
+  else if (relPath.includes('profile.service')) required = 90.0;
+  else if (relPath.includes('health.service')) required = 90.0;
+  else if (relPath.endsWith('.routes.ts')) required = 95.0;
   else if (relPath.endsWith('.repository.ts')) required = 60.0;
   else if (relPath.endsWith('.controller.ts')) required = 50.0;
 

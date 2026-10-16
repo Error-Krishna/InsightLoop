@@ -1,0 +1,10 @@
+{
+  "id": "07_completed_assignment_complete",
+  "description": "Attempting to complete an assignment that is already completed",
+  "endpoint": "/api/v1/workers/materials/:completedAssignmentId/complete",
+  "method": "PUT",
+  "payload": {},
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "This assignment is already marked complete",
+  "useAuth": true
+}

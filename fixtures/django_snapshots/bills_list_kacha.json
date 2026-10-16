@@ -1,0 +1,65 @@
+{
+  "id": "bills_list_kacha",
+  "description": "List kacha bills for Company A",
+  "nodeEndpoint": "/api/v1/bills?type=kacha",
+  "djangoEndpoint": "/api/v1/bills/?type=kacha",
+  "method": "GET",
+  "status": 200,
+  "body": [
+    {
+      "id": "670d8a000000000000000050",
+      "company_id": "company-a-uuid-0000-000000000001",
+      "bill_type": "kacha",
+      "buyer": {
+        "name": "Kacha Buyer",
+        "address": "Market Rd",
+        "phone": "9811223344"
+      },
+      "products": [
+        {
+          "name": "Finished Desk",
+          "description": "Standard",
+          "quantity": 2,
+          "rate": 5000,
+          "unit": "pcs",
+          "total": 10000,
+          "inventory_item_id": "670d8a000000000000000020"
+        }
+      ],
+      "subtotal": 10000,
+      "gst_percentage": 0,
+      "gst_amount": 0,
+      "discount": 500,
+      "grand_total": 9500,
+      "invoice_number": "INV-2026-00001",
+      "payments": [
+        {
+          "amount": 5000,
+          "date": "2026-10-12T21:00:00",
+          "notes": "Advance"
+        }
+      ],
+      "amount_received": 5000,
+      "balance_due": 4500,
+      "payment_status": "partial",
+      "over_received": false,
+      "profit_confirmed": false,
+      "profit_suggested_amount": null,
+      "profit_confirmed_amount": null,
+      "profit_confirmed_at": null,
+      "worker_assignment_ids": [],
+      "worker_cost_total": 0,
+      "transportation_costs": [],
+      "transportation_cost_total": 0,
+      "misc_costs": [],
+      "misc_cost_total": 0,
+      "ready_to_deliver": [],
+      "ready_to_deliver_quantity": 0,
+      "shipment_confirmed": false,
+      "shipment_confirmed_at": null,
+      "order_status": "draft",
+      "created_at": "2026-10-12T21:00:00",
+      "updated_at": "2026-10-12T21:00:00"
+    }
+  ]
+}

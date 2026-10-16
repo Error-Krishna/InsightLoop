@@ -2,12 +2,12 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { clearSession, getAccessToken, getRefreshToken, setSession, getCurrentUser } from "./auth";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
+  baseURL: import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
 });
 
 // Dedicated axios instance for refresh calls (bypasses interceptors to avoid infinite loops)
 const refreshAxios = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
+  baseURL: import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {

@@ -133,7 +133,7 @@ export default function WorkersPage() {
 
   useEffect(() => {
     void loadWorkers().catch(() => toast.error("Failed to load workers"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reason: initial worker list load on component mount
   }, []);
 
   useEffect(() => {

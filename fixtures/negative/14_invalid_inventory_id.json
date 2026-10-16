@@ -1,0 +1,12 @@
+{
+  "id": "14_invalid_inventory_id",
+  "description": "Inventory item retrieval with malformed ObjectId",
+  "endpoint": "/api/v1/inventory/finished/invalid_id",
+  "method": "PUT",
+  "payload": {
+    "name": "Updated"
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Invalid id",
+  "useAuth": true
+}

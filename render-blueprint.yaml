@@ -60,6 +60,22 @@ services:
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
+      - key: SERVE_STATIC
+        value: false
+      - key: GOOGLE_TOKENINFO_URL
+        value: https://oauth2.googleapis.com/tokeninfo
+      - key: OPENWA_API_KEY
+        sync: false
+      - key: OPENWA_BASE_URL
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v18.0
+      - key: WHATSAPP_BILL_TEMPLATE_NAME
+        value: bill_share
 
   # -------------------------------------------------------------
   # InsightLoop React TypeScript Frontend (Static Site CDN)
@@ -77,6 +93,8 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://insightloop-api.onrender.com
+      - key: VITE_API_BASE_URL
+        value: /api/v1
       - key: VITE_WS_BASE_URL
         value: wss://insightloop-api.onrender.com
       - key: VITE_GOOGLE_CLIENT_ID

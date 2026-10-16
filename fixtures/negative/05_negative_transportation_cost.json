@@ -1,0 +1,12 @@
+{
+  "id": "05_negative_transportation_cost",
+  "description": "Adding transportation cost with non-positive amount",
+  "endpoint": "/api/v1/bills/:kachaBillId/transportation-cost",
+  "method": "POST",
+  "payload": {
+    "amount": -50
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Amount must be positive",
+  "useAuth": true
+}

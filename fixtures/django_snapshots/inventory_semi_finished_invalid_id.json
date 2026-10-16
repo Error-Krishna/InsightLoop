@@ -1,0 +1,11 @@
+{
+  "id": "inventory_semi_finished_invalid_id",
+  "description": "Update semi-finished item with malformed ObjectId",
+  "nodeEndpoint": "/api/v1/inventory/semi-finished/invalid_id",
+  "djangoEndpoint": "/api/v1/inventory/semi-finished/invalid_id/",
+  "method": "PUT",
+  "status": 400,
+  "body": {
+    "detail": "Invalid id."
+  }
+}

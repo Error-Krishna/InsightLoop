@@ -1,46 +1,74 @@
 =======================================================
 INSIGHTLOOP COMPREHENSIVE LOAD BENCHMARK (14 ENDPOINTS)
 =======================================================
-Date: 2026-10-16T09:03:53.211Z
+Date: 2026-10-16T18:26:46.377Z
 Machine: Apple Silicon Mac (ARM64)
 Dataset: Seeded realistic dataset + 100,000 synthetic company rows
-Protocol: 3 independent benchmark runs per endpoint, concurrency = 10
-Metrics: p50, p95, p99 latencies (ms), total errors, peak RSS (MB)
+Protocol: 3 independent benchmark runs per endpoint at C=10 and C=50
+Metrics: p50, p95, p99 latencies (ms), total errors, dynamic peak RSS (MB)
 
-| Endpoint                 | Stack  | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |
-| :----------------------- | :----- | :------- | :------- | :------- | :----- | :------------ | :--------- |
-| Dashboard Summary        | Node   |     92.6 |    173.1 |    193.2 |      0 |         178.6 | Django     |
-| Dashboard Summary        | Django |     77.3 |    120.9 |    126.7 |      0 |         103.3 |            |
-| Dashboard Overview       | Node   |    147.8 |    270.8 |    285.1 |      0 |         178.6 | Node (WIN) |
-| Dashboard Overview       | Django |    229.2 |    286.3 |    291.4 |      0 |         103.3 |            |
-| Dashboard Rev & Exp      | Node   |      4.7 |     13.4 |     13.5 |      0 |         178.6 | Node (WIN) |
-| Dashboard Rev & Exp      | Django |     19.3 |       24 |     24.8 |      0 |         103.3 |            |
-| Dashboard Profit Trends  | Node   |      4.3 |      7.1 |        8 |      0 |         178.6 | Node (WIN) |
-| Dashboard Profit Trends  | Django |       19 |     23.1 |     23.9 |      0 |         103.3 |            |
-| Dashboard Workers        | Node   |     33.6 |     48.1 |     51.1 |      0 |         178.6 | Node (WIN) |
-| Dashboard Workers        | Django |    159.8 |    191.7 |    229.5 |      0 |         103.3 |            |
-| Dashboard Top Workers    | Node   |     39.9 |     85.2 |     97.9 |      0 |         178.6 | Node (WIN) |
-| Dashboard Top Workers    | Django |     43.5 |     95.7 |     96.8 |      0 |         103.3 |            |
-| Insights List            | Node   |      3.2 |      4.3 |      4.4 |      0 |         178.6 | Node (WIN) |
-| Insights List            | Django |     18.8 |     23.1 |     24.2 |      0 |         103.3 |            |
-| Bills List (Pakka)       | Node   |     37.7 |     52.1 |     54.6 |      0 |         178.6 | Django     |
-| Bills List (Pakka)       | Django |     21.1 |     32.9 |     34.8 |      0 |         103.3 |            |
-| Bills List (Kacha)       | Node   |     40.4 |     61.8 |     65.7 |      0 |         178.6 | Django     |
-| Bills List (Kacha)       | Django |     21.1 |     26.2 |     26.4 |      0 |         103.3 |            |
-| Finished Inventory       | Node   |      2.6 |      3.8 |      3.9 |      0 |         178.6 | Node (WIN) |
-| Finished Inventory       | Django |     20.3 |     24.9 |     26.3 |      0 |         103.3 |            |
-| Semi-Finished Inventory  | Node   |      3.7 |      6.6 |      6.7 |      0 |         178.6 | Node (WIN) |
-| Semi-Finished Inventory  | Django |     21.4 |     38.3 |     39.8 |      0 |         103.3 |            |
-| Raw Inventory            | Node   |      2.9 |      4.8 |        5 |      0 |         178.6 | Node (WIN) |
-| Raw Inventory            | Django |     20.9 |     32.1 |     33.5 |      0 |         103.3 |            |
-| Warehouses List          | Node   |        3 |      4.1 |      4.1 |      0 |         178.6 | Node (WIN) |
-| Warehouses List          | Django |     18.4 |     23.3 |     23.9 |      0 |         103.3 |            |
-| Workers List             | Node   |     31.9 |     53.2 |     54.1 |      0 |         178.6 | Django     |
-| Workers List             | Django |       22 |     27.7 |     28.5 |      0 |         103.3 |            |
+| Concurrency | Endpoint                 | Stack  | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |
+| :---------- | :----------------------- | :----- | :------- | :------- | :------- | :----- | :------------ | :--------- |
+| C=10        | Dashboard Summary        | Node   |      7.2 |     14.7 |     23.3 |      0 |         261.4 | Node (WIN) |
+| C=10        | Dashboard Summary        | Django |     56.4 |     76.7 |     98.6 |      0 |         106.8 |            |
+| C=10        | Dashboard Overview       | Node   |     13.5 |     29.6 |     77.9 |      0 |         261.4 | Node (WIN) |
+| C=10        | Dashboard Overview       | Django |    270.4 |      363 |    434.4 |      0 |         106.8 |            |
+| C=10        | Dashboard Rev & Exp      | Node   |      3.9 |       14 |     30.9 |      0 |         261.4 | Node (WIN) |
+| C=10        | Dashboard Rev & Exp      | Django |     21.3 |       32 |     67.9 |      0 |         106.8 |            |
+| C=10        | Dashboard Profit Trends  | Node   |      3.6 |      9.3 |     13.5 |      0 |         261.4 | Node (WIN) |
+| C=10        | Dashboard Profit Trends  | Django |     21.3 |     26.1 |     43.7 |      0 |         106.8 |            |
+| C=10        | Dashboard Workers        | Node   |      1.9 |      5.4 |     16.7 |      0 |         261.4 | Node (WIN) |
+| C=10        | Dashboard Workers        | Django |    183.7 |    276.6 |      334 |      0 |         106.8 |            |
+| C=10        | Dashboard Top Workers    | Node   |      1.5 |      5.3 |     14.3 |      0 |         261.4 | Node (WIN) |
+| C=10        | Dashboard Top Workers    | Django |     50.4 |     75.5 |     87.7 |      0 |         106.8 |            |
+| C=10        | Insights List            | Node   |      1.5 |       10 |     34.2 |      0 |         261.4 | Node (WIN) |
+| C=10        | Insights List            | Django |     19.7 |     33.2 |     47.2 |      0 |         106.8 |            |
+| C=10        | Bills List (Pakka)       | Node   |        2 |      5.4 |        9 |      0 |         261.4 | Node (WIN) |
+| C=10        | Bills List (Pakka)       | Django |     22.9 |     30.5 |     52.2 |      0 |         106.8 |            |
+| C=10        | Bills List (Kacha)       | Node   |      2.1 |      4.6 |      6.9 |      0 |         261.4 | Node (WIN) |
+| C=10        | Bills List (Kacha)       | Django |     22.6 |     33.6 |     84.3 |      0 |         106.8 |            |
+| C=10        | Finished Inventory       | Node   |      1.8 |      4.5 |      8.2 |      0 |         261.4 | Node (WIN) |
+| C=10        | Finished Inventory       | Django |     22.3 |     43.7 |     64.9 |      0 |         106.8 |            |
+| C=10        | Semi-Finished Inventory  | Node   |      1.9 |      8.1 |     21.9 |      0 |         261.4 | Node (WIN) |
+| C=10        | Semi-Finished Inventory  | Django |     21.7 |     26.8 |     49.9 |      0 |         106.8 |            |
+| C=10        | Raw Inventory            | Node   |      2.2 |      6.6 |     25.9 |      0 |         261.4 | Node (WIN) |
+| C=10        | Raw Inventory            | Django |     21.8 |     27.7 |     49.3 |      0 |         106.8 |            |
+| C=10        | Warehouses List          | Node   |      1.2 |      2.5 |      8.1 |      0 |         261.4 | Node (WIN) |
+| C=10        | Warehouses List          | Django |     19.5 |     25.3 |       48 |      0 |         106.8 |            |
+| C=10        | Workers List             | Node   |      2.5 |      6.2 |       15 |      0 |         261.4 | Node (WIN) |
+| C=10        | Workers List             | Django |     23.5 |     95.8 |    230.4 |      0 |         106.8 |            |
+| C=50        | Dashboard Summary        | Node   |     28.8 |     51.2 |     56.1 |      0 |         261.4 | Node (WIN) |
+| C=50        | Dashboard Summary        | Django |    338.2 |    514.7 |    598.4 |      0 |         106.8 |            |
+| C=50        | Dashboard Overview       | Node   |     64.1 |    110.3 |      125 |      0 |         261.4 | Node (WIN) |
+| C=50        | Dashboard Overview       | Django |   1808.9 |     2103 |   2233.9 |      0 |         106.8 |            |
+| C=50        | Dashboard Rev & Exp      | Node   |     19.3 |     69.2 |     74.2 |      0 |         261.4 | Node (WIN) |
+| C=50        | Dashboard Rev & Exp      | Django |    100.1 |    133.4 |    141.9 |      0 |         106.8 |            |
+| C=50        | Dashboard Profit Trends  | Node   |     16.3 |     28.6 |       31 |      0 |         261.4 | Node (WIN) |
+| C=50        | Dashboard Profit Trends  | Django |     98.9 |    131.9 |    145.6 |      0 |         106.8 |            |
+| C=50        | Dashboard Workers        | Node   |       10 |     23.2 |     25.6 |      0 |         261.4 | Node (WIN) |
+| C=50        | Dashboard Workers        | Django |   1279.9 |   1521.6 |   1602.1 |      0 |         106.8 |            |
+| C=50        | Dashboard Top Workers    | Node   |      9.5 |     26.9 |       30 |      0 |         261.4 | Node (WIN) |
+| C=50        | Dashboard Top Workers    | Django |      436 |    529.1 |    608.1 |      0 |         106.8 |            |
+| C=50        | Insights List            | Node   |     10.2 |     32.9 |       38 |      0 |         261.4 | Node (WIN) |
+| C=50        | Insights List            | Django |     95.7 |    157.7 |    182.6 |      0 |         106.8 |            |
+| C=50        | Bills List (Pakka)       | Node   |     11.1 |       19 |     23.4 |      0 |         261.4 | Node (WIN) |
+| C=50        | Bills List (Pakka)       | Django |      111 |    159.5 |    167.3 |      0 |         106.8 |            |
+| C=50        | Bills List (Kacha)       | Node   |      9.9 |     14.9 |     16.2 |      0 |         261.4 | Node (WIN) |
+| C=50        | Bills List (Kacha)       | Django |    113.2 |    162.8 |    179.4 |      0 |         106.8 |            |
+| C=50        | Finished Inventory       | Node   |      9.7 |     17.3 |     18.4 |      0 |         261.4 | Node (WIN) |
+| C=50        | Finished Inventory       | Django |    109.1 |    163.8 |    177.1 |      0 |         106.8 |            |
+| C=50        | Semi-Finished Inventory  | Node   |      9.6 |     28.3 |       32 |      0 |         261.4 | Node (WIN) |
+| C=50        | Semi-Finished Inventory  | Django |    107.7 |    143.5 |    155.9 |      0 |         106.8 |            |
+| C=50        | Raw Inventory            | Node   |      8.9 |     19.4 |     21.9 |      0 |         261.4 | Node (WIN) |
+| C=50        | Raw Inventory            | Django |    107.1 |    152.1 |    159.6 |      0 |         106.8 |            |
+| C=50        | Warehouses List          | Node   |      6.7 |     21.8 |     26.1 |      0 |         261.4 | Node (WIN) |
+| C=50        | Warehouses List          | Django |     94.2 |    129.1 |    137.5 |      0 |         106.8 |            |
+| C=50        | Workers List             | Node   |     11.5 |     23.1 |     25.1 |      0 |         261.4 | Node (WIN) |
+| C=50        | Workers List             | Django |      112 |    145.4 |      153 |      0 |         106.8 |            |
 
 Peak Memory (RSS):
-  Node API:   178.6 MB
-  Django API: 103.3 MB
+  Node API:   261.4 MB
+  Django API: 106.8 MB
 
-Performance Summary: Node Express matched or outperformed Python Django Daphne across list, dashboard, and insights endpoints with zero errors and significantly lower p95 latencies and memory footprint.
+Performance Summary: Node Express matched or outperformed Python Django Daphne across list, dashboard, and insights endpoints with zero errors and lower p95 latencies across both concurrency levels (C=10 and C=50).
 STATUS: BENCHMARK COMPLETE (PASS)

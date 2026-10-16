@@ -4,6 +4,7 @@ import { env } from './config/env.js';
 import { connectMongo, closeMongo } from './db/mongo.js';
 import { closeRedis } from './db/redis.js';
 import { setupWebSocketGateway, closeWebSockets } from './ws/gateway.js';
+import { assertStartupInvariants } from './config/startupInvariants.js';
 import { logger } from './utils/logger.js';
 
 const server = http.createServer(app);
@@ -78,16 +79,17 @@ process.on('SIGINT', () => {
 });
 
 async function start() {
-  await connectMongo();
+  const db = await connectMongo();
+  await assertStartupInvariants(db);
   server.listen(env.PORT, env.HOST, () => {
-    console.log(`InsightLoop Node API listening on http://${env.HOST}:${env.PORT}`);
+    logger.info({ host: env.HOST, port: env.PORT }, 'InsightLoop Node API listening');
   });
 }
 
 // Only start listening if not running inside vitest
 if (!process.env.VITEST) {
   start().catch((err: unknown) => {
-    console.error('Failed to start Node API server:', err);
+    logger.error({ err }, 'Failed to start Node API server');
     process.exit(1);
   });
 }

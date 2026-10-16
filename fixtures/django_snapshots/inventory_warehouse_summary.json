@@ -1,0 +1,66 @@
+{
+  "id": "inventory_warehouse_summary",
+  "description": "Warehouse summary breakdown across inventory types",
+  "nodeEndpoint": "/api/v1/inventory/meta/warehouse-summary",
+  "djangoEndpoint": "/api/v1/inventory/meta/warehouse-summary/",
+  "method": "GET",
+  "status": 200,
+  "body": [
+    {
+      "warehouse": {
+        "id": "670d8a000000000000000010",
+        "name": "Central Warehouse",
+        "location": "City A",
+        "created_at": "2026-03-28T21:00:00"
+      },
+      "items_count": 2,
+      "total_quantity": 80,
+      "stock_value": 186000,
+      "by_type": {
+        "raw": {
+          "items_count": 0,
+          "total_quantity": 0,
+          "stock_value": 0
+        },
+        "finished": {
+          "items_count": 1,
+          "total_quantity": 50,
+          "stock_value": 150000
+        },
+        "semi_finished": {
+          "items_count": 1,
+          "total_quantity": 30,
+          "stock_value": 36000
+        }
+      }
+    },
+    {
+      "warehouse": {
+        "id": "670d8a000000000000000011",
+        "name": "South Depot",
+        "location": "City A South",
+        "created_at": "2026-03-28T21:00:00"
+      },
+      "items_count": 1,
+      "total_quantity": 200,
+      "stock_value": 60000,
+      "by_type": {
+        "raw": {
+          "items_count": 1,
+          "total_quantity": 200,
+          "stock_value": 60000
+        },
+        "finished": {
+          "items_count": 0,
+          "total_quantity": 0,
+          "stock_value": 0
+        },
+        "semi_finished": {
+          "items_count": 0,
+          "total_quantity": 0,
+          "stock_value": 0
+        }
+      }
+    }
+  ]
+}

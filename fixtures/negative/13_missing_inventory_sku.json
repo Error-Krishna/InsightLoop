@@ -1,0 +1,15 @@
+{
+  "id": "13_missing_inventory_sku",
+  "description": "Inventory item missing required SKU",
+  "endpoint": "/api/v1/inventory/finished",
+  "method": "POST",
+  "payload": {
+    "name": "Item without SKU",
+    "unit": "pcs",
+    "selling_price": 100,
+    "cost_price": 50,
+    "quantity": 10
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "SKU is required"
+}

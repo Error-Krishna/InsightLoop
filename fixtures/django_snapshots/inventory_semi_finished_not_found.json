@@ -1,0 +1,11 @@
+{
+  "id": "inventory_semi_finished_not_found",
+  "description": "Update non-existent semi-finished item",
+  "nodeEndpoint": "/api/v1/inventory/semi-finished/670d8a000000000000000099",
+  "djangoEndpoint": "/api/v1/inventory/semi-finished/670d8a000000000000000099/",
+  "method": "PUT",
+  "status": 404,
+  "body": {
+    "detail": "Inventory item not found."
+  }
+}

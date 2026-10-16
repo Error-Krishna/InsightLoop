@@ -17,6 +17,10 @@ export async function setupTestDb(): Promise<void> {
   }
 }
 
+export function getTestDbUri(): string | null {
+  return replSet ? replSet.getUri() : null;
+}
+
 export async function teardownTestDb(): Promise<void> {
   await clearDatabase();
 }

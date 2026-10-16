@@ -7,6 +7,7 @@ import { AuthRepository } from '../modules/auth/auth.repository.js';
 import { AiService } from '../modules/ai/ai.service.js';
 import { DashboardService } from '../modules/dashboard/dashboard.service.js';
 import { verifyAccessToken } from '../utils/jwt.js';
+import { logger } from '../utils/logger.js';
 import type { TenantScope } from '../types/tenant.js';
 
 export const wsEvents = new EventEmitter();
@@ -108,7 +109,7 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
           const data = await DashboardService.getDashboardData(scope);
           ws.send(JSON.stringify(data));
         } catch (err) {
-          console.error('Failed to send initial dashboard snapshot:', err);
+          logger.error({ err }, 'Failed to send initial dashboard snapshot');
         }
 
         // Live update listener (sending data directly matching Django)
@@ -123,7 +124,9 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
                     ws.send(JSON.stringify(freshData));
                   }
                 })
-                .catch((_err: unknown) => { /* ignore */ });
+                .catch((_err: unknown) => {
+                  // SILENT-FALLBACK-REASON: Live dashboard update drop handled on next broadcast
+                });
             }
           }
         };
