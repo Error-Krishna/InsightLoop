@@ -434,8 +434,8 @@ export class DashboardService {
       const totalOwed = unitsProduced * ratePerUnit;
       const amountPaid = Number(r.amount_paid) || 0;
       const isPaid = Boolean(r.paid) || amountPaid >= totalOwed;
-
-      const dateObj = r.date instanceof Date ? r.date : new Date(r.date as string | Date);
+      const rawDate = r.date instanceof Date ? r.date : r.date ? new Date(r.date as string | Date) : new Date();
+      const dateObj = isNaN(rawDate.getTime()) ? new Date() : rawDate;
       const zoned = getZonedDateParts(dateObj, env.APP_TIME_ZONE);
       const monthStr = `${MONTH_NAMES[zoned.month - 1]} ${zoned.year}`;
 

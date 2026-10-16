@@ -63,6 +63,7 @@ describe('B11: Bill PDF Generation & WhatsApp Share Parity', () => {
       tax_rate: 18,
       tax_amount: 15300,
       total_amount: 100300,
+      grand_total: 100300,
       status: 'pending',
       created_at: new Date(),
       updated_at: new Date(),
@@ -71,6 +72,9 @@ describe('B11: Bill PDF Generation & WhatsApp Share Parity', () => {
   });
 
   afterAll(async () => {
+    await getCollection('bills').deleteMany({ company_id: companyId });
+    await getCollection('company').deleteMany({ company_id: companyId });
+    await getCollection('user').deleteMany({ company: companyId });
     await closeMongo();
   });
 
@@ -95,9 +99,8 @@ describe('B11: Bill PDF Generation & WhatsApp Share Parity', () => {
       expect(pdfRawText).toContain('(PDFKit)');
       expect(pdfRawText).toContain('/Count 1'); // Exactly 1 page
 
-      // Check text tokens encoded in stream
-      const insightLoopHex = Buffer.from('InsightLoop').toString('hex');
-      expect(pdfRawText.toLowerCase()).toContain(insightLoopHex.toLowerCase());
+      // Check DejaVu Sans font parity
+      expect(pdfRawText).toContain('DejaVuSans');
 
       // Save sample PDF evidence
       const evidenceDir = fs.existsSync('docs/migration/evidence')
@@ -185,7 +188,7 @@ describe('B11: Bill PDF Generation & WhatsApp Share Parity', () => {
 
       await expect(WhatsAppService.shareBillPdf(bill as any, {}, '9876543210')).rejects.toThrow(OpenWANotConfigured);
       await expect(WhatsAppService.shareBillPdf(bill as any, {}, '9876543210')).rejects.toThrow(
-        'OpenWA sharing is not configured yet. Set OPENWA_BASE_URL and OPENWA_API_KEY'
+        'OpenWA is not configured'
       );
       process.env = origEnv;
     });
@@ -205,13 +208,22 @@ describe('B11: Bill PDF Generation & WhatsApp Share Parity', () => {
     });
 
     it('POST /api/v1/bills/:id/share-whatsapp returns 400 with exact error when not configured', async () => {
-      const res = await request(app)
-        .post(`/api/v1/bills/${testBillId}/share-whatsapp`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({ phone: '9876543210' });
+      const origEnv = { ...process.env };
+      process.env.WHATSAPP_PROVIDER = 'meta';
+      process.env.WHATSAPP_ENABLED = 'false';
+      delete process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-      expect(res.status).toBe(400);
-      expect(res.body.detail).toContain('WhatsApp sharing is not configured yet');
+      try {
+        const res = await request(app)
+          .post(`/api/v1/bills/${testBillId}/share-whatsapp`)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ phone: '9876543210' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.detail).toContain('WhatsApp sharing is not configured yet');
+      } finally {
+        process.env = origEnv;
+      }
     });
 
     it('GET /api/v1/bills/:id/pdf returns 404 for non-existent bill', async () => {

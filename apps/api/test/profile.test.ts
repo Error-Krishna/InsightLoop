@@ -20,12 +20,17 @@ describe('Profile Module Integration Suite', () => {
     const user = await createTestUser();
 
     // Seed company
-    await getCollection('company').insertOne({
-      company_id: user.companyId,
-      name: 'Initial Company',
-      address: '100 Industrial Area',
-      created_at: new Date(),
-    });
+    await getCollection('company').updateOne(
+      { company_id: user.companyId },
+      {
+        $set: {
+          name: 'Initial Company',
+          address: '100 Industrial Area',
+          updated_at: new Date(),
+        },
+      },
+      { upsert: true }
+    );
 
     // 1. Get Profile
     const profileRes = await request(app)

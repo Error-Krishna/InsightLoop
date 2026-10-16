@@ -275,5 +275,10 @@ export class BillsRepository {
     );
     return res.matchedCount > 0;
   }
+
+  static async findCompany(scope: TenantScope): Promise<Document | null> {
+    const companyCol = getCollection('company');
+    return companyCol.findOne({ company_id: scope.companyId });
+  }
 }
 

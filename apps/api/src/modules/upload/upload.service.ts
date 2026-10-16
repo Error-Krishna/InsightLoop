@@ -132,8 +132,10 @@ export class UploadService {
       throw new BadRequestError('Please upload a valid CSV file.');
     }
 
+    const requiredColumns = ['customer_type', 'date', 'product', 'production_cost', 'quantity', 'region', 'selling_price'];
+
     if (!buffer || buffer.length === 0) {
-      throw new BadRequestError('CSV file is empty.');
+      throw new BadRequestError('Missing required columns.', 'BAD_REQUEST', undefined, requiredColumns);
     }
 
     let csvString = buffer.toString('utf-8');
@@ -142,7 +144,15 @@ export class UploadService {
     }
 
     if (csvString.trim().length === 0) {
-      throw new BadRequestError('CSV file is empty.');
+      throw new BadRequestError('Missing required columns.', 'BAD_REQUEST', undefined, requiredColumns);
+    }
+
+    const firstLine = csvString.trim().split('\n')[0] ?? '';
+    const headerCols = firstLine.split(',').map((h) => h.trim());
+    const headerSet = new Set(headerCols);
+    const missing = requiredColumns.filter((c) => !headerSet.has(c));
+    if (missing.length > 0) {
+      throw new BadRequestError('Missing required columns.', 'BAD_REQUEST', undefined, missing.sort());
     }
 
     let records: Record<string, string>[];
@@ -157,7 +167,7 @@ export class UploadService {
     }
 
     if (!records || records.length === 0) {
-      throw new BadRequestError('CSV file contains no data rows.');
+      return { created: 0, warnings: [] };
     }
 
     const MAX_CSV_ROWS = 10000;
@@ -165,32 +175,10 @@ export class UploadService {
       throw new BadRequestError(`CSV file exceeds maximum limit of ${MAX_CSV_ROWS} rows.`);
     }
 
-    const requiredColumns = ['date', 'product', 'quantity', 'production_cost', 'selling_price', 'region', 'customer_type'];
-    const headers = Object.keys(records[0] || {});
-    const headerSet = new Set(headers);
-    const missing = requiredColumns.filter((c) => !headerSet.has(c));
-
-    if (missing.length > 0) {
-      throw new BadRequestError(`Missing required columns: ${missing.sort().join(', ')}`);
-    }
-
     const numericColumns = ['quantity', 'production_cost', 'selling_price'];
 
-    // Security check 2: Negative numbers in numeric columns & formula injection detection
-    for (let i = 0; i < records.length; i++) {
-      const rowNum = i + 1;
-      const row = records[i];
-
-      // Negative number check on numeric columns
-      for (const col of numericColumns) {
-        const rawVal = row[col];
-        if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
-          const numVal = parseFloat(String(rawVal));
-          if (!isNaN(numVal) && numVal < 0) {
-            throw new BadRequestError(`Row ${rowNum}: column '${col}' cannot be negative.`);
-          }
-        }
-      }
+    // Security check: formula injection detection
+    for (const row of records) {
 
       // Formula injection check:
       for (const [col, val] of Object.entries(row)) {

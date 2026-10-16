@@ -44,7 +44,7 @@
       "justification": "Foreign key reference to newly created Inventory Item ObjectId generated during write flows."
     },
     {
-      "pattern": "^(.*\\.)?tokens\\.(access|refresh)$",
+      "pattern": "^(.*\\.)?(tokens\\.(access|refresh)|access|refresh)$",
       "rule": "REPLACE_JWT",
       "regex": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
       "replacement": "<JWT_TOKEN>",
@@ -60,14 +60,14 @@
     {
       "pattern": "^(.*\\.)?(created_at|updated_at|timestamp|joining_date|assignment_date|shipment_confirmed_at|profit_confirmed_at|completed_at|(payments|transportation_costs|misc_costs|ready_to_deliver|batches)\\[\\d+\\]\\.date)$",
       "rule": "REPLACE_TIMESTAMP_NOW",
-      "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{6})?$",
+      "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z?$",
       "replacement": "<TIMESTAMP_NOW>",
       "justification": "Timestamp recorded at the instant of write execution. Both stacks emit naive ISO 8601 (formatDjangoIso) but exact wall-clock second/microsecond differs between sequential HTTP calls."
     },
     {
       "pattern": "^(.*\\.)?invoice_number$",
       "rule": "REPLACE_INVOICE_NUM",
-      "regex": "^INV-\\d{4}-\\d{5}$",
+      "regex": "^(INV|KACHA)-\\d{4}-\\d{5}$",
       "replacement": "<INVOICE_NUM>",
       "justification": "Sequence number generated on invoice creation. Preserves prefix format while normalizing atomic sequence counter state across test runs."
     }

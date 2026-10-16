@@ -15,7 +15,7 @@ export class InsightsService {
       labels: i.labels ?? [],
       data_points: i.data_points ?? [],
       note: i.note ?? '',
-      created_at: formatDjangoIso(i.created_at),
+      created_at: i.created_at ? formatDjangoIso(i.created_at) : null,
     }));
   }
 
@@ -122,15 +122,13 @@ export class InsightsService {
 
     const createdInsights = [];
     for (const item of generatedInsights) {
-      const now = new Date();
-
       const created = await InsightsRepository.insertInsight(scope, {
         title: item.title,
         description: item.description,
         labels: item.labels,
         data_points: item.data_points,
         note: '',
-        created_at: now,
+        created_at: undefined,
       });
 
       // Preserving Django characterization: created_at is null in the immediate POST /analyze/ response

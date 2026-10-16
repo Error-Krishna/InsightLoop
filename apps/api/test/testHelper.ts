@@ -55,16 +55,34 @@ export async function createTestUser(options: { companyId?: string; email?: stri
   const password = options.password ?? 'ValidPass123!';
   const hashedPassword = hashPassword(password);
   const userId = new ObjectId();
+  const compObjectId = typeof companyId === 'string' && ObjectId.isValid(companyId) ? new ObjectId(companyId) : new ObjectId();
+
+  const companyCol = getCollection('company');
+  await companyCol.updateOne(
+    { company_id: companyId },
+    {
+      $setOnInsert: {
+        _id: compObjectId,
+        company_id: companyId,
+        name: 'Test Company',
+        business_type: 'Manufacturing',
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    },
+    { upsert: true }
+  );
+
+  const existingComp = await companyCol.findOne({ company_id: companyId });
+  const compRef = existingComp?._id ?? compObjectId;
 
   const usersCol = getCollection('user');
   await usersCol.insertOne({
     _id: userId,
     email,
+    name: 'Test User',
     password: hashedPassword,
-    company_id: companyId,
-    first_name: 'Test',
-    last_name: 'User',
-    is_active: true,
+    company: compRef,
     created_at: new Date(),
   });
 

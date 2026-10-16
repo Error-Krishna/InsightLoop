@@ -131,6 +131,9 @@ _stale_files_safe_to_delete/
 # Turborepo & Test outputs
 .turbo/
 coverage/
+reports/
+.stryker-tmp/
 test-results/
 playwright-report/
+
 

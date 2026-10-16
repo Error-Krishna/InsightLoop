@@ -55,6 +55,10 @@ export function getEnvSchema(isProduction: boolean) {
     WHATSAPP_BILL_TEMPLATE_NAME: z.string().default('bill_share'),
     GOOGLE_TOKENINFO_URL: z.string().default('https://oauth2.googleapis.com/tokeninfo'),
     SERVE_STATIC: z.string().optional().default('false'),
+    EMAIL_HOST: z.string().default('localhost'),
+    EMAIL_PORT: z.coerce.number().default(1025),
+    DEFAULT_FROM_EMAIL: z.string().default('noreply@insightloop.io'),
+    ADMIN_EMAIL: z.string().default('admin@insightloop.io'),
   });
 }
 

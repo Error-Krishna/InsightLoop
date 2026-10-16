@@ -12,7 +12,6 @@ import { formatDjangoIso } from '../../utils/timezone.js';
 import type { TenantScope } from '../../types/tenant.js';
 import { BillPdfService } from './pdf.service.js';
 import { WhatsAppService } from './whatsapp.service.js';
-import { getCollection } from '../../db/mongo.js';
 
 export interface BillInput {
   bill_type?: string;
@@ -252,7 +251,9 @@ export class BillsService {
       const available = Number(item.quantity) || 0;
       if (available < requestedQty) {
         const unit = (item.unit as string) ?? 'pcs';
-        shortages.push(`${item.name}: requested ${requestedQty} ${unit}, only ${available} ${unit} in stock`);
+        const reqStr = Number.isInteger(requestedQty) ? `${requestedQty}.0` : String(requestedQty);
+        const availStr = Number.isInteger(available) ? `${available}.0` : String(available);
+        shortages.push(`${item.name}: requested ${reqStr} ${unit}, only ${availStr} ${unit} in stock`);
       }
     }
     if (shortages.length > 0) {
@@ -274,7 +275,9 @@ export class BillsService {
         const available = item ? Number(item.quantity) || 0 : 0;
         const unit = (item?.unit as string) ?? 'pcs';
         const name = item ? (item.name as string) : 'Item';
-        throw new ValidationError(`Insufficient stock: ${name}: requested ${needed} ${unit}, only ${available} ${unit} in stock`);
+        const neededStr = Number.isInteger(needed) ? `${needed}.0` : String(needed);
+        const availStr = Number.isInteger(available) ? `${available}.0` : String(available);
+        throw new ValidationError(`Insufficient stock: ${name}: requested ${neededStr} ${unit}, only ${availStr} ${unit} in stock`);
       }
       applied.push({ itemId, qty: needed });
     }
@@ -414,7 +417,9 @@ export class BillsService {
           const available = item ? Number(item.quantity) || 0 : 0;
           const unit = (item?.unit as string) ?? 'pcs';
           const name = item ? (item.name as string) : 'Item';
-          throw new ValidationError(`Insufficient stock: ${name}: requested ${needed} ${unit}, only ${available} ${unit} in stock`);
+          const neededStr = Number.isInteger(needed) ? `${needed}.0` : String(needed);
+          const availStr = Number.isInteger(available) ? `${available}.0` : String(available);
+          throw new ValidationError(`Insufficient stock: ${name}: requested ${neededStr} ${unit}, only ${availStr} ${unit} in stock`);
         }
         appliedIncreases.push({ itemId, qty: needed });
       }
@@ -428,8 +433,16 @@ export class BillsService {
       throw err;
     }
 
+    const buyer = { ...(data.buyer ?? existing.buyer) };
+    if (existing.bill_type === 'pakka') {
+      const gstNum = data.gst_number ?? (data.buyer?.gst_number || existing.buyer?.gst_number);
+      if (gstNum) {
+        buyer.gst_number = gstNum;
+      }
+    }
+
     const updateDoc: Partial<BillDoc> = {
-      buyer: data.buyer ?? existing.buyer,
+      buyer,
       products: totals.products,
       subtotal: totals.subtotal,
       gst_percentage: totals.gst_percentage,
@@ -593,7 +606,7 @@ export class BillsService {
     const lines = [];
 
     for (const p of bill.products ?? []) {
-      let unitCost = 0;
+      let unitCost: number | null = null;
       let costKnown = false;
       if (p.inventory_item_id && ObjectId.isValid(p.inventory_item_id)) {
         const item = await BillsRepository.findInventoryItemById(scope, p.inventory_item_id);
@@ -602,7 +615,7 @@ export class BillsService {
           costKnown = true;
         }
       }
-      const lineCost = roundPy((Number(p.quantity) || 0) * unitCost, 2);
+      const lineCost = costKnown ? roundPy((Number(p.quantity) || 0) * (unitCost ?? 0), 2) : 0;
       materialCost += lineCost;
       lines.push({
         inventory_item_id: p.inventory_item_id ?? null,
@@ -863,8 +876,8 @@ export class BillsService {
   static async getBillPdf(scope: TenantScope, id: string): Promise<{ pdf: Buffer; filename: string }> {
     const bill = await BillsRepository.findBillById(scope, id);
     if (!bill) throw new NotFoundError('Bill not found.');
-    const company = await getCollection('company').findOne({ company_id: scope.companyId });
-    const pdf = await BillPdfService.renderBillPdf(bill, (company || {}) as unknown as import('./pdf.service.js').CompanyPdfContext);
+    const company = await BillsRepository.findCompany(scope);
+    const pdf = await BillPdfService.renderBillPdf(bill, company ?? undefined);
     const filename = `${bill.invoice_number || 'invoice'}.pdf`;
     return { pdf, filename };
   }
@@ -876,8 +889,8 @@ export class BillsService {
   ): Promise<{ detail: string; whatsapp_response: unknown }> {
     const bill = await BillsRepository.findBillById(scope, id);
     if (!bill) throw new NotFoundError('Bill not found.');
-    const company = await getCollection('company').findOne({ company_id: scope.companyId });
-    return WhatsAppService.shareBillPdf(bill, (company || {}) as unknown as import('./pdf.service.js').CompanyPdfContext, phone);
+    const company = await BillsRepository.findCompany(scope);
+    return WhatsAppService.shareBillPdf(bill, company ?? undefined, phone);
   }
 }
 

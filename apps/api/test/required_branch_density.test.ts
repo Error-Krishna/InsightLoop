@@ -61,6 +61,7 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
         password: 'password123',
       });
       expect(loginRes.user.name).toBe('');
+      await db.collection('user').deleteOne({ email: noNameEmail });
 
       // 4. Google login with string company reference
       const gEmail = `g_str_${Date.now()}@density.com`;

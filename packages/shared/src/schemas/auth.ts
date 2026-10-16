@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const LoginSchema = z.object({
-  email: z.string().email('A valid email address is required.'),
+  email: z.preprocess((val) => (typeof val === 'string' ? val.trim().toLowerCase() : val), z.string().email('A valid email address is required.')),
   password: z.string().min(1, 'Password is required.'),
 });
 
@@ -9,7 +9,7 @@ export type LoginInput = z.infer<typeof LoginSchema>;
 
 export const SignupSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
-  email: z.string().email('A valid email address is required.'),
+  email: z.preprocess((val) => (typeof val === 'string' ? val.trim().toLowerCase() : val), z.string().email('A valid email address is required.')),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
   company: z.string().optional(),
   company_name: z.string().optional(),

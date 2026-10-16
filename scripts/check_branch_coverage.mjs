@@ -52,23 +52,34 @@ for (const [absPath, stats] of Object.entries(data)) {
 
   const pct = total === 0 ? 100.0 : parseFloat(((covered / total) * 100).toFixed(1));
 
-  // Target thresholds per module (Phase 5.8 Required Thresholds)
+  // Target thresholds per module (Phase 5.9 Required Thresholds)
+  // 90% for every *.service.ts and *.repository.ts in bills, workers, inventory, auth, profit/stock
+  // 85% for all other services, repositories and ws/gateway.ts
   let required = 50.0;
-  if (relPath.includes('auth.service')) required = 90.0;
-  else if (relPath.includes('inventory.service')) required = 90.0;
-  else if (relPath.includes('bills.service')) required = 79.5;
-  else if (relPath.includes('workers.service')) required = 89.5;
-  else if (relPath.includes('insights.service')) required = 80.0;
-  else if (relPath.includes('upload.service')) required = 80.0;
-  else if (relPath.includes('errorHandler')) required = 80.0;
-  else if (relPath.includes('utils/')) required = 50.0;
-  else if (relPath.includes('contact.service')) required = 90.0;
-  else if (relPath.includes('health.repository')) required = 30.0;
-  else if (relPath.includes('profile.service')) required = 90.0;
-  else if (relPath.includes('health.service')) required = 90.0;
-  else if (relPath.endsWith('.routes.ts')) required = 95.0;
-  else if (relPath.endsWith('.repository.ts')) required = 60.0;
-  else if (relPath.endsWith('.controller.ts')) required = 50.0;
+  if (
+    relPath.includes('bills/bills.service') ||
+    relPath.includes('bills/bills.repository') ||
+    relPath.includes('workers/workers.service') ||
+    relPath.includes('workers/workers.repository') ||
+    relPath.includes('inventory/inventory.service') ||
+    relPath.includes('inventory/inventory.repository') ||
+    relPath.includes('auth/auth.service') ||
+    relPath.includes('auth/auth.repository')
+  ) {
+    required = 90.0;
+  } else if (
+    relPath.endsWith('.service.ts') ||
+    relPath.endsWith('.repository.ts') ||
+    relPath.includes('ws/gateway.ts')
+  ) {
+    required = 85.0;
+  } else if (relPath.endsWith('.routes.ts')) {
+    required = 95.0;
+  } else if (relPath.includes('errorHandler')) {
+    required = 80.0;
+  } else if (relPath.endsWith('.controller.ts')) {
+    required = 50.0;
+  }
 
   const passed = pct >= required;
 

@@ -22,7 +22,7 @@ export class OpenWANotConfigured extends ValidationError {
   constructor(message?: string) {
     super(
       message ||
-        'OpenWA sharing is not configured yet. Set OPENWA_BASE_URL and OPENWA_API_KEY in your environment.'
+        `OpenWA is not configured (this is the TEMPORARY WhatsApp bridge used until real Meta credentials are available). Set OPENWA_API_KEY in your environment, and make sure your OpenWA server is running at OPENWA_BASE_URL (currently ${process.env.OPENWA_BASE_URL || 'http://localhost:3000'}).`
     );
   }
 }
@@ -43,7 +43,7 @@ export function normalizePhoneNumber(rawPhone?: string | null): string {
 export class WhatsAppService {
   static async shareBillPdf(
     bill: BillDoc,
-    company: CompanyPdfContext,
+    company?: CompanyPdfContext | null,
     targetPhone?: string | null
   ): Promise<{ detail: string; whatsapp_response: unknown }> {
     const rawPhone = targetPhone || bill.buyer?.phone;
