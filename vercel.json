@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "VITE_API_URL": "@vite_api_url",
+    "VITE_WS_BASE_URL": "@vite_ws_base_url",
+    "VITE_GOOGLE_CLIENT_ID": "@vite_google_client_id"
+  }
+}

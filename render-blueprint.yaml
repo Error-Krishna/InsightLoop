@@ -14,23 +14,52 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: HOST
+        value: 0.0.0.0
       - key: TRUST_PROXY
         value: 1
       - key: APP_TIME_ZONE
         value: Asia/Kolkata
-      # Sensitive production credentials to be populated in Render Dashboard:
-      # - key: MONGODB_URI
-      #   sync: false
-      # - key: MONGODB_DB_NAME
-      #   sync: false
-      # - key: JWT_SECRET
-      #   sync: false
-      # - key: CORS_ORIGIN
-      #   sync: false
-      # - key: GOOGLE_CLIENT_ID
-      #   sync: false
-      # - key: REDIS_URL
-      #   sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 1h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: REDIS_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: UPLOAD_DIR
+        value: ./uploads
+      - key: MAX_FILE_SIZE_MB
+        value: 10
+      - key: WHATSAPP_ENABLED
+        value: false
+      - key: WHATSAPP_PROVIDER
+        value: meta
+      - key: REHASH_PASSWORDS_ON_LOGIN
+        value: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: AUTH_RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: AUTH_RATE_LIMIT_MAX_ATTEMPTS
+        value: 10
+      - key: STORAGE_DRIVER
+        value: gridfs
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
 
   # -------------------------------------------------------------
   # InsightLoop React TypeScript Frontend (Static Site CDN)
@@ -46,7 +75,9 @@ services:
         source: /*
         destination: /index.html
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: VITE_API_URL
         value: https://insightloop-api.onrender.com
+      - key: VITE_WS_BASE_URL
+        value: wss://insightloop-api.onrender.com
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
