@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Route-level code splitting: each page is only fetched when its route is
 // actually visited, instead of every page (charts, PDF/WhatsApp flows,
@@ -37,33 +38,35 @@ function RouteFallback() {
 
 export default function App() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+    <ErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/bills/kacha" element={<KachaBillPage />} />
-            <Route path="/bills/pakka" element={<PakkaBillPage />} />
-            <Route path="/bills/order/:id" element={<OrderDetailPage />} />
-            <Route path="/inventory/finished" element={<FinishedInventoryPage />} />
-            <Route path="/inventory/semi-finished" element={<SemiFinishedInventoryPage />} />
-            <Route path="/inventory/raw" element={<RawInventoryPage />} />
-            <Route path="/inventory/warehouses" element={<WarehousesPage />} />
-            <Route path="/insights" element={<InsightsPage />} />
-            <Route path="/workers" element={<WorkersPage />} />
-            <Route path="/upload" element={<UploadPage />} />
-            <Route path="/ai-assistant" element={<ChatPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/bills/kacha" element={<KachaBillPage />} />
+              <Route path="/bills/pakka" element={<PakkaBillPage />} />
+              <Route path="/bills/order/:id" element={<OrderDetailPage />} />
+              <Route path="/inventory/finished" element={<FinishedInventoryPage />} />
+              <Route path="/inventory/semi-finished" element={<SemiFinishedInventoryPage />} />
+              <Route path="/inventory/raw" element={<RawInventoryPage />} />
+              <Route path="/inventory/warehouses" element={<WarehousesPage />} />
+              <Route path="/insights" element={<InsightsPage />} />
+              <Route path="/workers" element={<WorkersPage />} />
+              <Route path="/upload" element={<UploadPage />} />
+              <Route path="/ai-assistant" element={<ChatPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }

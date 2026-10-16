@@ -1,93 +1,80 @@
-$ vitest run
+=== Checking Routed Page Tests against apps/web/src/App.tsx ===
+
+Discovered 19 routed components in App.tsx:
+  - LandingPage
+  - LoginPage
+  - SignupPage
+  - ProtectedRoute
+  - DashboardLayout
+  - DashboardPage
+  - KachaBillPage
+  - PakkaBillPage
+  - OrderDetailPage
+  - FinishedInventoryPage
+  - SemiFinishedInventoryPage
+  - RawInventoryPage
+  - WarehousesPage
+  - InsightsPage
+  - WorkersPage
+  - UploadPage
+  - ChatPage
+  - ProfilePage
+  - SettingsPage
+
+✅ LandingPage                -> apps/web/test/pages/landing.test.tsx [loading, empty, error, success]
+✅ LoginPage                  -> apps/web/test/pages/login.test.tsx [loading, empty, error, success]
+✅ SignupPage                 -> apps/web/test/pages/signup.test.tsx [loading, empty, error, success]
+✅ ProtectedRoute             -> apps/web/test/pages/protected-route.test.tsx [loading, empty, error, success]
+✅ DashboardLayout            -> apps/web/test/pages/dashboard-layout.test.tsx [loading, empty, error, success]
+✅ DashboardPage              -> apps/web/test/pages/dashboard.test.tsx [loading, empty, error, success]
+✅ KachaBillPage              -> apps/web/test/pages/kacha-bill.test.tsx [loading, empty, error, success]
+✅ PakkaBillPage              -> apps/web/test/pages/pakka-bill.test.tsx [loading, empty, error, success]
+✅ OrderDetailPage            -> apps/web/test/pages/order-detail.test.tsx [loading, empty, error, success]
+✅ FinishedInventoryPage      -> apps/web/test/pages/finished-inventory.test.tsx [loading, empty, error, success]
+✅ SemiFinishedInventoryPage  -> apps/web/test/pages/semi-finished-inventory.test.tsx [loading, empty, error, success]
+✅ RawInventoryPage           -> apps/web/test/pages/raw-inventory.test.tsx [loading, empty, error, success]
+✅ WarehousesPage             -> apps/web/test/pages/warehouses.test.tsx [loading, empty, error, success]
+✅ InsightsPage               -> apps/web/test/pages/insights.test.tsx [loading, empty, error, success]
+✅ WorkersPage                -> apps/web/test/pages/workers.test.tsx [loading, empty, error, success]
+✅ UploadPage                 -> apps/web/test/pages/upload.test.tsx [loading, empty, error, success]
+✅ ChatPage                   -> apps/web/test/pages/chat.test.tsx [loading, empty, error, success]
+✅ ProfilePage                -> apps/web/test/pages/profile.test.tsx [loading, empty, error, success]
+✅ SettingsPage               -> apps/web/test/pages/settings.test.tsx [loading, empty, error, success]
+✅ ErrorBoundary            -> apps/web/test/pages/error-boundary.test.tsx [error recovery & fallbacks]
+
+------------------------------------------------------------
+SUCCESS: All 19 routed pages + ErrorBoundary have verified test files with all 4 states!
 
  RUN  v3.2.7 /Users/krishnagoyal/Development/personal projects/Insightloop/apps/web
 
- ✓ src/lib/api.test.ts (2 tests) 33ms
- ✓ test/auth_mutex.test.ts (1 test) 47ms
+ ✓ test/pages/warehouses.test.tsx (4 tests) 291ms
+ ✓ test/pages/landing.test.tsx (5 tests) 446ms
+ ✓ test/pages/profile.test.tsx (4 tests) 431ms
+ ✓ test/pages/pakka-bill.test.tsx (4 tests) 318ms
+ ✓ test/pages/dashboard-layout.test.tsx (4 tests) 429ms
+ ✓ test/pages/kacha-bill.test.tsx (4 tests) 373ms
+ ✓ test/pages.test.tsx (11 tests) 596ms
+ ✓ test/pages/chat.test.tsx (4 tests) 333ms
+ ✓ test/pages/workers.test.tsx (4 tests) 202ms
+ ✓ test/pages/settings.test.tsx (4 tests) 311ms
+ ✓ test/pages/upload.test.tsx (4 tests) 260ms
+ ✓ test/pages/raw-inventory.test.tsx (4 tests) 329ms
+ ✓ test/pages/insights.test.tsx (4 tests) 324ms
+ ✓ test/pages/error-boundary.test.tsx (8 tests) 222ms
+ ✓ test/pages/finished-inventory.test.tsx (4 tests) 277ms
+ ✓ test/pages/signup.test.tsx (4 tests) 239ms
+ ✓ test/pages/login.test.tsx (4 tests) 207ms
+ ✓ test/pages/dashboard.test.tsx (4 tests) 152ms
+ ✓ test/components.test.tsx (4 tests) 325ms
+ ✓ test/pages/semi-finished-inventory.test.tsx (4 tests) 271ms
+ ✓ test/pages/order-detail.test.tsx (4 tests) 104ms
+ ✓ src/lib/api.test.ts (2 tests) 56ms
+ ✓ test/auth_mutex.test.ts (1 test) 38ms
  ✓ src/lib/ws.test.ts (4 tests) 4ms
-stderr | test/components.test.tsx > Frontend Component RTL & Golden Fixture Integration Suite > renders MetricCard with positive trend, data points, and accessible text
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
+ ✓ test/pages/protected-route.test.tsx (4 tests) 26ms
 
-stderr | test/components.test.tsx > Frontend Component RTL & Golden Fixture Integration Suite > renders MetricCard with negative trend indicator
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-
- ✓ test/components.test.tsx (4 tests) 83ms
-stderr | test/pages.test.tsx > D2: Key Feature Pages RTL & MSW Integration Suite > DashboardPage > renders metric cards, workers table, and handles populated state
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-
-stderr | test/pages.test.tsx > D2: Key Feature Pages RTL & MSW Integration Suite > DashboardPage > displays empty states when data lists are empty
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-
-stderr | test/pages.test.tsx > D2: Key Feature Pages RTL & MSW Integration Suite > DashboardPage > displays error toast on 500 server error
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-The width(0) and height(0) of chart should be greater than 0,
-       please check the style of container, or the props width(100%) and height(100%),
-       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
-       height and width.
-
- ✓ test/pages.test.tsx (11 tests) 233ms
-
- Test Files  5 passed (5)
-      Tests  22 passed (22)
-   Start at  03:35:15
-   Duration  1.40s (transform 258ms, setup 688ms, collect 892ms, tests 400ms, environment 1.28s, prepare 339ms)
+ Test Files  25 passed (25)
+      Tests  107 passed (107)
+   Start at  13:59:20
+   Duration  6.00s (transform 1.23s, setup 5.69s, collect 5.61s, tests 6.56s, environment 15.49s, prepare 1.89s)
 

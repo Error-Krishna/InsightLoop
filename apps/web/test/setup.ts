@@ -29,4 +29,8 @@ if (typeof window !== 'undefined') {
       close() {}
     };
   }
+
+  if (window.HTMLElement && !window.HTMLElement.prototype.scrollIntoView) {
+    window.HTMLElement.prototype.scrollIntoView = () => {};
+  }
 }
