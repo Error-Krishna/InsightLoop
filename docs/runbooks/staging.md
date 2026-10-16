@@ -46,12 +46,14 @@ The Django monolithic codebase historically exposed server-rendered Django templ
 |---|---|---|---|
 | `/dashboard/` | `insightloop/templates/dashboard/Dashboard.html` | `NEEDS-TRAFFIC-EVIDENCE` | Do not remove; monitor NGINX access logs for 30 consecutive days of 0 hits. |
 | `/distribution/` | `insightloop/templates/workers/MaterialDistribution.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/distribution/manage-workers/` | `insightloop/templates/workers/ManageWorkers.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/insights/` | `insightloop/templates/insights/Insights.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/upload/` | `insightloop/templates/upload/Upload.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+| `/distribution/manage-workers/` | `insightloop/templates/workers/Worker.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+| `/insights/` | `insightloop/templates/insights/InsightDetails.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+| `/upload/` | `insightloop/templates/upload/DataUpload.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
 | `/aiexport/` | `insightloop/templates/AIExport/Export&AI.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/user/profile/` | `insightloop/templates/misc/profile.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/user/settings/` | `insightloop/templates/misc/settings.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+| `/user/profile/` | `insightloop/templates/misc/Profile.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+| `/user/settings/` | `insightloop/templates/misc/Setting.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+| `/user/billing/` | `insightloop/templates/misc/Billing.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+
 
 ---
 

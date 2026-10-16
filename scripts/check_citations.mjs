@@ -31,8 +31,9 @@ console.log(`Scanning ${mdFiles.length} markdown file(s) under ${path.relative(R
 
 // Regex to capture file paths matching (apps|packages|scripts|insightloop|docs)/[^\s)`"'<>]+
 // or relative markdown links [text](path)
-const pathRegex = /(?:`|\]\(|["'\s(])((?:apps|packages|scripts|insightloop|docs)\/[a-zA-Z0-9_.\-\/]+)/g;
-const relativeLinkRegex = /\]\(((?:\.|\.\.)\/[a-zA-Z0-9_.\-\/#]+)\)/g;
+const pathRegex = /(?:`|\]\(|["'\s(])((?:apps|packages|scripts|insightloop|docs)\/[a-zA-Z0-9_.\-\/&]+)/g;
+const relativeLinkRegex = /\]\(((?:\.|\.\.)\/[a-zA-Z0-9_.\-\/#&]+)\)/g;
+
 
 let totalChecked = 0;
 let errors = [];

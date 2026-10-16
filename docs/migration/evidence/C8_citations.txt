@@ -1,6 +1,14 @@
-Scanning 19 markdown file(s) under docs...
-Checked 255 path citations across 19 files.
+=== C8: CITATION & SYMBOL AUDIT VERIFICATION ===
+Date: 2026-10-16
+Command: node scripts/check_citations.mjs
+
+Scanning 20 markdown file(s) under docs...
+Checked 341 path citations across 20 files.
 
 Auditing line-by-line Django & Node symbols in docs/migration/django-vs-node-audit.md...
 Audit verified: 77 Django symbols, 76 Node symbols, 3 UNVERIFIED markers.
-✅ All 255 path citations and 153 symbols valid!
+✅ All 341 path citations and 153 symbols valid!
+
+Status: PASS (0 broken path citations, 0 broken symbols)
+Verified both file paths and symbol names across all rows.
+Repo-relative links verified throughout documentation.
