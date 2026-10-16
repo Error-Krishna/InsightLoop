@@ -21,6 +21,7 @@ import { insightsRouter } from './modules/insights/insights.routes.js';
 import { uploadRouter } from './modules/upload/upload.routes.js';
 import { aiRouter } from './modules/ai/ai.routes.js';
 import { contactRouter } from './modules/contact/contact.routes.js';
+import { StorageService, getMimeType } from './modules/upload/storage.service.js';
 
 export const app: express.Express = express();
 
@@ -78,6 +79,42 @@ app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/ai', aiRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/contact', contactRouter);
+
+// Media serving endpoint (persisted via MongoDB GridFS / S3)
+app.get(
+  '/media/*',
+  asyncHandler(async (req: Request, res: Response) => {
+    const rawPath = req.params[0] ?? '';
+    let decodedPath: string;
+    try {
+      decodedPath = decodeURIComponent(rawPath);
+    } catch {
+      res.status(400).json({ error: 'Invalid file path encoding.' });
+      return;
+    }
+
+    if (
+      !decodedPath ||
+      decodedPath.includes('..') ||
+      decodedPath.includes('\0') ||
+      decodedPath.includes('\\')
+    ) {
+      res.status(400).json({ error: 'Invalid or insecure file path.' });
+      return;
+    }
+
+    const fileBuffer = await StorageService.read(decodedPath);
+    if (!fileBuffer) {
+      res.status(404).json({ error: 'File not found.' });
+      return;
+    }
+
+    const mimeType = getMimeType(decodedPath);
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.status(200).send(fileBuffer);
+  })
+);
 
 // Static asset serving (optional single-container deployment)
 const staticDir = path.resolve(process.cwd(), 'apps/web/dist');

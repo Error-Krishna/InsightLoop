@@ -14,6 +14,9 @@ export interface UpdateProfileInput {
   ifsc_code?: string;
   bank_account_number?: string;
   branch_name?: string;
+  logo_url?: string;
+  stamp_url?: string;
+  signature_url?: string;
 }
 
 export interface UpdateSettingsInput {
@@ -81,6 +84,9 @@ export class ProfileService {
     if (data.ifsc_code !== undefined) companyUpdate.ifsc_code = data.ifsc_code;
     if (data.bank_account_number !== undefined) companyUpdate.bank_account_number = data.bank_account_number;
     if (data.branch_name !== undefined) companyUpdate.branch_name = data.branch_name;
+    if (data.logo_url !== undefined) companyUpdate.logo_url = data.logo_url;
+    if (data.stamp_url !== undefined) companyUpdate.stamp_url = data.stamp_url;
+    if (data.signature_url !== undefined) companyUpdate.signature_url = data.signature_url;
 
     if (Object.keys(companyUpdate).length > 0) {
       await ProfileRepository.updateCompany(scope, companyUpdate);
