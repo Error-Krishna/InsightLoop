@@ -41,4 +41,11 @@ export class DashboardController {
     const workers = await DashboardService.getTopWorkers(scope);
     res.status(200).json({ workers });
   }
+
+  static async exportReport(req: Request, res: Response): Promise<void> {
+    const scope: TenantScope = { companyId: req.companyId! };
+    const type = String(req.params.type ?? '');
+    const fileUrl = await DashboardService.generateExportFile(scope, type);
+    res.status(200).json({ file_url: fileUrl });
+  }
 }

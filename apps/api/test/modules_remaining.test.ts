@@ -110,4 +110,71 @@ describe('Health, Contact, AI & Insights Integration Suite', () => {
 
     expect(analyzeRes.status).toBe(200);
   });
+
+  it('generates dashboard CSV export via direct route and AI command, downloadable via /media/*', async () => {
+    const user = await createTestUser();
+    const bdataCol = getCollection('business_data');
+    await bdataCol.insertOne({
+      company_id: user.companyId,
+      date: new Date(),
+      product: 'Handmade Silk Saree',
+      category: 'Apparel',
+      quantity: 5,
+      production_cost: 1000,
+      selling_price: 2500,
+    });
+
+    // 1. Direct route export
+    const directRes = await request(app)
+      .get('/api/v1/dashboard/export/business_trends')
+      .set('Authorization', `Bearer ${user.token}`);
+
+    expect(directRes.status).toBe(200);
+    expect(directRes.body.file_url).toMatch(/^\/media\/exports\//);
+
+    // Download through /media/*
+    const mediaRes = await request(app).get(directRes.body.file_url);
+    expect(mediaRes.status).toBe(200);
+    expect(mediaRes.headers['content-type']).toContain('text/csv');
+    expect(mediaRes.text).toContain('Handmade Silk Saree');
+    expect(mediaRes.text).toContain('Date,Product,Category,Quantity Sold');
+
+    // 2. AI command export
+    const aiCmdRes = await request(app)
+      .post('/api/v1/ai/command')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ command: 'Export business trends report' });
+
+    expect(aiCmdRes.status).toBe(200);
+    expect(aiCmdRes.body.action).toBe('download');
+    expect(aiCmdRes.body.file_url).toMatch(/^\/media\/exports\//);
+
+    const aiMediaRes = await request(app).get(aiCmdRes.body.file_url);
+    expect(aiMediaRes.status).toBe(200);
+    expect(aiMediaRes.text).toContain('Handmade Silk Saree');
+  });
+
+  it('manages workspace settings and notifications under profile', async () => {
+    const user = await createTestUser();
+
+    // 1. Get settings
+    const getRes = await request(app)
+      .get('/api/v1/profile/settings')
+      .set('Authorization', `Bearer ${user.token}`);
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.workspace_settings).toBeDefined();
+
+    // 2. Update settings
+    const putRes = await request(app)
+      .put('/api/v1/profile/settings')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        email_alerts: true,
+        weekly_summary: true,
+      });
+
+    expect(putRes.status).toBe(200);
+    expect(putRes.body.workspace_settings).toBeDefined();
+  });
 });

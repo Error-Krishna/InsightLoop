@@ -1,0 +1,6 @@
+Scanning 19 markdown file(s) under docs...
+Checked 255 path citations across 19 files.
+
+Auditing line-by-line Django & Node symbols in docs/migration/django-vs-node-audit.md...
+Audit verified: 77 Django symbols, 76 Node symbols, 3 UNVERIFIED markers.
+✅ All 255 path citations and 153 symbols valid!

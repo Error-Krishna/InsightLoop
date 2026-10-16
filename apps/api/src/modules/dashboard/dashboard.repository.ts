@@ -43,4 +43,39 @@ export class DashboardRepository {
     const col = getCollection('pay_records');
     return col.find({ company_id: scope.companyId }).sort({ date: -1 }).limit(limit).toArray();
   }
+
+  static async findBusinessData(scope: TenantScope): Promise<Document[]> {
+    const col = getCollection('business_data');
+    return col.find({ company_id: scope.companyId }).sort({ date: 1 }).toArray();
+  }
+
+  static async findAllWorkers(scope: TenantScope): Promise<Document[]> {
+    const col = getCollection('workers');
+    return col.find({ company_id: scope.companyId }).toArray();
+  }
+
+  static async findAssignmentsForWorker(scope: TenantScope, workerId: ObjectId): Promise<Document[]> {
+    const col = getCollection('assignments');
+    return col.find({ company_id: scope.companyId, worker: workerId }).toArray();
+  }
+
+  static async findPayRecordsForWorker(scope: TenantScope, workerId: ObjectId): Promise<Document[]> {
+    const col = getCollection('pay_records');
+    return col.find({ company_id: scope.companyId, worker: workerId }).toArray();
+  }
+
+  static async findAllPayRecords(scope: TenantScope): Promise<Document[]> {
+    const col = getCollection('pay_records');
+    return col.find({ company_id: scope.companyId }).sort({ date: -1 }).toArray();
+  }
+
+  static async findFinancialSummaries(scope: TenantScope): Promise<Document[]> {
+    const col = getCollection('financial_summary');
+    return col.find({ company_id: scope.companyId }).sort({ timestamp: -1 }).toArray();
+  }
+
+  static async findInsights(scope: TenantScope): Promise<Document[]> {
+    const col = getCollection('insights');
+    return col.find({ company_id: scope.companyId }).sort({ created_at: -1 }).toArray();
+  }
 }

@@ -1,5 +1,6 @@
 import { type ObjectId } from 'mongodb';
 import { AiRepository } from './ai.repository.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
 import type { TenantScope } from '../../types/tenant.js';
 import { logger } from '../../utils/logger.js';
 import { formatDjangoIso } from '../../utils/timezone.js';
@@ -175,7 +176,7 @@ export class AiService {
         }
 
         if (exportType) {
-          const fileUrl = `/api/v1/export/${exportType}/`;
+          const fileUrl = await DashboardService.generateExportFile(scope, exportType);
           response.action = 'download';
           response.file_url = fileUrl;
           response.message = `Your ${exportType.replace('_', ' ')} export is ready!`;

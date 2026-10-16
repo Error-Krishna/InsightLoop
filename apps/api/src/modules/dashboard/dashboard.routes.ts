@@ -13,3 +13,4 @@ dashboardRouter.get('/rev-exp', asyncHandler(DashboardController.getRevExp));
 dashboardRouter.get('/profit-trends', asyncHandler(DashboardController.getProfitTrends));
 dashboardRouter.get('/workers', asyncHandler(DashboardController.getWorkers));
 dashboardRouter.get('/top-workers', asyncHandler(DashboardController.getTopWorkers));
+dashboardRouter.get('/export/:type', asyncHandler(DashboardController.exportReport));

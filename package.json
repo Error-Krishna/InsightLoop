@@ -15,6 +15,7 @@
     "test:tenancy": "node scripts/test_tenancy_security.mjs",
     "test:chaos": "node scripts/test_chaos_resilience.mjs",
     "test:benchmark": "node scripts/run_load_benchmark.mjs",
+    "check:citations": "node scripts/check_citations.mjs",
     "typecheck": "turbo run typecheck",
     "prepare": "husky"
   },

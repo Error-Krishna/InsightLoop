@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { DashboardRepository } from './dashboard.repository.js';
+import { StorageService } from '../upload/storage.service.js';
 import { env } from '../../config/env.js';
 import {
   calcChange,
@@ -501,5 +502,146 @@ export class DashboardService {
       topWorkers,
       billsCount,
     };
+  }
+
+  static async generateExportFile(scope: TenantScope, reportType: string): Promise<string> {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const filename = `exports/${scope.companyId}/${reportType}_${timestamp}.csv`;
+
+    const toCsvCell = (val: unknown): string => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const toCsvRow = (arr: unknown[]): string => arr.map(toCsvCell).join(',');
+    const formatDate = (val: unknown): string => {
+      if (!val) return '';
+      if (val instanceof Date) {
+        return `${val.getFullYear()}-${pad(val.getMonth() + 1)}-${pad(val.getDate())}`;
+      }
+      if (typeof val === 'string' && val.length >= 10) {
+        return val.slice(0, 10);
+      }
+      return String(val);
+    };
+
+    const lines: string[] = [];
+
+    if (reportType === 'business_trends') {
+      const dataList = await DashboardRepository.findBusinessData(scope);
+      lines.push(toCsvRow(['Date', 'Product', 'Category', 'Quantity Sold', 'Production Cost', 'Selling Price', 'Revenue', 'Profit']));
+      for (const d of dataList) {
+        const qty = Number(d.quantity) || 0;
+        const prodCost = Number(d.production_cost) || 0;
+        const sellPrice = Number(d.selling_price) || 0;
+        const rev = qty * sellPrice;
+        const profit = rev - (qty * prodCost);
+        lines.push(toCsvRow([
+          formatDate(d.date),
+          d.product ?? '',
+          d.category ?? '',
+          qty,
+          prodCost,
+          sellPrice,
+          rev,
+          profit,
+        ]));
+      }
+    } else if (reportType === 'worker_management') {
+      const workers = await DashboardRepository.findAllWorkers(scope);
+      lines.push(toCsvRow(['Worker Name', 'Contact', 'Status', 'Total Materials Assigned', 'Total Value', 'Total Units Produced', 'Total Pay Due']));
+      for (const w of workers) {
+        const wid = w._id as ObjectId;
+        const [materials, payRecords] = await Promise.all([
+          DashboardRepository.findAssignmentsForWorker(scope, wid),
+          DashboardRepository.findPayRecordsForWorker(scope, wid),
+        ]);
+        const totalMaterials = materials.reduce((sum, m) => sum + (Number(m.quantity) || 0), 0);
+        const totalValue = materials.reduce((sum, m) => sum + (Number(m.quantity) || 0) * (Number(m.price_per_unit) || 0), 0);
+        const totalUnits = payRecords.reduce((sum, p) => sum + (Number(p.units_produced) || 0), 0);
+        const totalPay = payRecords.reduce((sum, p) => sum + (Number(p.units_produced) || 0) * (Number(p.rate_per_unit) || 0), 0);
+        lines.push(toCsvRow([
+          w.name ?? 'Unknown',
+          w.phone ?? '',
+          w.is_active ? 'Active' : 'Inactive',
+          totalMaterials,
+          totalValue,
+          totalUnits,
+          totalPay,
+        ]));
+      }
+    } else if (reportType === 'salary_payments') {
+      const rawPayments = await DashboardRepository.findAllPayRecords(scope);
+      interface ExportPayRecord {
+        worker?: ObjectId | string | null;
+        date?: unknown;
+        product_name?: string;
+        units_produced?: number;
+        rate_per_unit?: number;
+        paid?: boolean;
+      }
+      const payments = rawPayments as unknown as ExportPayRecord[];
+      lines.push(toCsvRow(['Date', 'Worker', 'Product', 'Units Produced', 'Rate per Unit', 'Amount Due', 'Payment Status']));
+      const workerIds: (string | ObjectId)[] = [];
+      for (const p of payments) {
+        if (p.worker) {
+          workerIds.push(p.worker);
+        }
+      }
+      const workers = await DashboardRepository.findWorkersByIds(scope, workerIds);
+      const workerMap = new Map<string, string>(workers.map((w) => [w._id.toString(), w.name ?? 'Unknown']));
+
+      for (const p of payments) {
+        const widStr = p.worker ? String(p.worker) : null;
+        const wName = widStr ? workerMap.get(widStr) ?? 'Unknown' : 'Unknown';
+        const units = Number(p.units_produced) || 0;
+        const rate = Number(p.rate_per_unit) || 0;
+        lines.push(toCsvRow([
+          formatDate(p.date),
+          wName,
+          p.product_name ?? '',
+          units,
+          rate,
+          units * rate,
+          p.paid ? 'Paid' : 'Pending',
+        ]));
+      }
+    } else if (reportType === 'complete_analytics') {
+      const [financials, insights] = await Promise.all([
+        DashboardRepository.findFinancialSummaries(scope),
+        DashboardRepository.findInsights(scope),
+      ]);
+      lines.push('Financial Summary');
+      lines.push(toCsvRow(['Timestamp', 'Total Revenue', 'Total Profit', 'Worker Payments', 'Active Workers']));
+      for (const fin of financials) {
+        lines.push(toCsvRow([
+          formatDate(fin.timestamp),
+          Number(fin.total_revenue) || 0,
+          Number(fin.total_profit) || 0,
+          Number(fin.worker_payments) || 0,
+          Number(fin.active_workers) || 0,
+        ]));
+      }
+      lines.push('');
+      lines.push('Business Insights');
+      lines.push(toCsvRow(['Title', 'Description', 'Created At']));
+      for (const ins of insights) {
+        const desc = String(ins.description ?? '');
+        lines.push(toCsvRow([
+          ins.title ?? '',
+          desc.length > 100 ? desc.slice(0, 100) + '...' : desc,
+          formatDate(ins.created_at),
+        ]));
+      }
+    }
+
+    const csvContent = lines.join('\n') + '\n';
+    return StorageService.save(filename, Buffer.from(csvContent, 'utf8'), 'text/csv');
   }
 }

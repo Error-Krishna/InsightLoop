@@ -57,6 +57,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Citation & Symbol Verification
+        run: node scripts/check_citations.mjs
+
       - name: Unit & Math Tests & Coverage
         run: |
           pnpm test

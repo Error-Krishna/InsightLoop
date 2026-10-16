@@ -83,13 +83,124 @@ for (const filePath of mdFiles) {
 
 console.log(`Checked ${totalChecked} path citations across ${mdFiles.length} files.`);
 
-if (errors.length > 0) {
-  console.error(`\n❌ Found ${errors.length} broken citation(s):`);
-  for (const err of errors) {
-    console.error(`  In ${err.sourceFile}: '${err.citation}' -> does not exist`);
+// --- Table Symbol Validation (django-vs-node-audit.md) ---
+const auditDocPath = path.resolve(REPO_ROOT, 'docs/migration/django-vs-node-audit.md');
+let symbolErrors = [];
+let verifiedDjangoCount = 0;
+let verifiedNodeCount = 0;
+let unverifiedCount = 0;
+
+if (fs.existsSync(auditDocPath)) {
+  console.log(`\nAuditing line-by-line Django & Node symbols in docs/migration/django-vs-node-audit.md...`);
+  const auditContent = fs.readFileSync(auditDocPath, 'utf8');
+  const auditLines = auditContent.split('\n');
+
+  function checkDjangoSymbol(raw, endpoint) {
+    const cleaned = raw.replace(/`/g, '').trim();
+    if (cleaned.includes('UNVERIFIED') || cleaned.startsWith('None') || cleaned.startsWith('N/A')) {
+      unverifiedCount++;
+      return;
+    }
+    const colonIdx = cleaned.indexOf(':');
+    if (colonIdx === -1) {
+      symbolErrors.push({ endpoint, source: cleaned, error: 'Missing ":" separator between path and symbol' });
+      return;
+    }
+    const relPath = cleaned.slice(0, colonIdx).trim();
+    const symbol = cleaned.slice(colonIdx + 1).trim();
+
+    let fullPath = path.resolve(REPO_ROOT, relPath);
+    if (!fs.existsSync(fullPath)) {
+      fullPath = path.resolve(REPO_ROOT, 'insightloop', relPath);
+    }
+    if (!fs.existsSync(fullPath)) {
+      symbolErrors.push({ endpoint, source: cleaned, error: `Django file not found: ${relPath}` });
+      return;
+    }
+
+    const code = fs.readFileSync(fullPath, 'utf8');
+    if (symbol.includes('.')) {
+      const [cls, meth] = symbol.split('.');
+      const clsRegex = new RegExp(`class\\s+${cls}(\\b|\\(|:)`);
+      const methRegex = new RegExp(`def\\s+${meth}(\\b|\\()`);
+      if (!clsRegex.test(code)) {
+        symbolErrors.push({ endpoint, source: cleaned, error: `Class ${cls} not found in ${relPath}` });
+        return;
+      }
+      if (!methRegex.test(code)) {
+        symbolErrors.push({ endpoint, source: cleaned, error: `Method ${meth} not found in ${relPath}` });
+        return;
+      }
+    } else {
+      const symRegex = new RegExp(`(class|def)\\s+${symbol}(\\b|\\(|:)`);
+      if (!symRegex.test(code)) {
+        symbolErrors.push({ endpoint, source: cleaned, error: `Symbol ${symbol} not found in ${relPath}` });
+        return;
+      }
+    }
+    verifiedDjangoCount++;
+  }
+
+  function checkNodeSymbol(raw, endpoint) {
+    const cleaned = raw.replace(/`/g, '').trim();
+    if (cleaned.includes('UNVERIFIED') || cleaned.startsWith('None') || cleaned.startsWith('N/A')) {
+      unverifiedCount++;
+      return;
+    }
+    const colonIdx = cleaned.indexOf(':');
+    if (colonIdx === -1) {
+      symbolErrors.push({ endpoint, source: cleaned, error: 'Missing ":" separator between path and symbol' });
+      return;
+    }
+    const relPath = cleaned.slice(0, colonIdx).trim();
+    const symbol = cleaned.slice(colonIdx + 1).trim();
+
+    const fullPath = path.resolve(REPO_ROOT, relPath);
+    if (!fs.existsSync(fullPath)) {
+      symbolErrors.push({ endpoint, source: cleaned, error: `Node file not found: ${relPath}` });
+      return;
+    }
+
+    const code = fs.readFileSync(fullPath, 'utf8');
+    if (!code.includes(symbol)) {
+      symbolErrors.push({ endpoint, source: cleaned, error: `Symbol ${symbol} not found in ${relPath}` });
+      return;
+    }
+    verifiedNodeCount++;
+  }
+
+  for (const line of auditLines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('|') && !trimmed.startsWith('| :---') && !trimmed.includes('Django Source Path')) {
+      const cols = trimmed.split('|').map((c) => c.trim().replace(/^`|`$/g, '')).filter(Boolean);
+      if (cols.length >= 4 && (cols[0].startsWith('/') || cols[0].startsWith('ws/'))) {
+        const endpoint = cols[0];
+        const djangoSrc = cols[2];
+        const nodeSrc = cols[3];
+        checkDjangoSymbol(djangoSrc, endpoint);
+        checkNodeSymbol(nodeSrc, endpoint);
+      }
+    }
+  }
+
+  console.log(`Audit verified: ${verifiedDjangoCount} Django symbols, ${verifiedNodeCount} Node symbols, ${unverifiedCount} UNVERIFIED markers.`);
+}
+
+if (errors.length > 0 || symbolErrors.length > 0) {
+  if (errors.length > 0) {
+    console.error(`\n❌ Found ${errors.length} broken path citation(s):`);
+    for (const err of errors) {
+      console.error(`  In ${err.sourceFile}: '${err.citation}' -> does not exist`);
+    }
+  }
+  if (symbolErrors.length > 0) {
+    console.error(`\n❌ Found ${symbolErrors.length} broken symbol citation(s):`);
+    for (const err of symbolErrors) {
+      console.error(`  Endpoint ${err.endpoint}: '${err.source}' -> ${err.error}`);
+    }
   }
   process.exit(1);
 } else {
-  console.log(`✅ All ${totalChecked} citations valid!`);
+  console.log(`✅ All ${totalChecked} path citations and ${verifiedDjangoCount + verifiedNodeCount} symbols valid!`);
   process.exit(0);
 }

@@ -13,77 +13,77 @@
 
 ### Section A: Security Hardening (All items tested, fixed, and verified with raw evidence)
 - **A1. Google Login Audience Validation & Security**: Google OAuth credential verification enforces audience check matching `GOOGLE_CLIENT_ID` (rejects mismatch with 401 "Google credential was not issued for this application."), verifies `email_verified`, requires email, enforces 10s AbortController timeout (502 on network/timeout), creates users with Django-compatible PBKDF2 sha256 hash (`pbkdf2_sha256$600000$...`) and complete company/user fields, and gracefully prevents orphan company creation on concurrent double-submits.  
-  *Evidence:* [`docs/migration/evidence/A1_google_login.txt`](file:///docs/migration/evidence/A1_google_login.txt)
+  *Evidence:* [`docs/migration/evidence/A1_google_login.txt`](docs/migration/evidence/A1_google_login.txt)
 - **A2. Production Fail-Fast Environment Validation & Bidirectional JWT**: `validateEnv()` in `env.ts` enforces non-negotiable production invariants (strictly requires non-default `JWT_SECRET`, `MONGODB_URI`, `MONGODB_DB_NAME`, `CORS_ORIGIN`, `GOOGLE_CLIENT_ID`; refuses boot if secret is a known default or DB name ends in `_test`). Drop `.min(32)` restriction and implement Django simplejwt signing key derivation (`len >= 32 ? secret : sha256(secret).hexdigest()`), verified bidirectionally in both directions against real Django.  
-  *Evidence:* [`docs/migration/evidence/A2_env_and_jwt.txt`](file:///docs/migration/evidence/A2_env_and_jwt.txt)
+  *Evidence:* [`docs/migration/evidence/A2_env_and_jwt.txt`](docs/migration/evidence/A2_env_and_jwt.txt)
 - **A3. Auth Rate Limiting & Brute-Force Protection**: Express rate limiting implemented on `/login`, `/signup`, `/google`, `/refresh`. Enforces tolerant per-IP rate limits (100 req/15 min) and targeted brute-force protection (10 failed attempts/15 min per `clientIp::email`), preserving access for office colleagues behind shared NAT. Configured `app.set('trust proxy', 1)` and CORS `exposedHeaders` (`Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`).  
-  *Evidence:* [`docs/migration/evidence/A3_rate_limiting.txt`](file:///docs/migration/evidence/A3_rate_limiting.txt)
+  *Evidence:* [`docs/migration/evidence/A3_rate_limiting.txt`](docs/migration/evidence/A3_rate_limiting.txt)
 - **A4. AI WebSocket Tenancy & Mid-Session Revocation**: `/ws/ai-assistant/` resolves user and company from live MongoDB user record rather than trusting static JWT claims. Rejects refresh tokens and deleted users with close code 4001 (matching Django). Dynamically checks user existence on incoming messages, revoking access immediately if deleted.  
-  *Evidence:* [`docs/migration/evidence/A4_ai_websocket.txt`](file:///docs/migration/evidence/A4_ai_websocket.txt)
+  *Evidence:* [`docs/migration/evidence/A4_ai_websocket.txt`](docs/migration/evidence/A4_ai_websocket.txt)
 - **A5. Error Handler Leakage & Unified Envelope**: `errorHandler.ts` unifies all error classes (`AppError`, `ZodError`, Mongo duplicate key `11000`, `JsonWebTokenError`, `TokenExpiredError`, Multer `LIMIT_FILE_SIZE`, body-parser `MALFORMED_JSON` and `PAYLOAD_TOO_LARGE`) into compatible `{ detail, code, requestId }` envelope with zero stack or internal text leakage in production.  
-  *Evidence:* [`docs/migration/evidence/A5_error_handler.txt`](file:///docs/migration/evidence/A5_error_handler.txt)
+  *Evidence:* [`docs/migration/evidence/A5_error_handler.txt`](docs/migration/evidence/A5_error_handler.txt)
 - **A6. AI Command Error Sanitization**: `processAiCommand` sanitizes internal errors into generic message `"Error processing your request: An unexpected error occurred while processing your request."` and logs internal details with requestId, preventing database connection or credential leakage.  
-  *Evidence:* [`docs/migration/evidence/A6_ai_error.txt`](file:///docs/migration/evidence/A6_ai_error.txt)
+  *Evidence:* [`docs/migration/evidence/A6_ai_error.txt`](docs/migration/evidence/A6_ai_error.txt)
 - **A7. CSV Formula Injection & Path Traversal (Additional Hardening #10 & #11)**: CSV upload blocks formula expressions (`=`, `+`, `-`, `@`) and rejects path traversal / zip-slip filenames (`../`, absolute paths), categorized as additional hardening #10 and #11.  
-  *Evidence:* [`docs/migration/evidence/A7_formula_and_traversal.txt`](file:///docs/migration/evidence/A7_formula_and_traversal.txt)
+  *Evidence:* [`docs/migration/evidence/A7_formula_and_traversal.txt`](docs/migration/evidence/A7_formula_and_traversal.txt)
 
 ### Section B: Django-vs-Node Regressions (All items verified with failing test first, fixed, and verified)
 - **B1. Rollback-Breaking Document Shape Guard**: MongoEngine strictness verified with zero extra/embedded fields written to MongoDB; dual-stack verified where Django loads, updates, and deletes every entity with zero `FieldDoesNotExist` errors.  
-  *Evidence:* [`docs/migration/evidence/B1_doc_shape.txt`](file:///docs/migration/evidence/B1_doc_shape.txt)
+  *Evidence:* [`docs/migration/evidence/B1_doc_shape.txt`](docs/migration/evidence/B1_doc_shape.txt)
 - **B2. Top Workers Tie-Break**: Tied units produced tie-broken deterministically by `worker_id` ascending, matching Django behavior exactly.  
-  *Evidence:* [`docs/migration/evidence/B2_top_workers.txt`](file:///docs/migration/evidence/B2_top_workers.txt)
+  *Evidence:* [`docs/migration/evidence/B2_top_workers.txt`](docs/migration/evidence/B2_top_workers.txt)
 - **B3. Timezone & Boundary Semantics**: Configurable `APP_TIME_ZONE` (default `'Asia/Kolkata'`) with boundary tests covering midnight IST, daylight boundary, and leap-day.  
-  *Evidence:* [`docs/migration/evidence/B3_timezone.txt`](file:///docs/migration/evidence/B3_timezone.txt)
+  *Evidence:* [`docs/migration/evidence/B3_timezone.txt`](docs/migration/evidence/B3_timezone.txt)
 - **B4. Timestamp Precision & ISO 8601 Format**: ISO 8601 timestamps formatted with exact 6 microsecond digits (`YYYY-MM-DDTHH:mm:ss.ssssss`), matching Django serialization.  
-  *Evidence:* [`docs/migration/evidence/B4_timestamp.txt`](file:///docs/migration/evidence/B4_timestamp.txt)
+  *Evidence:* [`docs/migration/evidence/B4_timestamp.txt`](docs/migration/evidence/B4_timestamp.txt)
 - **B5. Bills Stock Reconciliation**: Atomic conditional decrement (`$gte`) on bill creation; concurrent double-bill rejects stock overdrafts with 400; reconciliation handles missing/deleted items gracefully.  
-  *Evidence:* [`docs/migration/evidence/B5_bills_stock.txt`](file:///docs/migration/evidence/B5_bills_stock.txt)
+  *Evidence:* [`docs/migration/evidence/B5_bills_stock.txt`](docs/migration/evidence/B5_bills_stock.txt)
 - **B6. Counter Drift & Atomic Numbering**: Fallback logic resets counters when documents are directly inserted; concurrency resilience verified under heavy parallel insertion.  
-  *Evidence:* [`docs/migration/evidence/B6_counter_drift.txt`](file:///docs/migration/evidence/B6_counter_drift.txt)
+  *Evidence:* [`docs/migration/evidence/B6_counter_drift.txt`](docs/migration/evidence/B6_counter_drift.txt)
 - **B7. CSV Upload Rules**: Enforces max file size (10MB), UTF-8 BOM stripping, header validation, empty file rejection, and sanitization.  
-  *Evidence:* [`docs/migration/evidence/B7_upload_rules.txt`](file:///docs/migration/evidence/B7_upload_rules.txt)
+  *Evidence:* [`docs/migration/evidence/B7_upload_rules.txt`](docs/migration/evidence/B7_upload_rules.txt)
 - **B8. WebSocket Message Envelopes**: Dashboard and AI consumer frames match Django channels payloads byte-for-byte; verified with live integration tests.  
-  *Evidence:* [`docs/migration/evidence/B8_ws_contract.txt`](file:///docs/migration/evidence/B8_ws_contract.txt)
+  *Evidence:* [`docs/migration/evidence/B8_ws_contract.txt`](docs/migration/evidence/B8_ws_contract.txt)
 - **B10. Signup / Profile Response Envelope**: Returns identical user and company envelope matching Django authentication endpoints.  
-  *Evidence:* [`docs/migration/evidence/B10_signup.txt`](file:///docs/migration/evidence/B10_signup.txt)
+  *Evidence:* [`docs/migration/evidence/B10_signup.txt`](docs/migration/evidence/B10_signup.txt)
 
 ### Section C: Phase 5.6 Carry-Over Hardening (All 8 items verified)
 - **C1. Concurrency (100 Parallel Requests) & Report Honesty**: Upgraded concurrency suite to 100 parallel bill creates and 100 parallel atomic stock decrements with 0 collisions. Corrected report claims.  
-  *Evidence:* [`docs/migration/evidence/C1_concurrency_100.txt`](file:///docs/migration/evidence/C1_concurrency_100.txt)
+  *Evidence:* [`docs/migration/evidence/C1_concurrency_100.txt`](docs/migration/evidence/C1_concurrency_100.txt)
 - **C2. Coverage & Stryker Mutation Testing**: 91.14% lines and 95.91% functions coverage. Stryker mutation testing achieved **85.89%** mutation score (140 mutants killed) on shared math and business logic.  
-  *Evidence:* [`docs/migration/evidence/C2_coverage_mutation.txt`](file:///docs/migration/evidence/C2_coverage_mutation.txt)
+  *Evidence:* [`docs/migration/evidence/C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt)
 - **C3. Parity Script & Real Load Benchmarks**: Dual-stack bidirectional roundtrip test passing; 5,000-request load benchmark at C=10 and C=50 executed with Node outperforming Django across all 4 endpoints (up to 14,992 req/sec).  
-  *Evidence:* [`docs/migration/evidence/C3_parity_django_vs_node.txt`](file:///docs/migration/evidence/C3_parity_django_vs_node.txt) and [`docs/migration/evidence/C3_load_benchmark.txt`](file:///docs/migration/evidence/C3_load_benchmark.txt)
+  *Evidence:* [`docs/migration/evidence/C3_parity_django_vs_node.txt`](docs/migration/evidence/C3_parity_django_vs_node.txt) and [`docs/migration/evidence/C3_load_benchmark.txt`](docs/migration/evidence/C3_load_benchmark.txt)
 - **C4. Programmatic Route Table Tenancy Sweep**: Extracted all 78 registered routes from Express router; executed programmatic tenant isolation sweep proving 100% tenant containment.  
-  *Evidence:* [`docs/migration/evidence/C4_tenancy_sweep.txt`](file:///docs/migration/evidence/C4_tenancy_sweep.txt)
+  *Evidence:* [`docs/migration/evidence/C4_tenancy_sweep.txt`](docs/migration/evidence/C4_tenancy_sweep.txt)
 - **C5. Comprehensive Auth Permutation Matrix**: 7 token permutation classes tested against protected routes (missing, garbage, expired, wrong secret, wrong aud, refresh token as access, deleted user) - all properly rejected.  
-  *Evidence:* [`docs/migration/evidence/C5_auth_matrix.txt`](file:///docs/migration/evidence/C5_auth_matrix.txt)
+  *Evidence:* [`docs/migration/evidence/C5_auth_matrix.txt`](docs/migration/evidence/C5_auth_matrix.txt)
 - **C6. Contract Suite Assertions (69/69 Fixtures)**: All 69 golden fixtures executed and passing on both Django (port 8000) and Node API (port 4000); generated contract coverage map.  
-  *Evidence:* [`docs/migration/evidence/C6_contract_suite.txt`](file:///docs/migration/evidence/C6_contract_suite.txt) and [`docs/migration/contract-coverage.md`](file:///docs/migration/contract-coverage.md)
+  *Evidence:* [`docs/migration/evidence/C6_contract_suite.txt`](docs/migration/evidence/C6_contract_suite.txt) and [`docs/migration/contract-coverage.md`](docs/migration/contract-coverage.md)
 - **C7. Docker Multi-Stage & Graceful Shutdown**: Multi-stage non-root containers with HEALTHCHECK; verified automated graceful shutdown (HTTP drain, WS 1001 "Going Away", Mongo pool drain, Redis close, exit 0).  
-  *Evidence:* [`docs/migration/evidence/C7_docker.txt`](file:///docs/migration/evidence/C7_docker.txt)
+  *Evidence:* [`docs/migration/evidence/C7_docker.txt`](docs/migration/evidence/C7_docker.txt)
 - **C8. Audit Hygiene & Citation Sweep**: Created `scripts/check_citations.mjs`; audited all markdown files (200/200 citations physically valid, 0 broken links).  
-  *Evidence:* [`docs/migration/evidence/hooks.txt`](file:///docs/migration/evidence/hooks.txt) and [`scripts/check_citations.mjs`](file:///scripts/check_citations.mjs)
+  *Evidence:* [`docs/migration/evidence/C8_citations.txt`](docs/migration/evidence/C8_citations.txt) and [`scripts/check_citations.mjs`](scripts/check_citations.mjs)
 
 ### Section D: Frontend Modernization & Verification (All items verified)
 - **D1. Frontend Hardening & Ephemeral Storage Runbook**: `apps/web/src/lib/api.ts` handles 401 redirect to `/login` with `clearSession()`. `apps/web/src/lib/ws.ts` exponential backoff (1s, 2s, 4s, ... max 30s) + offline message queuing + automatic reconnection + active socket deduplication. `docs/runbooks/env.md` updated with ephemeral disk caveats on Render/Vercel and recommendations.  
-  *Evidence:* [`docs/runbooks/env.md`](file:///docs/runbooks/env.md), [`apps/web/src/lib/api.test.ts`](file:///apps/web/src/lib/api.test.ts), [`apps/web/src/lib/ws.test.ts`](file:///apps/web/src/lib/ws.test.ts)
+  *Evidence:* [`docs/runbooks/env.md`](docs/runbooks/env.md), [`apps/web/src/lib/api.test.ts`](apps/web/src/lib/api.test.ts), [`apps/web/src/lib/ws.test.ts`](apps/web/src/lib/ws.test.ts)
 - **D2. RTL + MSW Page Integration Tests**: `apps/web/test/pages.test.tsx` testing 6 major feature pages (`DashboardPage`, `KachaBillPage`, `PakkaBillPage`, `WorkersPage`, `InventoryItemsPage`, `UploadPage`). 11 tests covering populated and empty states, calculation flows, GST rates, tab switching, and 500 error toast handling. Total 22 web tests passing across 5 test suites.  
-  *Evidence:* [`docs/migration/evidence/D2_rtl_msw.txt`](file:///docs/migration/evidence/D2_rtl_msw.txt)
+  *Evidence:* [`docs/migration/evidence/D2_rtl_msw.txt`](docs/migration/evidence/D2_rtl_msw.txt)
 - **D3. Playwright Dual-Stack E2E Suite**: Parameterized E2E suite (`E2E_BACKEND=django|node`) executing 5 critical enterprise workflows: Flow 1 (Login → Dashboard), Flow 2 (Create Kacha Bill → View in list), Flow 3 (Worker CRUD + Assign Material + Return Batch + Partial Pay), Flow 4 (Inventory Items CRUD), Flow 5 (Upload CSV / Manual Entry & Dashboard shift). 100% passing (5/5 tests) on BOTH Node and Django.  
-  *Evidence:* [`docs/migration/evidence/D3_e2e.txt`](file:///docs/migration/evidence/D3_e2e.txt)
+  *Evidence:* [`docs/migration/evidence/D3_e2e.txt`](docs/migration/evidence/D3_e2e.txt)
 - **D4. Dashboard Render Numeric Parity**: Verified exact numeric parity across all dashboard endpoints (`/dashboard/summary`, `/dashboard/rev-exp`, `/dashboard/profit-trends`, `/dashboard/workers`, `/dashboard/top-workers`) between Django and Node. 0 mismatches across all revenue, expense, profit, and worker metrics.  
-  *Evidence:* [`docs/migration/evidence/D4_dashboard_parity.txt`](file:///docs/migration/evidence/D4_dashboard_parity.txt) and [`scripts/verify_dashboard_parity.mjs`](file:///scripts/verify_dashboard_parity.mjs)
+  *Evidence:* [`docs/migration/evidence/D4_dashboard_parity.txt`](docs/migration/evidence/D4_dashboard_parity.txt) and [`scripts/verify_dashboard_parity.mjs`](scripts/verify_dashboard_parity.mjs)
 
 ### Section E: Remaining Migration Work & Operational Readiness (All items verified)
 - **E1. Ephemeral Storage Cleanup & Production Blob Runbook**: `scripts/verify_storage_cleanup.mjs` scans and prunes stale upload artifacts (> 1 hr TTL) and monitors container disk thresholds (< 500MB). `docs/runbooks/storage.md` documents runtime storage architecture, in-memory CSV parsing via `multer.memoryStorage()`, ephemeral container disk guards, and S3 / GridFS production migration paths.  
-  *Evidence:* [`docs/migration/evidence/E1_storage.txt`](file:///docs/migration/evidence/E1_storage.txt), [`scripts/verify_storage_cleanup.mjs`](file:///scripts/verify_storage_cleanup.mjs), [`docs/runbooks/storage.md`](file:///docs/runbooks/storage.md)
+  *Evidence:* [`docs/migration/evidence/E1_storage.txt`](docs/migration/evidence/E1_storage.txt), [`scripts/verify_storage_cleanup.mjs`](scripts/verify_storage_cleanup.mjs), [`docs/runbooks/storage.md`](docs/runbooks/storage.md)
 - **E2. Observability & Metrics Endpoints**: Implemented `/health/detailed` and `/metrics` (Prometheus exposition format). Exposes event loop lag (sub-millisecond resolution), V8 memory statistics (`rss_bytes`, `heap_used_bytes`, `heap_total_bytes`), process uptime, MongoDB ping latency & pool stats (`maxPoolSize`, `minPoolSize`), and Redis status. Returns 503 degraded when MongoDB connection drops. `docs/runbooks/observability.md` documents observability architecture, endpoint specifications, and legacy Django vs modern Node observability delta analysis.  
-  *Evidence:* [`docs/migration/evidence/E2_observability.txt`](file:///docs/migration/evidence/E2_observability.txt), [`apps/api/test/e2_observability.test.ts`](file:///apps/api/test/e2_observability.test.ts), [`docs/runbooks/observability.md`](file:///docs/runbooks/observability.md)
+  *Evidence:* [`docs/migration/evidence/E2_observability.txt`](docs/migration/evidence/E2_observability.txt), [`apps/api/test/e2_observability.test.ts`](apps/api/test/e2_observability.test.ts), [`docs/runbooks/observability.md`](docs/runbooks/observability.md)
 - **E3. Render/Vercel Blueprint & Secret Rotation Runbooks**: Created `render-blueprint.yaml` matching Phase 5.7 real build/start commands (`pnpm install --frozen-lockfile && pnpm --filter @insightloop/shared build && pnpm --filter @insightloop/api build`, `node apps/api/dist/server.js`), health check paths, and production environment variables. Added optional static asset SPA serving from Node API via `SERVE_STATIC=true`. Created `docs/runbooks/secret_rotation.md` documenting zero-downtime rotation for `JWT_SECRET` (15-min token drain window), MongoDB Atlas credentials, and Google OAuth credentials. Created `docs/runbooks/canary_rollback.md` specifying exact baseline verification (`git diff --stat pre-mern-migration-2026-10-15..HEAD -- insightloop/`), canary staging, and emergency circuit breakers.  
-  *Evidence:* [`render-blueprint.yaml`](file:///render-blueprint.yaml), [`docs/runbooks/secret_rotation.md`](file:///docs/runbooks/secret_rotation.md), [`docs/runbooks/canary_rollback.md`](file:///docs/runbooks/canary_rollback.md)
+  *Evidence:* [`render-blueprint.yaml`](render-blueprint.yaml), [`docs/runbooks/secret_rotation.md`](docs/runbooks/secret_rotation.md), [`docs/runbooks/canary_rollback.md`](docs/runbooks/canary_rollback.md)
 - **E4. Phase 8 Django Decommissioning Plan (Written Only — Execution Strictly Locked)**: Created `docs/migration/phase8_django_decommissioning_plan.md` defining exact inventory of legacy Django files to delete, Docker compose cleanup, Python virtualenv removal, DNS/routing switchover, and the mandatory 14-day post-cutover rollback observation window.  
-  *Evidence:* [`docs/migration/phase8_django_decommissioning_plan.md`](file:///docs/migration/phase8_django_decommissioning_plan.md)
+  *Evidence:* [`docs/migration/phase8_django_decommissioning_plan.md`](docs/migration/phase8_django_decommissioning_plan.md)
 
 ---
 
@@ -154,24 +154,24 @@
 
 ## 4. Re-Baselined Honest Test Scoreboard
 
-All numbers strictly derived from raw command outputs in [`docs/migration/evidence/`](file:///docs/migration/evidence/).
+All numbers strictly derived from raw command outputs in [`docs/migration/evidence/`](docs/migration/evidence/).
 
 | Suite Name | Test Files | Real Test / Case Count | Status | Command | Evidence File |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Shared Math Vectors** | `packages/shared/test/math.test.ts` (1 file) | 3 tests (100,036 vector cases) | PASS (3/3) | `pnpm --filter @insightloop/shared test` | [`shared_test.txt`](file:///docs/migration/evidence/shared_test.txt) |
-| **API Automated Suite** | `apps/api/test/*.test.ts` (22 files) | 64 tests (0 failed, 0 skipped) | PASS (64/64) | `pnpm --filter @insightloop/api test` | [`api_test.txt`](file:///docs/migration/evidence/api_test.txt) |
-| **API Code Coverage** | 41 source files (`apps/api/src/`) | 4,138 lines | Threshold Passed | `pnpm --filter @insightloop/api test:coverage` | [`coverage.txt`](file:///docs/migration/evidence/coverage.txt) |
-| **Golden Master Contracts** | `scripts/run_contract_suite.mjs` (66 fixtures) | 66 endpoints | PASS (66/66) | `node scripts/run_contract_suite.mjs --assert` | [`contract_suite_node.txt`](file:///docs/migration/evidence/contract_suite_node.txt) |
-| **Dual-Stack Interop** | `scripts/test_dual_stack.mjs` (1 script) | 3 scenarios (12 steps) | PASS (3/3) | `node scripts/test_dual_stack.mjs` | [`dual_stack.txt`](file:///docs/migration/evidence/dual_stack.txt) |
-| **Tenancy Security Sweep** | `scripts/test_tenancy_security.mjs` (1 script) | 12 cross-tenant route probes | PASS (12/12) | `node scripts/test_tenancy_security.mjs` | [`tenancy_sweep.txt`](file:///docs/migration/evidence/tenancy_sweep.txt) |
-| **Snapshot Parity & Load** | `scripts/run_snapshot_parity.mjs` (1 script) | 5,000 concurrent requests | PASS (3,962.5 req/s) | `node scripts/run_snapshot_parity.mjs` | [`snapshot_parity.txt`](file:///docs/migration/evidence/snapshot_parity.txt) |
-| **Web Component Tests** | `apps/web/test/*.test.ts{x}` (2 files) | 5 tests (RTL + MSW) | PASS (5/5) | `pnpm --filter @insightloop/web test` | [`web_test.txt`](file:///docs/migration/evidence/web_test.txt) |
-| **Playwright E2E Suite** | `apps/web/e2e/e2e_full_flow.spec.ts` (1 file) | 1 full SaaS workflow | PASS (1/1) | `pnpm --filter @insightloop/web test:e2e` | [`e2e.txt`](file:///docs/migration/evidence/e2e.txt) |
-| **Monorepo Linter** | ESLint v9 Flat Config (4 packages) | All workspaces | PASS (0 err, 0 warn) | `pnpm lint --force` | [`lint.txt`](file:///docs/migration/evidence/lint.txt) |
-| **TypeScript Typecheck** | Strict `tsc --noEmit` (4 packages) | All workspaces | PASS (0 errors) | `pnpm typecheck --force` | [`typecheck.txt`](file:///docs/migration/evidence/typecheck.txt) |
-| **Husky Hook Blocks** | `.husky/` (3 hooks) | Pre-commit, commitlint, pre-push | PASS (Verified blocks) | Simulated failure tests | [`hooks.txt`](file:///docs/migration/evidence/hooks.txt) |
-| **Docker Multi-Stage Build** | `apps/api/Dockerfile`, `apps/web/Dockerfile` | 2 production images | PASS (Clean builds) | `docker build` | [`docker_build.txt`](file:///docs/migration/evidence/docker_build.txt) |
-| **Django Safety Diff** | `insightloop/` (whole backend) | Byte-for-byte comparison | PASS (0 diffs) | `git diff --stat pre-mern-migration-2026-10-15..HEAD -- insightloop/` | [`django_diff.txt`](file:///docs/migration/evidence/django_diff.txt) |
+| **Shared Math Vectors** | `packages/shared/test/math.test.ts` (1 file) | 3 tests (100,036 vector cases) | PASS (3/3) | `pnpm --filter @insightloop/shared test` | [`shared_test.txt`](docs/migration/evidence/shared_test.txt) |
+| **API Automated Suite** | `apps/api/test/*.test.ts` (22 files) | 64 tests (0 failed, 0 skipped) | PASS (64/64) | `pnpm --filter @insightloop/api test` | [`api_test.txt`](docs/migration/evidence/api_test.txt) |
+| **API Code Coverage** | 41 source files (`apps/api/src/`) | 4,138 lines | Threshold Passed | `pnpm --filter @insightloop/api test:coverage` | [`coverage.txt`](docs/migration/evidence/coverage.txt) |
+| **Golden Master Contracts** | `scripts/run_contract_suite.mjs` (66 fixtures) | 66 endpoints | PASS (66/66) | `node scripts/run_contract_suite.mjs --assert` | [`contract_suite_node.txt`](docs/migration/evidence/contract_suite_node.txt) |
+| **Dual-Stack Interop** | `scripts/test_dual_stack.mjs` (1 script) | 3 scenarios (12 steps) | PASS (3/3) | `node scripts/test_dual_stack.mjs` | [`dual_stack.txt`](docs/migration/evidence/dual_stack.txt) |
+| **Tenancy Security Sweep** | `scripts/test_tenancy_security.mjs` (1 script) | 12 cross-tenant route probes | PASS (12/12) | `node scripts/test_tenancy_security.mjs` | [`tenancy_sweep.txt`](docs/migration/evidence/tenancy_sweep.txt) |
+| **Snapshot Parity & Load** | `scripts/run_snapshot_parity.mjs` (1 script) | 5,000 concurrent requests | PASS (3,962.5 req/s) | `node scripts/run_snapshot_parity.mjs` | [`snapshot_parity.txt`](docs/migration/evidence/snapshot_parity.txt) |
+| **Web Component Tests** | `apps/web/test/*.test.ts{x}` (2 files) | 5 tests (RTL + MSW) | PASS (5/5) | `pnpm --filter @insightloop/web test` | [`web_test.txt`](docs/migration/evidence/web_test.txt) |
+| **Playwright E2E Suite** | `apps/web/e2e/e2e_full_flow.spec.ts` (1 file) | 1 full SaaS workflow | PASS (1/1) | `pnpm --filter @insightloop/web test:e2e` | [`e2e.txt`](docs/migration/evidence/e2e.txt) |
+| **Monorepo Linter** | ESLint v9 Flat Config (4 packages) | All workspaces | PASS (0 err, 0 warn) | `pnpm lint --force` | [`lint.txt`](docs/migration/evidence/lint.txt) |
+| **TypeScript Typecheck** | Strict `tsc --noEmit` (4 packages) | All workspaces | PASS (0 errors) | `pnpm typecheck --force` | [`typecheck.txt`](docs/migration/evidence/typecheck.txt) |
+| **Husky Hook Blocks** | `.husky/` (3 hooks) | Pre-commit, commitlint, pre-push | PASS (Verified blocks) | Simulated failure tests | [`hooks.txt`](docs/migration/evidence/C8_citations.txt) |
+| **Docker Multi-Stage Build** | `apps/api/Dockerfile`, `apps/web/Dockerfile` | 2 production images | PASS (Clean builds) | `docker build` | [`docker_build.txt`](docs/migration/evidence/docker_build.txt) |
+| **Django Safety Diff** | `insightloop/` (whole backend) | Byte-for-byte comparison | PASS (0 diffs) | `git diff --stat pre-mern-migration-2026-10-15..HEAD -- insightloop/` | [`django_diff.txt`](docs/migration/evidence/django_diff.txt) |
 
 ### Coverage Detailed Breakdown
 - **Statements**: 85.45% (3,536 / 4,138)
