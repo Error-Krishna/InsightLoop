@@ -15,6 +15,7 @@ describe("DashboardLayout - Lifecycle States", () => {
       id: "u-1",
       email: "alice@company-a.com",
       name: "Alice Admin",
+      company_id: "c-1",
       company_name: "Acme Textiles",
     });
 
@@ -56,6 +57,8 @@ describe("DashboardLayout - Lifecycle States", () => {
       id: "u-1",
       email: "alice@company-a.com",
       name: "Alice Admin",
+      company_id: "c-1",
+      company_name: "Acme Textiles",
     });
 
     render(
@@ -79,7 +82,10 @@ describe("DashboardLayout - Lifecycle States", () => {
       id: "u-1",
       email: "alice@company-a.com",
       name: "Alice Admin",
+      company_id: "c-1",
+      company_name: "Acme Textiles",
     });
+
 
     render(
       <MemoryRouter initialEntries={["/bills/kacha"]}>
