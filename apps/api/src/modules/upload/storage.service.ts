@@ -1,7 +1,6 @@
 import { Readable } from 'node:stream';
 import path from 'node:path';
-import { GridFSBucket } from 'mongodb';
-import { getDb } from '../../db/mongo.js';
+import { StorageRepository } from './storage.repository.js';
 import { BadRequestError } from '../../utils/errors.js';
 import { env } from '../../config/env.js';
 
@@ -62,14 +61,9 @@ export class GridFSStorageDriver implements StorageDriver {
     this.bucketName = bucketName;
   }
 
-  private getBucket(): GridFSBucket {
-    const db = getDb();
-    return new GridFSBucket(db, { bucketName: this.bucketName });
-  }
-
   async save(filePath: string, buffer: Buffer, mimeType?: string): Promise<string> {
     validateStoragePath(filePath);
-    const bucket = this.getBucket();
+    const bucket = StorageRepository.getBucket(this.bucketName);
 
     // Remove existing file with the same filename to ensure idempotent overwrite
     await this.delete(filePath);
@@ -99,14 +93,12 @@ export class GridFSStorageDriver implements StorageDriver {
 
   async read(filePath: string): Promise<Buffer | null> {
     validateStoragePath(filePath);
-    const db = getDb();
-    const filesColl = db.collection(`${this.bucketName}.files`);
-    const fileDoc = await filesColl.findOne({ filename: filePath });
+    const fileDoc = await StorageRepository.findFile(this.bucketName, filePath);
     if (!fileDoc) {
       return null;
     }
 
-    const bucket = this.getBucket();
+    const bucket = StorageRepository.getBucket(this.bucketName);
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
       const downloadStream = bucket.openDownloadStream(fileDoc._id);
@@ -127,26 +119,21 @@ export class GridFSStorageDriver implements StorageDriver {
 
   async delete(filePath: string): Promise<boolean> {
     validateStoragePath(filePath);
-    const db = getDb();
-    const filesColl = db.collection(`${this.bucketName}.files`);
-    const files = await filesColl.find({ filename: filePath }).toArray();
+    const files = await StorageRepository.findFiles(this.bucketName, filePath);
 
     if (files.length === 0) {
       return false;
     }
 
-    const bucket = this.getBucket();
     for (const file of files) {
-      await bucket.delete(file._id);
+      await StorageRepository.deleteFileById(this.bucketName, file._id);
     }
     return true;
   }
 
   async exists(filePath: string): Promise<boolean> {
     validateStoragePath(filePath);
-    const db = getDb();
-    const filesColl = db.collection(`${this.bucketName}.files`);
-    const count = await filesColl.countDocuments({ filename: filePath });
+    const count = await StorageRepository.countFiles(this.bucketName, filePath);
     return count > 0;
   }
 }

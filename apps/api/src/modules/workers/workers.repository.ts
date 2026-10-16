@@ -1,6 +1,7 @@
 import { ObjectId, type Document, type Filter } from 'mongodb';
 import { getCollection } from '../../db/mongo.js';
 import type { TenantScope } from '../../types/tenant.js';
+import { InventoryRepository } from '../inventory/inventory.repository.js';
 
 export interface WorkerDoc extends Document {
   _id: ObjectId;
@@ -219,13 +220,14 @@ export class WorkersRepository {
         { $inc: { quantity } }
       );
     } else {
+      const sku = await InventoryRepository.getNextSku(scope);
       await itemsCol.insertOne({
         company_id: scope.companyId,
         type: 'finished',
         name,
         unit: 'pcs',
         quantity,
-        sku: '',
+        sku,
         selling_price: 0,
         cost_price: 0,
         created_at: new Date(),

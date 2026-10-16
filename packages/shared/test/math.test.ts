@@ -7,6 +7,7 @@ import {
   calculateBillDerived,
   calculateBillTotals,
   calculateSuggestedProfit,
+  floatToExactDecimal,
   roundCurrency,
   roundPy,
 } from '../src/math.js';
@@ -140,6 +141,18 @@ describe('Mathematical Compatibility Engine', () => {
       { status: 'in_progress' },
     ]);
     expect(inProd2.order_status).toBe('in_production');
+
+    // Explicitly assert on default parameters to kill mutation
+    const bareDefaults = calculateBillDerived(1000);
+    expect(bareDefaults.amount_received).toBe(0);
+    expect(bareDefaults.balance_due).toBe(1000);
+    expect(bareDefaults.order_status).toBe('draft');
+
+    const pakkaPaidWithDefaults = calculateBillDerived(1000, [{ amount: 1000 }], undefined, 'pakka');
+    expect(pakkaPaidWithDefaults.order_status).toBe('confirmed');
+
+    const pakkaNoAssignments = calculateBillDerived(1000, [], false, 'pakka');
+    expect(pakkaNoAssignments.order_status).toBe('confirmed');
   });
 
   it('covers calculateBillTotals fallback fields and calculateSuggestedProfit boundaries', () => {
@@ -173,5 +186,63 @@ describe('Mathematical Compatibility Engine', () => {
     expect(overCollected.payment_fraction).toBe(1.0);
     expect(overCollected.cost_basis_scaled).toBe(50);
     expect(overCollected.suggested_profit).toBe(150);
+  });
+
+  it('kills Stryker mutants in floatToExactDecimal, roundPy, and calcPercentageChange', () => {
+    // 1. NaN and Infinities (math.ts line 56)
+    expect(Number.isNaN(roundPy(NaN))).toBe(true);
+    expect(roundPy(Infinity)).toBe(Infinity);
+    expect(roundPy(-Infinity)).toBe(-Infinity);
+    expect(floatToExactDecimal(Infinity).toString()).toBe('Infinity');
+    expect(floatToExactDecimal(-Infinity).toString()).toBe('-Infinity');
+    expect(floatToExactDecimal(NaN).isNaN()).toBe(true);
+    expect(floatToExactDecimal(0).toString()).toBe('0');
+
+    // 2. Subnormal floats where rawExponent === 0n (math.ts line 36)
+    expect(roundPy(Number.MIN_VALUE, 324)).toBe(Number.MIN_VALUE);
+    expect(roundPy(5e-324, 324)).toBe(5e-324);
+    expect(roundPy(-Number.MIN_VALUE, 324)).toBe(-Number.MIN_VALUE);
+    expect(roundPy(1e-310, 310)).toBe(1e-310);
+    expect(roundPy(0.0)).toBe(0.0);
+    expect(roundPy(-0.0)).toBe(0);
+
+    // 3. Positive exponent scaling (math.ts line 43)
+    const largeNumber = 1234567890123456.0;
+    expect(roundPy(largeNumber, 0)).toBe(1234567890123456.0);
+    expect(roundPy(1e20, 0)).toBe(1e20);
+    expect(roundPy(2 ** 55, 0)).toBe(2 ** 55);
+    expect(roundPy(1.5e50, 0)).toBe(1.5e50);
+    expect(roundPy(-1.5e50, 0)).toBe(-1.5e50);
+
+    // 4. Negative exponent scaling (math.ts line 45)
+    expect(roundPy(0.125, 2)).toBe(0.12);
+    expect(roundPy(0.375, 2)).toBe(0.38);
+    expect(roundPy(1e-15, 15)).toBe(1e-15);
+    expect(roundPy(-0.125, 2)).toBe(-0.12);
+
+    // 5. Negative n (rounding to tens/hundreds)
+    expect(roundPy(125, -1)).toBe(120);
+    expect(roundPy(135, -1)).toBe(140);
+    expect(roundPy(1250, -2)).toBe(1200);
+    expect(roundPy(1350, -2)).toBe(1400);
+
+    // 6. roundCurrency alias
+    expect(roundCurrency(10.555)).toBe(10.55);
+    expect(roundCurrency(10.565)).toBe(10.56);
+    expect(roundCurrency(10.554)).toBe(10.55);
+
+    // 7. calcPercentageChange boundary conditions & exact mutants (line 250)
+    // When previous === 0 and current > 0 -> strictly 100.0
+    expect(calcPercentageChange(1, 0)).toBe(100.0);
+    expect(calcPercentageChange(0.0001, 0)).toBe(100.0);
+    // When previous === 0 and current < 0 -> strictly -100.0
+    expect(calcPercentageChange(-1, 0)).toBe(-100.0);
+    expect(calcPercentageChange(-0.0001, 0)).toBe(-100.0);
+    // When previous === 0 and current === 0 -> strictly 0.0
+    expect(calcPercentageChange(0, 0)).toBe(0.0);
+
+    // Standard cases with negative numbers
+    expect(calcPercentageChange(-50, -100)).toBe(50.0);
+    expect(calcPercentageChange(-150, -100)).toBe(-50.0);
   });
 });

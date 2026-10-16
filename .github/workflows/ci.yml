@@ -57,8 +57,11 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Unit & Math Tests
-        run: pnpm test
+      - name: Unit & Math Tests & Coverage
+        run: |
+          pnpm test
+          pnpm --filter @insightloop/api run test:coverage
+          node scripts/check_branch_coverage.mjs
 
       - name: Build Monorepo
         run: pnpm build

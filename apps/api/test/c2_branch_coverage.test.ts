@@ -610,5 +610,140 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
       await expect(BillsService.deleteBill(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
       await BillsService.deleteBill(scope, pakkaBill.id);
     });
+
+    it('covers exhaustive edge branches in bills: misc costs, ready to deliver, shipments, and assignments', async () => {
+      const bill = await BillsService.createBill(scope, 'pakka', {
+        products: [{ name: 'Jacket', quantity: 10, rate: 1000 }],
+        buyer: { name: 'VIP Buyer', gst_number: '07AAAAA0000A1Z5' },
+      });
+
+      // 1. Misc Cost branches
+      await expect(BillsService.addMiscCost(scope, 'invalid', { amount: 10 })).rejects.toThrow(ValidationError);
+      await expect(BillsService.addMiscCost(scope, bill.id, { amount: 0 })).rejects.toThrow(ValidationError);
+      await expect(BillsService.addMiscCost(scope, bill.id, { amount: -5 })).rejects.toThrow(ValidationError);
+      await expect(BillsService.addMiscCost(scope, new ObjectId().toString(), { amount: 100 })).rejects.toThrow(NotFoundError);
+
+      const withCost1 = await BillsService.addMiscCost(scope, bill.id, { amount: 200, notes: 'Packing cost', date: '2026-10-15' });
+      expect(withCost1.misc_costs?.length).toBe(1);
+      const withCost2 = await BillsService.addMiscCost(scope, bill.id, { amount: 50 }); // omitted notes and date
+      expect(withCost2.misc_costs?.length).toBe(2);
+
+      // 2. Ready to Deliver branches
+      const fgItem = await InventoryService.createItem(scope, 'finished_good', { name: 'Jacket Stock', quantity: 20 });
+      await expect(BillsService.addReadyToDeliver(scope, 'invalid', { quantity: 5, inventory_item_id: fgItem.id })).rejects.toThrow(ValidationError);
+      await expect(BillsService.addReadyToDeliver(scope, new ObjectId().toString(), { quantity: 5, inventory_item_id: fgItem.id })).rejects.toThrow(NotFoundError);
+      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: 5, inventory_item_id: 'invalid-id' })).rejects.toThrow(ValidationError);
+      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: 5, inventory_item_id: new ObjectId().toString() })).rejects.toThrow(NotFoundError);
+      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: 0, inventory_item_id: fgItem.id })).rejects.toThrow(ValidationError);
+      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: -1, inventory_item_id: fgItem.id })).rejects.toThrow(ValidationError);
+
+      const withDelivery = await BillsService.addReadyToDeliver(scope, bill.id, {
+        inventory_item_id: fgItem.id,
+        quantity: 5,
+        notes: 'First batch ready',
+        date: '2026-10-15',
+      });
+      expect(withDelivery.ready_to_deliver?.length).toBe(1);
+
+      // Add another without notes/date
+      await BillsService.addReadyToDeliver(scope, bill.id, {
+        inventory_item_id: fgItem.id,
+        quantity: 3,
+      });
+
+      // 3. Confirm Shipment branches
+      await expect(BillsService.confirmShipment(scope, 'invalid')).rejects.toThrow(ValidationError);
+      await expect(BillsService.confirmShipment(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
+
+      const shipped = await BillsService.confirmShipment(scope, bill.id);
+      expect(shipped.shipment_confirmed).toBe(true);
+
+      // Cannot add ready to deliver once shipped
+      await expect(
+        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: fgItem.id, quantity: 1 })
+      ).rejects.toThrow('This order has already been marked shipped.');
+
+      // 4. Assignments linked to bill and getBillAssignments
+      const worker = await WorkersService.createWorker(scope, { name: 'Master Tailor' });
+      const assignment = await WorkersService.createMaterial(scope, worker.id, {
+        material_name: 'Fabric',
+        quantity: 10,
+        price_per_unit: 50,
+      });
+
+      // Add batches
+      await WorkersService.addBatch(scope, assignment.id, { quantity: 4, date: '2026-10-14' });
+      await WorkersService.addBatch(scope, assignment.id, { quantity: 6 });
+
+      // Complete assignment
+      await WorkersService.completeAssignment(scope, assignment.id);
+
+      // Call getBillAssignments
+      await expect(BillsService.getBillAssignments(scope, 'invalid')).rejects.toThrow(ValidationError);
+      await expect(BillsService.getBillAssignments(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
+
+      const billAssignments = await BillsService.getBillAssignments(scope, bill.id);
+      expect(Array.isArray(billAssignments)).toBe(true);
+
+      // 5. Query bills with filters
+      const filter1 = await BillsService.listBills(scope, 'pakka');
+      expect(filter1.length).toBeGreaterThanOrEqual(1);
+      const filter2 = await BillsService.listBills(scope, 'kacha');
+      expect(Array.isArray(filter2)).toBe(true);
+      const filter3 = await BillsService.listBills(scope);
+      expect(filter3.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('covers exhaustive edge branches in workers: payments with deleted workers, partial payment bounds, and cascade', async () => {
+      const worker = await WorkersService.createWorker(scope, { name: 'Temporary Worker' });
+      const payment = await WorkersService.createPayment(scope, worker.id, {
+        product_name: 'Stitched Shirt',
+        units_produced: 100,
+        rate_per_unit: 10,
+        amount_paid: 200,
+      });
+
+      // Partial payment edge cases
+      await expect(WorkersService.recordPartialPayment(scope, 'invalid', 50)).rejects.toThrow(ValidationError);
+      await expect(WorkersService.recordPartialPayment(scope, new ObjectId().toString(), 50)).rejects.toThrow(NotFoundError);
+      await expect(WorkersService.recordPartialPayment(scope, payment.id, 0)).rejects.toThrow(ValidationError);
+      await expect(WorkersService.recordPartialPayment(scope, payment.id, -10)).rejects.toThrow(ValidationError);
+
+      // Delete worker and then pay remaining balance -> exercises fallback to 'Unknown'
+      await db.collection('workers').deleteOne({ _id: new ObjectId(worker.id) });
+
+      const partial = await WorkersService.recordPartialPayment(scope, payment.id, 300);
+      expect(partial.amount_paid).toBe(500);
+      expect(partial.worker_name).toBe('Unknown');
+
+      // Fully pay remaining
+      const fullyPaid = await WorkersService.markPaymentPaid(scope, payment.id);
+      expect(fullyPaid.paid).toBe(true);
+      expect(fullyPaid.amount_paid).toBe(1000);
+      expect(fullyPaid.worker_name).toBe('Unknown');
+
+      // Attempting to pay already fully paid record
+      await expect(WorkersService.recordPartialPayment(scope, payment.id, 50)).rejects.toThrow('already fully paid');
+    });
+
+    it('covers inventory warehouses and edge stock adjustment branches', async () => {
+      const wh = await InventoryService.createWarehouse(scope, { name: 'Main Depot', location: 'Sector 5' });
+      expect(wh.name).toBe('Main Depot');
+
+      // Update warehouse
+      await expect(InventoryService.updateWarehouse(scope, 'invalid', { name: 'Test' })).rejects.toThrow(ValidationError);
+      await expect(InventoryService.updateWarehouse(scope, new ObjectId().toString(), { name: 'Test' })).rejects.toThrow(NotFoundError);
+      const updatedWh = await InventoryService.updateWarehouse(scope, wh.id, { location: 'Sector 6' });
+      expect(updatedWh.location).toBe('Sector 6');
+
+      // Delete warehouse
+      await expect(InventoryService.deleteWarehouse(scope, 'invalid')).rejects.toThrow(ValidationError);
+      await expect(InventoryService.deleteWarehouse(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
+      await InventoryService.deleteWarehouse(scope, wh.id);
+
+      // Warehouse summary
+      const summary = await InventoryService.getWarehouseSummary(scope);
+      expect(Array.isArray(summary)).toBe(true);
+    });
   });
 });

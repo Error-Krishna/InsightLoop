@@ -9,7 +9,7 @@ Decimal.set({
 /**
  * Converts an IEEE-754 double precision float to its exact mathematical decimal representation.
  */
-function floatToExactDecimal(num: number): Decimal {
+export function floatToExactDecimal(num: number): Decimal {
   if (!Number.isFinite(num)) {
     return new Decimal(num);
   }
@@ -55,6 +55,11 @@ function floatToExactDecimal(num: number): Decimal {
 export function roundPy(val: number, n = 0): number {
   if (isNaN(val) || !isFinite(val)) return val;
   const d = floatToExactDecimal(val);
+  if (n < 0) {
+    const factor = new Decimal(10).pow(-n);
+    const scaled = d.div(factor).toDecimalPlaces(0, Decimal.ROUND_HALF_EVEN);
+    return scaled.mul(factor).toNumber();
+  }
   const rounded = d.toDecimalPlaces(n, Decimal.ROUND_HALF_EVEN);
   return rounded.toNumber();
 }
@@ -246,7 +251,10 @@ export function calculateSuggestedProfit(
  * Calculates metric percentage change between current and previous values.
  */
 export function calcPercentageChange(current: number, previous: number): number {
-  if (previous === 0 && current === 0) return 0.0;
-  if (previous === 0) return current > 0 ? 100.0 : -100.0;
+  if (previous === 0) {
+    if (current > 0) return 100.0;
+    if (current < 0) return -100.0;
+    return 0.0;
+  }
   return roundPy(((current - previous) / Math.abs(previous)) * 100, 1);
 }
