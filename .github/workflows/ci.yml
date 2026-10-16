@@ -114,6 +114,12 @@ jobs:
           MONGODB_DB_NAME: "InsightLoop_test"
         run: node scripts/test_dual_stack.mjs
 
+      - name: Deterministic Document Shape & Django API Interop
+        env:
+          MONGODB_URI: "mongodb://localhost:27017/InsightLoop_test"
+          MONGODB_DB_NAME: "InsightLoop_test"
+        run: node scripts/check_doc_shape.mjs
+
       - name: Build Docker Containers
         run: |
           docker build -f apps/api/Dockerfile -t insightloop-api:ci .

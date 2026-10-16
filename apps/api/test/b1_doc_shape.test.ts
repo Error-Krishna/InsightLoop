@@ -314,4 +314,72 @@ print('DJANGO_DUAL_STACK_ALL_PASSED')
 
     expect(dualStackPy).toContain('DJANGO_DUAL_STACK_ALL_PASSED');
   });
+
+  it('syncFinishedInventory generates unique SKUs without colliding on (company_id, sku) index when multiple finished products complete', async () => {
+    // 1. Ensure compound unique index exists on inventory_items
+    const db = getDb();
+    const indexes = await db.collection('inventory_items').indexes();
+    const hasSkuIndex = indexes.some((idx) => idx.key?.company_id === 1 && idx.key?.sku === 1 && idx.unique);
+    if (!hasSkuIndex) {
+      await db.collection('inventory_items').createIndex({ company_id: 1, sku: 1 }, { unique: true });
+    }
+
+    // 2. Create worker and two separate assignments
+    const worker = await WorkersRepository.insertWorker(scope, {
+      name: 'SKU Test Artisan',
+      phone: '9988776655',
+      address: 'Artisan Hub',
+      is_active: true,
+      created_at: new Date(),
+    });
+
+    const assign1 = await WorkersService.createMaterial(scope, worker._id.toString(), {
+      material_name: 'Raw Cotton',
+      quantity: 10,
+      price_per_unit: 50,
+      notes: 'Job 1',
+    });
+
+    const assign2 = await WorkersService.createMaterial(scope, worker._id.toString(), {
+      material_name: 'Raw Silk',
+      quantity: 10,
+      price_per_unit: 100,
+      notes: 'Job 2',
+    });
+
+    // Add batches
+    await WorkersService.addBatch(scope, assign1.id, { quantity: 10 });
+    await WorkersService.addBatch(scope, assign2.id, { quantity: 10 });
+
+    // 3. Complete both assignments (triggers syncFinishedInventory)
+    const completed1 = await WorkersService.completeAssignment(scope, assign1.id);
+    const completed2 = await WorkersService.completeAssignment(scope, assign2.id);
+
+    expect(completed1.status).toBe('completed');
+    expect(completed2.status).toBe('completed');
+
+    // 4. Verify both finished inventory items exist and have distinct non-empty SKUs
+    const items = await db.collection('inventory_items').find({
+      company_id: scope.companyId,
+      type: 'finished',
+    }).toArray();
+
+    expect(items.length).toBeGreaterThanOrEqual(2);
+    const skus = items.map((i) => i.sku).filter(Boolean);
+    expect(skus.length).toBeGreaterThanOrEqual(2);
+
+    // Ensure none have sku: ''
+    for (const item of items) {
+      expect(item.sku).toBeDefined();
+      expect(typeof item.sku).toBe('string');
+      expect(item.sku.length).toBeGreaterThan(0);
+      expect(item.sku).not.toBe('');
+      // Type casing check
+      expect(item.type).toBe('finished');
+    }
+
+    // Ensure SKUs are unique
+    const uniqueSkus = new Set(skus);
+    expect(uniqueSkus.size).toBe(skus.length);
+  });
 });

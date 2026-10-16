@@ -16,6 +16,7 @@
     "test:chaos": "node scripts/test_chaos_resilience.mjs",
     "test:benchmark": "node scripts/run_load_benchmark.mjs",
     "check:citations": "node scripts/check_citations.mjs",
+    "check:shape": "node scripts/check_doc_shape.mjs",
     "typecheck": "turbo run typecheck",
     "prepare": "husky"
   },
