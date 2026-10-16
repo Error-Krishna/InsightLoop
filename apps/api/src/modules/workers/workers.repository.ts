@@ -6,7 +6,7 @@ export interface WorkerDoc extends Document {
   _id: ObjectId;
   company_id: string;
   name: string;
-  age?: number;
+  age?: number | null;
   address?: string;
   phone?: string;
   image_url?: string | null;

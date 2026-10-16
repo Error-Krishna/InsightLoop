@@ -1,0 +1,72 @@
+=================================================================
+B2: TOP WORKERS & WORKER PAYMENTS DUAL-STACK PARITY AUDIT
+Timestamp: 2026-10-16T06:44:44.871Z
+=================================================================
+
+Step 1: Reseeding clean test DB...
+
+Step 2: Authenticating with Alice on Django (port 8000) and Node (port 4000)...
+Django Token Acquired: eyJhbGciOiJIUzI...
+Node Token Acquired:   eyJhbGciOiJIUzI...
+
+Step 3: Creating Worker via Django and Worker via Node...
+Django Created Worker ID: 6ad1c7decf4be071c98edabd (Django Created Artisan)
+Node Created Worker ID:   6ad1c7de1a80c23bc58d8b42 (Node Created Weaver)
+Temporary Worker ID:      6ad1c7de1a80c23bc58d8b43 (Worker To Delete)
+
+Step 4: Creating Pay Records across both stacks...
+Deleted worker 6ad1c7de1a80c23bc58d8b43 directly from workers collection to simulate orphaned reference.
+
+Step 5: Querying and comparing /api/v1/dashboard/top-workers/ from Django and Node...
+Django Top Workers: [
+  {
+    "name": "Django Created Artisan",
+    "total_payout": 10000,
+    "payment_count": 1,
+    "latest_payment": "2026-10-10T00:00:00"
+  },
+  {
+    "name": "Node Created Weaver",
+    "total_payout": 6000,
+    "payment_count": 1,
+    "latest_payment": "2026-10-11T00:00:00"
+  }
+]
+Node Top Workers:   [
+  {
+    "name": "Django Created Artisan",
+    "total_payout": 10000,
+    "payment_count": 1,
+    "latest_payment": "2026-10-10T00:00:00"
+  },
+  {
+    "name": "Node Created Weaver",
+    "total_payout": 6000,
+    "payment_count": 1,
+    "latest_payment": "2026-10-11T00:00:00"
+  }
+]
+[MATCH] Top Worker 0: Django Created Artisan (Payout: ₹10000, Count: 1)
+[MATCH] Top Worker 1: Node Created Weaver (Payout: ₹6000, Count: 1)
+
+Step 6: Querying and comparing /api/v1/dashboard/workers/ from Django and Node...
+Django Worker Payments Count: 3
+Node Worker Payments Count:   3
+[MATCH] Payment Record 0: Deleted Worker - Partial (Owed: ₹2000, Paid: ₹1000)
+[MATCH] Payment Record 1: Node Created Weaver - Paid (Owed: ₹6000, Paid: ₹6000)
+[MATCH] Payment Record 2: Django Created Artisan - Paid (Owed: ₹10000, Paid: ₹10000)
+
+Deleted Worker Fallback Found in Django: true
+Deleted Worker Fallback Found in Node:   true
+✅ "Deleted Worker" fallback identical on both Django and Node!
+
+Step 8: Django Code Line Citation:
+Django implementation in insightloop/dashboard/utils.py:
+  - Line 90: def get_top_workers(company_id):
+  - Line 102: {"$sort": {"total_payout": -1}}
+  - Line 104: {"$lookup": {"from": "workers", "localField": "_id", "foreignField": "_id", "as": "worker_info"}}
+  - Line 75-76: except DoesNotExist: worker_name = "Deleted Worker"
+
+=================================================================
+FINAL RESULT: PASSED (100% Dual-Stack Parity)
+=================================================================

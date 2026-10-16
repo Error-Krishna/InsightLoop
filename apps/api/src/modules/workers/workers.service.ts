@@ -88,7 +88,7 @@ export class WorkersService {
     return {
       id: worker._id.toString(),
       name: worker.name,
-      age: Number(worker.age) || 0,
+      age: worker.age !== undefined && worker.age !== null ? Number(worker.age) : null,
       address: worker.address ?? '',
       phone: worker.phone ?? '',
       image_url: worker.image_url ?? null,
@@ -218,9 +218,14 @@ export class WorkersService {
     if (!name) throw new ValidationError('Worker name is required.');
 
     const now = new Date();
+    const ageVal =
+      data.age !== undefined && data.age !== null && String(data.age).trim() !== ''
+        ? parseInt(String(data.age), 10)
+        : null;
+
     const created = await WorkersRepository.insertWorker(scope, {
       name,
-      age: parseInt(String(data.age ?? 0), 10) || 0,
+      age: Number.isNaN(ageVal) ? null : ageVal,
       address: (data.address ?? '').trim(),
       phone: (data.phone ?? '').trim(),
       image_url: data.image_url ?? null,
@@ -244,7 +249,11 @@ export class WorkersService {
     };
 
     if (data.name !== undefined) updateFields.name = (data.name ?? '').trim();
-    if (data.age !== undefined) updateFields.age = parseInt(String(data.age), 10) || 0;
+    if (data.age !== undefined) {
+      const parsed =
+        data.age !== null && String(data.age).trim() !== '' ? parseInt(String(data.age), 10) : null;
+      updateFields.age = Number.isNaN(parsed) ? null : parsed;
+    }
     if (data.address !== undefined) updateFields.address = (data.address ?? '').trim();
     if (data.phone !== undefined) updateFields.phone = (data.phone ?? '').trim();
     if (data.image_url !== undefined) updateFields.image_url = data.image_url;
@@ -333,10 +342,6 @@ export class WorkersService {
     const balance = assignment.quantity - delivered;
     if (qty > balance) {
       throw new ValidationError(`Cannot add batch: quantity exceeds balance (${balance} units available)`);
-    }
-
-    if (data.date && new Date(data.date) > new Date()) {
-      throw new ValidationError('Batch date cannot be in the future');
     }
 
     const batch = {
