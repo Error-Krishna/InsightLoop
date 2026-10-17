@@ -93,7 +93,3 @@ export function verifyToken(
 export function verifyAccessToken(token: string, secret = env.JWT_SECRET): TokenPayload {
   return verifyToken(token, 'access', secret);
 }
-
-export function verifyRefreshToken(token: string, secret = env.JWT_SECRET): TokenPayload {
-  return verifyToken(token, 'refresh', secret);
-}

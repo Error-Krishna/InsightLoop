@@ -39,6 +39,7 @@ function resolveFont(fontFile: string): string | null {
     path.resolve(process.cwd(), 'src/assets/fonts', fontFile),
   ];
   for (const c of candidates) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     if (fs.existsSync(c)) {
       fontPathCache.set(fontFile, c);
       return c;
