@@ -242,8 +242,16 @@ for (const f of apiSrcFiles) {
   }
 }
 
-// Ignore node/runtime globals
-const runtimeGlobals = new Set(['NODE_ENV', 'VITEST', 'TZ']);
+// Ignore node/runtime globals and legacy migration fallback aliases
+const runtimeGlobals = new Set([
+  'NODE_ENV',
+  'VITEST',
+  'TZ',
+  'DJANGO_SECRET_KEY',
+  'DJANGO_CORS_ALLOWED_ORIGINS',
+  'AWS_STORAGE_BUCKET_NAME',
+  'AWS_S3_REGION_NAME',
+]);
 
 for (const ev of accessedProcessEnvVars) {
   if (runtimeGlobals.has(ev)) continue;

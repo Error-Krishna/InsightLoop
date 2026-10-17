@@ -1,18 +1,64 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 5.10 (Small Final Fixes Before Staging: Root URL, Diagnostics Auth, Legacy Routes Audit, Media Parity, Worker Cascade Parity, Invoice Template Citations, PDF Image & Pill Badges, 56k Benchmark Re-run, Financial Mutation Engine)
-- **Status**: PHASE 5.10 COMPLETE (STAGING-CANDIDATE)
+- **Current Phase**: Phase 5.11 (Production Config Parity: UTC Timezone Baseline & Midnight/Month-End Boundaries, Nodemailer STARTTLS & Graceful SMTP Delivery, Environment Variable Mapping & Production Render Boot Verification, Vercel Frontend Config & Web URL Safety)
+- **Status**: PHASE 5.11 COMPLETE (STAGING-CANDIDATE)
 - **Phase Locks**: Phases 6, 7, 8 Strictly Locked (Never Initiated; no remote push, no staging/production deploy)
 - **Removal Branch Mandate**: `chore/remove-python` remains separate and UNMERGED. `migration/mern` retains Django for 14-day canary rollback window.
-- **Last Updated**: 2026-10-17 07:15 UTC
+- **Last Updated**: 2026-10-17 08:35 UTC
 - **Next Action**: Staging deployment dry-run and click-through review on staging candidate branch `migration/mern`.
 
 ---
 
-## 2. Phase 5.10 Implementation & Parity Summary
+## 2. Phase 5.11 Implementation & Production Config Parity Summary
 
-All Phase 5.10 items have been implemented, verified with tests, and validated with committed disk evidence:
+All Phase 5.11 items have been implemented, verified with tests, and validated with committed disk evidence:
+
+### 1. Time Zone Parity & Server UTC Baseline (Section 1)
+- **Django UTC Server Analysis**:
+  - Audited all date handling and aggregation grouping across `dashboard/*.py`, `insights/*.py`, `upload/*.py`, and `bills/*.py`.
+  - In `settings.py`, `TIME_ZONE = "UTC"` and `USE_TZ = True`. On Render (UTC Linux container), `datetime.now()` returns naive UTC, `timezone.localdate()` evaluates in UTC, and MongoDB `$year`, `$month`, `$dayOfMonth`, and `$week` operators without timezone arguments default to UTC. Documented in `docs/migration/django-vs-node-audit.md` Section 10.
+- **Node Configuration & Utilities**:
+  - Updated `apps/api/src/config/env.ts` to default `APP_TIME_ZONE` to `'UTC'`.
+  - Updated `render-blueprint.yaml` and `.env.example` to default `APP_TIME_ZONE=UTC`.
+  - All MongoDB aggregations (`$year`, `$month`, `$dayOfMonth`, `$week`) in `dashboard.service.ts` declare `timezone: env.APP_TIME_ZONE`.
+  - Boundary functions `getMonthBoundaries` and `buildZonedDateRange` in `timezone.ts` compute exact millisecond boundaries matching Django.
+- **Dual-Stack Parity & Midnight/Month-End Boundaries**:
+  - Ran dual-stack parity script `scripts/test_timezone_dual_parity.mjs` against Django and Node with both forced to `TZ=UTC` and `APP_TIME_ZONE=UTC`: **0 mismatches** across all 5 dashboard endpoints (`/dashboard/summary`, `/dashboard/rev-exp`, `/dashboard/profit-trends`, `/dashboard/workers`, `/dashboard/top-workers`).
+  - Evaluated boundary records placed at `2026-10-31T23:59:59.000Z` (1s before midnight UTC) and `2026-11-01T00:00:01.000Z` (1s after midnight UTC): **0 mismatches across month boundary**.
+  - Re-ran dual-stack parity with both forced to `TZ=Asia/Kolkata` and `APP_TIME_ZONE=Asia/Kolkata`: **0 mismatches**.
+  - 5/5 unit and integration tests passed in `apps/api/test/b3_timezone.test.ts`.
+  - *Evidence:* [`docs/migration/evidence/timezone_parity.txt`](evidence/timezone_parity.txt)
+
+### 2. Contact Email Nodemailer & SMTP Delivery (Section 2)
+- Replaced hand-written plain socket client in `apps/api/src/modules/contact/contact.service.ts` with `nodemailer`.
+- Supported full Django configuration variables: `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, `ADMIN_EMAIL`. Defaults match Django (`smtp.gmail.com:587`, STARTTLS enabled).
+- In `render-blueprint.yaml`, removed `localhost:1025` sink defaults and marked secrets as `sync: false`.
+- Behavior matches Django: message is persisted to MongoDB `contact_message` first, endpoint always returns `{"status":"ok"}`, send failure is logged with context without crashing or throwing. Subject (`New Contact Message`), `Reply-To` header, and body text are 100% identical to Django's `landing/views.py:contact_view`.
+- Added automated integration tests using `smtp-server` in `apps/api/test/contact_email.test.ts` testing STARTTLS + auth, wrong password resilience, server down resilience, and MIME format (4/4 passed).
+- *Evidence:* [`docs/migration/evidence/contact_email_smtp.txt`](evidence/contact_email_smtp.txt)
+
+### 3. Environment Variable Mapping & Production Boot Verification (Section 3)
+- Created `docs/runbooks/env_mapping.md` with an exhaustive master table mapping every variable Django reads in `settings.py`, all app modules, and historical `render.yaml` to its Node counterpart, defaults in each stack, whether it must be set on Render, and alias support.
+- Added backward-compatibility fallback mappings in `apps/api/src/config/env.ts` for:
+  - `DJANGO_SECRET_KEY` $\to$ `JWT_SECRET`
+  - `DJANGO_CORS_ALLOWED_ORIGINS` $\to$ `CORS_ORIGIN`
+  - `AWS_STORAGE_BUCKET_NAME` $\to$ `S3_BUCKET_NAME`
+  - `AWS_S3_REGION_NAME` $\to$ `AWS_REGION`
+- In `apps/api/src/app.ts`, dynamically injected `FRONTEND_ORIGIN` into CORS allowlist matching Django's automatic behavior.
+- In `apps/api/src/modules/bills/whatsapp.service.ts`, ported `WHATSAPP_API_VERSION` default `v21.0`, `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_BILL_TEMPLATE_LANGUAGE` (`en_US`), `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` (`false`), and implemented Django's placeholder detection rule.
+- Verified in `scripts/test_render_production_boot.mjs`: booted Node in `NODE_ENV=production` with ONLY the environment variables the existing Django Render service currently defines (plus `METRICS_TOKEN`) against local MongoDB. Verified `/health`, Vercel CORS preflight, user login with JWT signing via `DJANGO_SECRET_KEY`, and metrics protection.
+- *Evidence:* [`docs/runbooks/env_mapping.md`](../runbooks/env_mapping.md), [`docs/migration/evidence/render_production_boot.txt`](evidence/render_production_boot.txt)
+
+### 4. Frontend Deployment Configuration (Vercel) (Section 4)
+- Removed `insightloop-web` static service from `render-blueprint.yaml`.
+- Updated `docs/runbooks/staging.md` detailing exact Vercel dashboard environment variables: `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`.
+- Completely purged obsolete `VITE_API_URL` from the repository.
+- Created `apps/web/test/env_urls.test.ts` and `scripts/check_web_env_vars.mjs` verifying all 37 source files under `apps/web/src` build URLs only from declared environment variables with 0 violations.
+
+---
+
+## 3. Phase 5.10 Implementation & Parity Summary
 
 ### 1. Behavior Gaps Resolved (Section 1)
 - **Root URL (`GET /`) Parity**:
@@ -116,7 +162,7 @@ All Phase 5.10 items have been implemented, verified with tests, and validated w
 
 ---
 
-## 3. Benchmark Comparison Table (Identical Indexes, Zero Cache)
+## 4. Benchmark Comparison Table (Identical Indexes, Zero Cache)
 
 | Concurrency | Endpoint                 | Stack  | Requests | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |
 | :---------- | :----------------------- | :----- | :------- | :------- | :------- | :------- | :----- | :------------ | :--------- |
@@ -179,9 +225,9 @@ All Phase 5.10 items have been implemented, verified with tests, and validated w
 
 ---
 
-## 4. Known Gaps & Operational Items
+## 5. Known Gaps & Operational Items
 
-The codebase on `migration/mern` represents a production-ready **STAGING-CANDIDATE**. The following items remain deferred by design until post-deployment validation:
+The codebase on `migration/mern` represents a production-ready **STAGING-CANDIDATE**. The following items remain deferred or require dashboard credential injection during staging/production cutover:
 
 | Gap / Operational Item | Current State | Target Phase | Deferred Rationale |
 |---|---|---|---|
@@ -189,9 +235,13 @@ The codebase on `migration/mern` represents a production-ready **STAGING-CANDIDA
 | **Canary Soak Period** | Django preserved in `insightloop/` on `migration/mern` | Phase 6/7 | Required 14-day dual-stack canary window before final decommissioning. |
 | **`chore/remove-python` Merge** | Kept separate and unmerged | Phase 7.5 | Strictly forbidden to merge until 14 days of flawless canary operation have completed without rollbacks. |
 | **Legacy HTML Traffic Monitoring** | Diagnostic shadow headers logging at `warn` level | Phase 7 | Monitor real user traffic on legacy routes for 30 days before deleting deprecated views. |
+| **WhatsApp Cloud API Credentials** | Fallback to OpenWA or placeholder detection active | Production Cutover | Production Meta System User Access Token and Phone Number ID to be set in Render dashboard when live. |
+| **SMTP Delivery Credentials** | Nodemailer STARTTLS verified; graceful failure logged | Production Cutover | Production Gmail App Password or SendGrid credentials to be set in Render dashboard. |
+| **S3 Storage Configuration** | Defaults to MongoDB GridFS binary storage | Production Cutover | Set `STORAGE_DRIVER=s3` and AWS credentials if S3 bucket archiving is desired. |
+| **Google Client ID** | Public client ID verified in GIS button and API | Production Cutover | Configured on both Vercel (`VITE_GOOGLE_CLIENT_ID`) and Render (`GOOGLE_CLIENT_ID`). |
 
 ---
 
-## 5. Byte-Safety Baseline Verification
+## 6. Byte-Safety Baseline Verification
 - Baseline tag: `pre-mern-migration-2026-10-15`
 - `git diff pre-mern-migration-2026-10-15..HEAD -- insightloop/`: **0 bytes (Exact match, zero alterations)**

@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { clearSession, getAccessToken, getRefreshToken, setSession, getCurrentUser } from "./auth";
 
-const rawBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const rawBase = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 const defaultBaseUrl =
   rawBase.startsWith("http://") || rawBase.startsWith("https://")
     ? rawBase

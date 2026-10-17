@@ -168,4 +168,59 @@ describe('WhatsApp Integration Service Parity with Django', () => {
       process.env = oldEnv;
     }
   });
+
+  it('dispatches via Meta Cloud API with v21.0, template language en_US, and company var parameter', async () => {
+    const oldEnv = { ...process.env };
+    receivedRequests = [];
+    process.env.WHATSAPP_PROVIDER = 'meta';
+    process.env.WHATSAPP_PHONE_NUMBER_ID = 'phone-123456';
+    process.env.WHATSAPP_ACCESS_TOKEN = 'token-meta-secret';
+    process.env.WHATSAPP_API_VERSION = 'v21.0';
+    process.env.WHATSAPP_BILL_TEMPLATE_LANGUAGE = 'en_US';
+    process.env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR = 'true';
+
+    // Mock global fetch for Meta graph API URL
+    const originalFetch = global.fetch;
+    const fetchCalls: { url: string; options: RequestInit }[] = [];
+    global.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      fetchCalls.push({ url, options: init || {} });
+      if (url.includes('/media')) {
+        return new Response(JSON.stringify({ id: 'meta-media-id-12345' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (url.includes('/messages')) {
+        return new Response(JSON.stringify({ messages: [{ id: 'wamid.HBg...' }] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response('Not Found', { status: 404 });
+    }) as typeof fetch;
+
+    try {
+      const res = await WhatsAppService.shareBillPdf(sampleBill, company);
+      expect(res.detail).toBe('Bill sent via WhatsApp.');
+
+      // Check upload URL used v21.0
+      expect(fetchCalls.length).toBe(2);
+      expect(fetchCalls[0].url).toContain('https://graph.facebook.com/v21.0/phone-123456/media');
+      expect(fetchCalls[1].url).toContain('https://graph.facebook.com/v21.0/phone-123456/messages');
+
+      const messagePayload = JSON.parse(fetchCalls[1].options.body as string);
+      expect(messagePayload.template.language.code).toBe('en_US');
+      expect(messagePayload.template.components[1].type).toBe('body');
+
+      // Both invoice_number and company_name parameters must be present in order
+      const params = messagePayload.template.components[1].parameters;
+      expect(params.length).toBe(2);
+      expect(params[0].text).toBe('INV-2026-00001');
+      expect(params[1].text).toBe('InsightLoop Engineering Works');
+    } finally {
+      global.fetch = originalFetch;
+      process.env = oldEnv;
+    }
+  });
 });

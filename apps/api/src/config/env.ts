@@ -38,7 +38,7 @@ export function getEnvSchema(isProduction: boolean) {
     GOOGLE_CLIENT_ID: isProduction
       ? z.string({ required_error: 'GOOGLE_CLIENT_ID is required in production.' }).min(1, 'GOOGLE_CLIENT_ID is required in production.')
       : z.string().default('mock-google-client-id'),
-    APP_TIME_ZONE: z.string().default('Asia/Kolkata'),
+    APP_TIME_ZONE: z.string().default('UTC'),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
     AUTH_RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().default(10),
     TRUST_PROXY: z.string().default('1'),
@@ -48,15 +48,21 @@ export function getEnvSchema(isProduction: boolean) {
     AWS_ACCESS_KEY_ID: z.string().optional().default(''),
     AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
     OPENWA_API_KEY: z.string().optional().default(''),
-    OPENWA_BASE_URL: z.string().optional().default(''),
+    OPENWA_BASE_URL: z.string().default('http://localhost:2785'),
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(''),
     WHATSAPP_ACCESS_TOKEN: z.string().optional().default(''),
-    WHATSAPP_API_VERSION: z.string().default('v18.0'),
+    WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default(''),
+    WHATSAPP_API_VERSION: z.string().default('v21.0'),
     WHATSAPP_BILL_TEMPLATE_NAME: z.string().default('bill_share'),
+    WHATSAPP_BILL_TEMPLATE_LANGUAGE: z.string().default('en_US'),
+    WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR: z.coerce.boolean().default(false),
     GOOGLE_TOKENINFO_URL: z.string().default('https://oauth2.googleapis.com/tokeninfo'),
     SERVE_STATIC: z.string().optional().default('false'),
-    EMAIL_HOST: z.string().default('localhost'),
-    EMAIL_PORT: z.coerce.number().default(1025),
+    EMAIL_HOST: z.string().default('smtp.gmail.com'),
+    EMAIL_PORT: z.coerce.number().default(587),
+    EMAIL_USE_TLS: z.coerce.boolean().default(true),
+    EMAIL_HOST_USER: z.string().optional().default(''),
+    EMAIL_HOST_PASSWORD: z.string().optional().default(''),
     DEFAULT_FROM_EMAIL: z.string().default('noreply@insightloop.io'),
     ADMIN_EMAIL: z.string().default('admin@insightloop.io'),
     FRONTEND_ORIGIN: z.string().optional().default(''),
@@ -64,10 +70,39 @@ export function getEnvSchema(isProduction: boolean) {
   });
 }
 
+const WHATSAPP_PLACEHOLDER_VALUES = new Set([
+  '',
+  'REPLACE_WITH_PHONE_NUMBER_ID',
+  'REPLACE_WITH_ACCESS_TOKEN',
+  'REPLACE_WITH_BUSINESS_ACCOUNT_ID',
+]);
+
 export function validateEnv(raw: NodeJS.ProcessEnv = process.env) {
   const isProd = raw.NODE_ENV === 'production';
+
+  // Normalize Django environment variable fallbacks
+  const mappedRaw: Record<string, unknown> = {
+    ...raw,
+    JWT_SECRET: raw.JWT_SECRET || raw.DJANGO_SECRET_KEY,
+    CORS_ORIGIN: raw.CORS_ORIGIN || raw.DJANGO_CORS_ALLOWED_ORIGINS,
+    S3_BUCKET_NAME: raw.S3_BUCKET_NAME || raw.AWS_STORAGE_BUCKET_NAME,
+    AWS_REGION: raw.AWS_REGION || raw.AWS_S3_REGION_NAME,
+  };
+
+  // WhatsApp provider and enabled status parity with Django
+  const phoneId = (raw.WHATSAPP_PHONE_NUMBER_ID || '').trim();
+  const token = (raw.WHATSAPP_ACCESS_TOKEN || '').trim();
+  const isMetaConfigured = !WHATSAPP_PLACEHOLDER_VALUES.has(phoneId) && !WHATSAPP_PLACEHOLDER_VALUES.has(token);
+
+  if (raw.WHATSAPP_ENABLED === undefined) {
+    mappedRaw.WHATSAPP_ENABLED = isMetaConfigured;
+  }
+  if (!raw.WHATSAPP_PROVIDER) {
+    mappedRaw.WHATSAPP_PROVIDER = isMetaConfigured ? 'meta' : 'openwa';
+  }
+
   const schema = getEnvSchema(isProd);
-  const parsed = schema.parse(raw);
+  const parsed = schema.parse(mappedRaw);
 
   if (isProd) {
     if (KNOWN_INSECURE_SECRETS.has(parsed.JWT_SECRET)) {

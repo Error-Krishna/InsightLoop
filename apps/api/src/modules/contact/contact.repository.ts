@@ -15,4 +15,9 @@ export class ContactRepository {
     const res = await col.insertOne(doc as ContactMessageDoc);
     return res.insertedId;
   }
+
+  static async findRecentMessages(limit = 10): Promise<ContactMessageDoc[]> {
+    const col = getCollection<ContactMessageDoc>('contact_message');
+    return col.find().sort({ created_at: -1 }).limit(limit).toArray();
+  }
 }

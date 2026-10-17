@@ -21,6 +21,45 @@ describe('CORS, Security Headers & RequestId Propagation Suite', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 
+  it('automatically allows FRONTEND_ORIGIN even if omitted from CORS_ORIGIN (parity with Django settings.py)', async () => {
+    const oldFrontend = process.env.FRONTEND_ORIGIN;
+    process.env.FRONTEND_ORIGIN = 'https://insightloop-client.vercel.app';
+
+    try {
+      const res = await request(app)
+        .get('/health')
+        .set('Origin', 'https://insightloop-client.vercel.app');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('https://insightloop-client.vercel.app');
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
+    } finally {
+      if (oldFrontend !== undefined) process.env.FRONTEND_ORIGIN = oldFrontend;
+      else delete process.env.FRONTEND_ORIGIN;
+    }
+  });
+
+  it('automatically accepts DJANGO_CORS_ALLOWED_ORIGINS fallback alias', async () => {
+    const oldCors = process.env.CORS_ORIGIN;
+    const oldDjango = process.env.DJANGO_CORS_ALLOWED_ORIGINS;
+    delete process.env.CORS_ORIGIN;
+    process.env.DJANGO_CORS_ALLOWED_ORIGINS = 'https://custom-django-domain.com';
+
+    try {
+      const res = await request(app)
+        .get('/health')
+        .set('Origin', 'https://custom-django-domain.com');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('https://custom-django-domain.com');
+    } finally {
+      if (oldCors !== undefined) process.env.CORS_ORIGIN = oldCors;
+      else delete process.env.CORS_ORIGIN;
+      if (oldDjango !== undefined) process.env.DJANGO_CORS_ALLOWED_ORIGINS = oldDjango;
+      else delete process.env.DJANGO_CORS_ALLOWED_ORIGINS;
+    }
+  });
+
   it('handles CORS OPTIONS preflight request correctly', async () => {
     const res = await request(app)
       .options('/api/v1/bills/')

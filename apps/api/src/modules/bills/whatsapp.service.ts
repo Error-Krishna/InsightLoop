@@ -1,3 +1,4 @@
+import { env } from '../../config/env.js';
 import { ValidationError } from '../../utils/errors.js';
 import { BillPdfService } from './pdf.service.js';
 import { type BillDoc } from './bills.repository.js';
@@ -22,7 +23,7 @@ export class OpenWANotConfigured extends ValidationError {
   constructor(message?: string) {
     super(
       message ||
-        `OpenWA is not configured (this is the TEMPORARY WhatsApp bridge used until real Meta credentials are available). Set OPENWA_API_KEY in your environment, and make sure your OpenWA server is running at OPENWA_BASE_URL (currently ${process.env.OPENWA_BASE_URL || 'http://localhost:3000'}).`
+        `OpenWA is not configured (this is the TEMPORARY WhatsApp bridge used until real Meta credentials are available). Set OPENWA_API_KEY in your environment, and make sure your OpenWA server is running at OPENWA_BASE_URL (currently ${process.env.OPENWA_BASE_URL || env.OPENWA_BASE_URL || 'http://localhost:2785'}).`
     );
   }
 }
@@ -30,6 +31,13 @@ export class OpenWANotConfigured extends ValidationError {
 export class OpenWASendError extends ValidationError {
   override name = 'OpenWASendError';
 }
+
+const WHATSAPP_PLACEHOLDERS = new Set([
+  '',
+  'REPLACE_WITH_PHONE_NUMBER_ID',
+  'REPLACE_WITH_ACCESS_TOKEN',
+  'REPLACE_WITH_BUSINESS_ACCOUNT_ID',
+]);
 
 export function normalizePhoneNumber(rawPhone?: string | null): string {
   const digits = (rawPhone || '').replace(/\D/g, '');
@@ -54,11 +62,11 @@ export class WhatsAppService {
     const phone = normalizePhoneNumber(rawPhone);
     const pdfBytes = await BillPdfService.renderBillPdf(bill, company);
 
-    const provider = process.env.WHATSAPP_PROVIDER || 'meta';
+    const provider = process.env.WHATSAPP_PROVIDER || env.WHATSAPP_PROVIDER || 'meta';
 
     if (provider === 'openwa') {
-      const apiKey = process.env.OPENWA_API_KEY;
-      const baseUrl = process.env.OPENWA_BASE_URL;
+      const apiKey = process.env.OPENWA_API_KEY || env.OPENWA_API_KEY;
+      const baseUrl = process.env.OPENWA_BASE_URL || env.OPENWA_BASE_URL || 'http://localhost:2785';
       if (!apiKey || !baseUrl) {
         throw new OpenWANotConfigured();
       }
@@ -103,17 +111,31 @@ export class WhatsAppService {
     }
 
     // Default: Meta Cloud API
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    const isEnabled = process.env.WHATSAPP_ENABLED === 'true';
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || env.WHATSAPP_PHONE_NUMBER_ID || '';
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN || env.WHATSAPP_ACCESS_TOKEN || '';
+    const isConfigured =
+      !WHATSAPP_PLACEHOLDERS.has(phoneNumberId.trim()) &&
+      !WHATSAPP_PLACEHOLDERS.has(accessToken.trim());
 
-    if (!isEnabled || !phoneNumberId || !accessToken) {
+    if (!isConfigured) {
       throw new WhatsAppNotConfigured();
     }
 
     try {
-      const apiVersion = process.env.WHATSAPP_API_VERSION || 'v18.0';
-      const templateName = process.env.WHATSAPP_BILL_TEMPLATE_NAME || 'bill_share';
+      const apiVersion = process.env.WHATSAPP_API_VERSION || env.WHATSAPP_API_VERSION || 'v21.0';
+      const templateName = process.env.WHATSAPP_BILL_TEMPLATE_NAME || env.WHATSAPP_BILL_TEMPLATE_NAME || 'bill_share';
+      const templateLanguage = process.env.WHATSAPP_BILL_TEMPLATE_LANGUAGE || env.WHATSAPP_BILL_TEMPLATE_LANGUAGE || 'en_US';
+      const hasCompanyVar =
+        process.env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR !== undefined
+          ? process.env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR === 'true'
+          : env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR;
+
+      const bodyParameters: { type: 'text'; text: string }[] = [
+        { type: 'text', text: bill.invoice_number || 'invoice' },
+      ];
+      if (hasCompanyVar) {
+        bodyParameters.push({ type: 'text', text: company?.name || '' });
+      }
 
       // 1. Upload media
       const mediaFormData = new FormData();
@@ -145,7 +167,7 @@ export class WhatsAppService {
           type: 'template',
           template: {
             name: templateName,
-            language: { code: 'en' },
+            language: { code: templateLanguage },
             components: [
               {
                 type: 'header',
@@ -153,7 +175,7 @@ export class WhatsAppService {
               },
               {
                 type: 'body',
-                parameters: [{ type: 'text', text: bill.invoice_number || 'invoice' }],
+                parameters: bodyParameters,
               },
             ],
           },

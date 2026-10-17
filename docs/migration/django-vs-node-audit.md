@@ -144,3 +144,53 @@ This document establishes the line-by-line parity audit between the legacy Pytho
   - *Django*: Iterated over worker objects and performed separate queries.
   - *Node Initial*: Iterated over workers executing `findWorkerPayRecords` and `findWorkerMaterials` per worker ($2N + 1$ queries).
   - *Node Optimized*: Batches all active worker IDs into 2 parallel `$in` queries (`findBatchWorkerPayRecords`, `findBatchWorkerMaterials`), mapping in-memory in O(1) time. Total database roundtrips reduced from $2N + 1$ to exactly $3$ queries total.
+
+---
+
+## 10. Time Zone Parity & Server UTC Execution Audit
+
+This section audits how dates, month boundaries, and aggregation groupings are calculated across the Django backend and the Node backend on a UTC server (such as Render Linux environments where `TZ=UTC`).
+
+### 10.1 Django Server Date and Timezone Handling on UTC Server
+
+In `insightloop/insightloop/settings.py`, the configuration specifies `TIME_ZONE = "UTC"` and `USE_TZ = True`.
+
+1. **`dashboard/data_service.py`**:
+   - `get_summary_data`: Uses `now = datetime.now()`. On a UTC server, `datetime.now()` returns naive system datetime in UTC. `this_month_start = datetime(now.year, now.month, 1)` and `last_month_start = ...` evaluate to the 1st of the month at 00:00:00 UTC. Prior month comparisons and month boundaries are strictly UTC boundaries.
+   - `get_overview_data`: Uses `now = datetime.now()`. UTC evaluation for recent activity.
+   - `get_top_workers`: Uses `now = datetime.now()`. UTC evaluation.
+
+2. **`dashboard/queries.py`**:
+   - `get_revenue_expense_data`: Uses `end_date = timezone.localdate()`. Because Django's configured timezone is `UTC`, `localdate()` produces the current UTC calendar date. The range bounds `start_dt = datetime.combine(start_date, time.min)` and `end_dt = datetime.combine(end_date, time.max)` evaluate from 00:00:00.000 UTC to 23:59:59.999 UTC.
+   - MongoDB Aggregation Operators:
+     - `{"year": {"$year": "$date"}, "month": {"$month": "$date"}}`: No `timezone` parameter is supplied to MongoDB; MongoDB evaluates dates in UTC by default.
+     - `{"year": {"$year": "$date"}, "week": {"$week": "$date"}}`: MongoDB groups weeks 0-53 in UTC.
+     - `{"year": {"$year": "$date"}, "month": {"$month": "$date"}, "day": {"$dayOfMonth": "$date"}}`: Grouped by UTC calendar day.
+     - `{"year": {"$year": "$profit_confirmed_at"}, "month": {"$month": "$profit_confirmed_at"}}`: Evaluates profit timestamps in UTC.
+
+3. **`insights/views.py` & `insights/utils.py`**:
+   - `cutoff_date = datetime.now() - timedelta(days=days)`: System UTC timestamp.
+   - `end_date = datetime.now().date()`: Evaluates to UTC date.
+   - `start_dt = datetime.combine(start_date, datetime.min.time())`: Bounded at midnight UTC.
+
+4. **`upload/api_views.py`**:
+   - `datetime.strptime(row["date"], "%Y-%m-%d").date()`: Parses date string as naive calendar date. MongoEngine converts this to `ISODate("YYYY-MM-DDT00:00:00.000Z")` upon persistence.
+
+5. **`bills/models.py` & `bills/views.py`**:
+   - `Bill.created_at` / `updated_at`: Default `datetime.now`, persisted as naive UTC timestamp.
+   - `profit_confirmed_at`: Stamped with `datetime.now()` (UTC) when confirmed.
+   - `payment_date`: Default `datetime.now().isoformat()` (UTC).
+   - `shipment_confirmed_at`: Stamped with `datetime.now()` (UTC).
+
+### 10.2 Node Implementation & Parity Guarantees
+
+1. **`APP_TIME_ZONE` Default**:
+   - Set to `'UTC'` in `apps/api/src/config/env.ts`, `render-blueprint.yaml`, and `.env.example`.
+2. **Date Utility Functions (`apps/api/src/utils/timezone.ts`)**:
+   - `getMonthBoundaries(referenceDate, timeZone)`: Computes `currentMonthStart`, `prevMonthStart`, and `prevMonthEnd` with precision down to milliseconds in the target timezone (defaulting to `env.APP_TIME_ZONE`).
+   - `buildZonedDateRange(months, referenceDate, timeZone)`: Constructs month start/end bounds matching Django's `time.min` and `time.max`.
+3. **MongoDB Aggregation Pipelines (`apps/api/src/modules/dashboard/dashboard.service.ts`)**:
+   - All `$year`, `$month`, `$dayOfMonth`, and `$week` operators explicitly declare `timezone: env.APP_TIME_ZONE`. When `APP_TIME_ZONE=UTC`, aggregations produce identical groupings to Django's default UTC aggregations.
+4. **Boundary Verification**:
+   - Tested under both `TZ=UTC` and `TZ=Asia/Kolkata` with dates placed 1 millisecond before and after midnight UTC and month end. Numeric values and bucket assignments agree across both runtime modes.
+

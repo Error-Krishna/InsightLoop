@@ -8,7 +8,7 @@ This runbook defines the operational procedure for deploying InsightLoop MERN se
 ## 2. Architecture Overview
 | Layer | Service | Provider | Target / URL |
 |---|---|---|---|
-| **Frontend CDN** | React 19 SPA (`@insightloop/web`) | Vercel / Render Static | `https://insightloop-web.onrender.com` |
+| **Frontend CDN** | React 19 SPA (`@insightloop/web`) | Vercel | `https://insightloop.vercel.app` |
 | **Backend API** | Node.js 22 LTS API (`@insightloop/api`) | Render Web Service | `https://insightloop-api.onrender.com` |
 | **Primary Database** | MongoDB 6.0+ Multi-Tenant Replica Set | MongoDB Atlas (Staging) | Staging Replica Set cluster |
 | **Blob Storage** | GridFS (Primary) + S3 (Archive) | MongoDB GridFS / AWS S3 | Encrypted bucket `insightloop-staging-media` |
@@ -66,12 +66,23 @@ node scripts/check_render_env_parity.mjs
 ```
 *Expected output*: `[ENV-PARITY] SUCCESS: All 28 environment variables match exactly!`
 
-### Step 2: Verification of Vercel / Static CDN Routing
-Confirm `vercel.json` SPA rewrite rules and environment names:
+### Step 2: Configure Vercel Frontend Environment Variables
+In the Vercel dashboard (Project Settings -> Environment Variables), define EXACTLY the following three variables for the Production and Preview environments:
+
+| Variable | Staging / Production Value | Purpose |
+| :--- | :--- | :--- |
+| `VITE_API_BASE_URL` | `https://insightloop-api.onrender.com/api/v1` | Base URL for REST API requests |
+| `VITE_WS_BASE_URL` | `wss://insightloop-api.onrender.com` | Base URL for WebSocket connections |
+| `VITE_GOOGLE_CLIENT_ID` | `572736622320-3mtp1g63p07t1karnjo4df2nt3s6kmko.apps.googleusercontent.com` | Google Identity Services OAuth Client ID |
+
+> [!IMPORTANT]
+> The legacy variable `VITE_API_URL` has been completely eliminated from the codebase. Do NOT set `VITE_API_URL` in Vercel. All frontend API and WebSocket URL constructions strictly consume `VITE_API_BASE_URL` and `VITE_WS_BASE_URL`.
+
+Verify `apps/web/vercel.json` SPA rewrite rules:
 ```bash
 cat apps/web/vercel.json
 ```
-Ensure rewrites route `/(.*)` to `/index.html` and only reference env variable names (`@vite_api_url`, etc.) without baking sensitive secrets into client assets.
+Ensure rewrites route `/(.*)` to `/index.html`.
 
 ### Step 3: Trigger Blueprint Deployment on Render
 Deploy via Render Git sync or CLI:

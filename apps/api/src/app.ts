@@ -36,12 +36,20 @@ app.use(
   })
 );
 
-const allowedOrigins = env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean);
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) { callback(null, true); return; }
-      if (allowedOrigins.includes(origin)) {
+      const rawCors = process.env.CORS_ORIGIN || process.env.DJANGO_CORS_ALLOWED_ORIGINS || env.CORS_ORIGIN;
+      const corsList = rawCors.split(',').map((s) => s.trim()).filter(Boolean);
+      const frontendOrigin = process.env.FRONTEND_ORIGIN || env.FRONTEND_ORIGIN;
+      if (frontendOrigin && typeof frontendOrigin === 'string' && frontendOrigin.trim()) {
+        const trimmed = frontendOrigin.trim();
+        if (!corsList.includes(trimmed)) {
+          corsList.push(trimmed);
+        }
+      }
+      if (corsList.includes(origin)) {
         callback(null, true); return;
       }
       callback(null, false);
