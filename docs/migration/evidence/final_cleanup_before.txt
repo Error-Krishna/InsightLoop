@@ -1,0 +1,177 @@
+================================================================================
+FINAL CLEANUP BASELINE (BEFORE)
+Captured: 2026-10-18T00:43:30+05:30
+Branch: chore/final-cleanup (branched from main at 915c367)
+================================================================================
+
+1. GIT & CODEBASE METRICS
+--------------------------------------------------------------------------------
+Tracked Files (git ls-files | wc -l): 576
+Total Lines in Tracked Files: 1,611,020
+Total Lines (excluding pnpm-lock.yaml): 1,602,563
+
+2. DEPENDENCY & BUILD VERIFICATION
+--------------------------------------------------------------------------------
+pnpm install --frozen-lockfile:
+  Scope: all 6 workspace projects
+  Status: SUCCESS (Already up to date)
+
+pnpm build:
+  @insightloop/shared: tsc -> SUCCESS
+  @insightloop/api: tsc -> SUCCESS
+  @insightloop/web: vite build -> SUCCESS (36 dist assets generated)
+
+pnpm typecheck:
+  @insightloop/shared: tsc --noEmit -> SUCCESS
+  @insightloop/api: tsc --noEmit -> SUCCESS
+  @insightloop/web: tsc --noEmit -> SUCCESS
+  Status: SUCCESS (0 errors across all workspace packages)
+
+pnpm lint:
+  @insightloop/shared: eslint . -> SUCCESS (0 errors, 0 warnings)
+  @insightloop/web: eslint . -> SUCCESS (0 errors, 0 warnings)
+  @insightloop/api: eslint . -> 0 errors, 1 warning (security/detect-non-literal-fs-filename in pdf.service.ts:42:9)
+
+3. TEST SUITE COUNTS
+--------------------------------------------------------------------------------
+API Tests (pnpm --filter @insightloop/api test):
+  Test Files: 64 passed (64)
+  Tests: 356 passed (356)
+  Duration: 76.08s
+
+Web Tests (pnpm --filter @insightloop/web test):
+  Test Files: 26 passed (26)
+  Tests: 111 passed (111)
+  Duration: 5.53s
+
+Total Tests Passed: 467 tests across 90 test files.
+
+4. ROUTE WIRING (node scripts/check_wiring.mjs)
+--------------------------------------------------------------------------------
+Found 89 registered routes:
+GET      /
+GET      /health
+GET      /health/detailed
+GET      /metrics
+GET      /api/v1/health/live
+GET      /api/v1/health/ready
+GET      /api/v1/health/detailed
+GET      /api/v1/health/metrics
+POST     /api/v1/auth/login
+POST     /api/v1/auth/signup
+POST     /api/v1/auth/refresh
+POST     /api/v1/auth/google
+GET      /api/v1/profile
+PUT      /api/v1/profile
+GET      /api/v1/profile/settings
+PUT      /api/v1/profile/settings
+GET      /api/v1/inventory/warehouses
+POST     /api/v1/inventory/warehouses
+PUT      /api/v1/inventory/warehouses/:id
+DELETE   /api/v1/inventory/warehouses/:id
+GET      /api/v1/inventory/meta/warehouse-summary
+GET      /api/v1/inventory/warehouse-summary
+GET      /api/v1/inventory/finished
+POST     /api/v1/inventory/finished
+PUT      /api/v1/inventory/finished/:id
+DELETE   /api/v1/inventory/finished/:id
+GET      /api/v1/inventory/semi-finished/live
+GET      /api/v1/inventory/semi-finished
+POST     /api/v1/inventory/semi-finished
+PUT      /api/v1/inventory/semi-finished/:id
+DELETE   /api/v1/inventory/semi-finished/:id
+GET      /api/v1/inventory/raw
+POST     /api/v1/inventory/raw
+PUT      /api/v1/inventory/raw/:id
+DELETE   /api/v1/inventory/raw/:id
+GET      /api/v1/workers
+POST     /api/v1/workers
+POST     /api/v1/workers/materials/:assignment_id/batches
+PUT      /api/v1/workers/materials/:assignment_id/complete
+PUT      /api/v1/workers/payments/:payment_id/mark-paid
+POST     /api/v1/workers/payments/:payment_id/record-payment
+GET      /api/v1/workers/:worker_id/materials
+POST     /api/v1/workers/:worker_id/materials
+GET      /api/v1/workers/:worker_id/payments
+POST     /api/v1/workers/:worker_id/payments
+GET      /api/v1/workers/:worker_id
+PUT      /api/v1/workers/:worker_id
+DELETE   /api/v1/workers/:worker_id
+GET      /api/v1/bills
+POST     /api/v1/bills
+POST     /api/v1/bills/kacha
+_ALL     /api/v1/bills/kacha
+POST     /api/v1/bills/pakka
+_ALL     /api/v1/bills/pakka
+GET      /api/v1/bills/:id
+PUT      /api/v1/bills/:id
+DELETE   /api/v1/bills/:id
+POST     /api/v1/bills/:id/convert
+POST     /api/v1/bills/:id/record-payment
+GET      /api/v1/bills/:id/profit-preview
+POST     /api/v1/bills/:id/confirm-profit
+POST     /api/v1/bills/:id/reopen-profit
+POST     /api/v1/bills/:id/transportation-cost
+POST     /api/v1/bills/:id/misc-cost
+POST     /api/v1/bills/:id/ready-to-deliver
+POST     /api/v1/bills/:id/confirm-shipment
+GET      /api/v1/bills/:id/assignments
+GET      /api/v1/bills/:id/pdf
+POST     /api/v1/bills/:id/share-whatsapp
+GET      /api/v1/dashboard/overview
+GET      /api/v1/dashboard/summary
+GET      /api/v1/dashboard/rev-exp
+GET      /api/v1/dashboard/profit-trends
+GET      /api/v1/dashboard/workers
+GET      /api/v1/dashboard/top-workers
+GET      /api/v1/dashboard/export/:type
+GET      /api/v1/insights
+POST     /api/v1/insights/analyze
+GET      /api/v1/insights/:id/export
+DELETE   /api/v1/insights/:id
+POST     /api/v1/upload/manual
+POST     /api/v1/upload/csv
+GET      /api/v1/ai/config
+POST     /api/v1/ai/command
+POST     /api/v1/contact
+_ALL     /api/v1/contact
+POST     /contact
+_ALL     /contact
+GET      /media/*
+
+Wiring Audit Summary:
+Total registered Express route entries: 89
+Extracted 80 API calls from apps/web/src/
+[WIRING-A] All 80 web client HTTP requests map to registered Express routes.
+[WIRING-B] Every registered Express route is either wired to the SPA or documented in public-api-surface.md with justification.
+[WIRING-C] WebSocket bidirectional message schemas and event types are 100% reciprocal.
+[WIRING-D] All backend and frontend environment variable accesses are fully declared across schemas and blueprints.
+[WIRING-E] All 19 routed React pages have verified integration tests covering [loading, empty, error, success].
+[WIRING-E] Verified test coverage across registered Express route paths (70/89 routes explicitly tested).
+Status: 0 violations.
+
+5. PRODUCTION BOOT SMOKE TEST (node scripts/smoke_test.mjs http://127.0.0.1:4000)
+--------------------------------------------------------------------------------
+Backend API Target : http://127.0.0.1:4000
+Frontend Origin    : https://insightloop.vercel.app
+
+[PASS] Step 1.1 - GET /health: HTTP 200 OK {"status":"ok","timestamp":"2026-10-17T19:13:23.232Z","uptime":0.11714275,"db":"connected"}
+[PASS] Step 1.2 - GET /: HTTP 302 Found Redirect target: https://insightloop.vercel.app
+[PASS] Step 2 - CORS Preflight: HTTP 204 No Content Allow-Origin: https://insightloop.vercel.app, Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE
+[PASS] Step 3.1 - User Signup: HTTP 201 Created Token issued, company: prod-test-company, user: Smoke Tester
+[PASS] Step 3.2 - User Login: HTTP 200 OK Token re-issued for test user
+[PASS] Step 3.3 - Token Refresh: HTTP 200 OK New access token rotated successfully
+[PASS] Step 4.1 - Create Worker: HTTP 201 Created Worker ID: 6ad3c8d3f8e1a0aaf8dce6c2, Name: Smoke Worker 1
+[PASS] Step 4.2 - Create Inventory Item: HTTP 201 Created Item ID: 6ad3c8d3f8e1a0aaf8dce6c3, Initial stock: 25
+[PASS] Step 4.3 - Create Bill with Payment: HTTP 201 Created Bill ID: 6ad3c8d3f8e1a0aaf8dce6c4, Grand Total: 300, Paid: 150, Balance: 150
+[PASS] Step 4.4 - Bill PDF Generation: HTTP 200 OK Header: "%PDF", Size: 32386 bytes
+[PASS] Step 4.5 - Dashboard Overview Numbers: HTTP 200 OK Bills Count: 1, Active Workers: 1
+[PASS] Step 5.1 - CSV Upload: HTTP 200 OK Processed 2 records from CSV
+[PASS] Step 5.2 - Dashboard Financials Updated: HTTP 200 OK Live Total Revenue from uploaded data: ₹750
+[PASS] Step 5.3 - WebSocket Gateway Connection: Connected and received initial dashboard frame Frame keys: summary, revExp, profitTrends, workers, topWorkers, billsCount
+[PASS] Step 6 - Contact Submission: HTTP 200 OK {"status":"ok"}
+[PASS] Step 7 - Teardown / Cleanup: All created test entities successfully deleted Bill: HTTP 204, Item: HTTP 204, Worker: HTTP 204
+
+TOTAL CHECKS: 16 | PASSED: 16 | FAILED: 0
+Result: ALL SMOKE TESTS PASSED - Service is verified and production-ready!
+================================================================================
