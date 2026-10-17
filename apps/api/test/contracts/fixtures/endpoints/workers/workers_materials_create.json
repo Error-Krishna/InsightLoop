@@ -1,0 +1,24 @@
+{
+  "status": 201,
+  "contentType": "application/json",
+  "body": {
+    "assignment_date": "<ISO_TIMESTAMP>",
+    "balance_quantity": 15,
+    "batches": [],
+    "bill_id": null,
+    "completed_at": null,
+    "delivered_quantity": 0,
+    "id": "<OBJECT_ID>",
+    "material_name": "Chair Framing",
+    "notes": "Pre-cut wooden parts",
+    "over_returned": false,
+    "pay_record_id": null,
+    "price_per_unit": 40,
+    "quantity": 15,
+    "status": "open",
+    "total_value": 600,
+    "wage_amount": 600,
+    "wastage_quantity": null,
+    "worker_id": "<OBJECT_ID>"
+  }
+}

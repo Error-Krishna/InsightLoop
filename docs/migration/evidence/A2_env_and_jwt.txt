@@ -1,0 +1,11 @@
+$ vitest run test/env_and_jwt_derivation.test.ts
+
+ RUN  v3.2.7 <REPO_ROOT>/apps/api
+
+ ✓ test/env_and_jwt_derivation.test.ts (12 tests) 286ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  00:51:30
+   Duration  531ms (transform 38ms, setup 0ms, collect 76ms, tests 286ms, environment 0ms, prepare 55ms)
+

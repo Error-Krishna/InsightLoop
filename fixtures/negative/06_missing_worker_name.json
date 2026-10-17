@@ -1,0 +1,13 @@
+{
+  "id": "06_missing_worker_name",
+  "description": "Worker missing required name",
+  "endpoint": "/api/v1/workers",
+  "method": "POST",
+  "payload": {
+    "phone": "9999999999",
+    "address": "Test Addr"
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Worker name is required",
+  "useAuth": true
+}

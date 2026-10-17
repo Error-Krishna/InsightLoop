@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "starter_prompts": [
+      "Export business trends",
+      "Show me revenue trends",
+      "Show worker productivity"
+    ],
+    "websocket_path": "/ws/ai-assistant/"
+  }
+}

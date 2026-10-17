@@ -1,0 +1,21 @@
+{
+  "id": "01_missing_company_id_bill",
+  "description": "Bill creation without authentication credentials",
+  "endpoint": "/api/v1/bills/pakka",
+  "method": "POST",
+  "payload": {
+    "buyer": {
+      "name": "Buyer Test"
+    },
+    "products": [
+      {
+        "name": "Item",
+        "quantity": 1,
+        "rate": 100
+      }
+    ]
+  },
+  "expectedStatus": 401,
+  "expectedErrorSubstring": "Authentication credentials were not provided",
+  "useAuth": false
+}

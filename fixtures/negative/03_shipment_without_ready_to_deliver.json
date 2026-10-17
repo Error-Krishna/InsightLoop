@@ -1,0 +1,10 @@
+{
+  "id": "03_shipment_without_ready_to_deliver",
+  "description": "Confirming shipment on bill without ready-to-deliver batches",
+  "endpoint": "/api/v1/bills/:kachaBillId/confirm-shipment",
+  "method": "POST",
+  "payload": {},
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "No ready-to-deliver batches recorded for this order yet.",
+  "useAuth": true
+}

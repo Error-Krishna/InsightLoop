@@ -1,0 +1,11 @@
+$ vitest run test/error_handler_envelope.test.ts
+
+ RUN  v3.2.7 <REPO_ROOT>/apps/api
+
+ ✓ test/error_handler_envelope.test.ts (9 tests) 29ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  00:55:09
+   Duration  359ms (transform 51ms, setup 0ms, collect 186ms, tests 29ms, environment 0ms, prepare 54ms)
+

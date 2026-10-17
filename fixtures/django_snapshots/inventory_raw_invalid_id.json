@@ -1,0 +1,11 @@
+{
+  "id": "inventory_raw_invalid_id",
+  "description": "Update raw material with malformed ObjectId",
+  "nodeEndpoint": "/api/v1/inventory/raw/invalid_id",
+  "djangoEndpoint": "/api/v1/inventory/raw/invalid_id/",
+  "method": "PUT",
+  "status": 400,
+  "body": {
+    "detail": "Invalid id."
+  }
+}

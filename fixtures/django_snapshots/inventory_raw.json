@@ -1,0 +1,27 @@
+{
+  "id": "inventory_raw",
+  "description": "List raw materials inventory items",
+  "nodeEndpoint": "/api/v1/inventory/raw",
+  "djangoEndpoint": "/api/v1/inventory/raw/",
+  "method": "GET",
+  "status": 200,
+  "body": [
+    {
+      "id": "670d8a000000000000000022",
+      "name": "Oak Timber",
+      "unit": "kg",
+      "type": "raw",
+      "selling_price": 500,
+      "cost_price": 300,
+      "quantity": 200,
+      "reorder_level": 20,
+      "warehouse_id": "670d8a000000000000000011",
+      "warehouse_name": "South Depot",
+      "image_url": null,
+      "sku": "SKU-00003",
+      "status": "In Stock",
+      "created_at": "2026-04-07T21:00:00",
+      "updated_at": "2026-04-07T21:00:00"
+    }
+  ]
+}

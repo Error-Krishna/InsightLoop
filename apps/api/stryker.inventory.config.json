@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-core.json",
+  "packageManager": "pnpm",
+  "mutate": [
+    "src/modules/inventory/inventory.service.ts"
+  ],
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "./node_modules/.bin/vitest run test/inventory.test.ts"
+  },
+  "coverageAnalysis": "off",
+  "reporters": ["progress", "clear-text", "json"],
+  "concurrency": 6,
+  "timeoutMS": 10000
+}

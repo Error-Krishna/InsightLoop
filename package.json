@@ -1,0 +1,38 @@
+{
+  "name": "insightloop-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:contracts": "node scripts/run_contract_suite.mjs --assert",
+    "test:contracts:record": "node scripts/run_contract_suite.mjs --record",
+    "test:dual-stack": "node scripts/test_dual_stack.mjs",
+    "test:tenancy": "node scripts/test_tenancy_security.mjs",
+    "test:chaos": "node scripts/test_chaos_resilience.mjs",
+    "test:benchmark": "node scripts/run_load_benchmark.mjs",
+    "check:citations": "node scripts/check_citations.mjs",
+    "check:shape": "node scripts/check_doc_shape.mjs",
+    "typecheck": "turbo run typecheck",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-security": "^4.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "tsx": "^4.23.15",
+    "turbo": "^2.4.4",
+    "typescript-eslint": "^8.71.2"
+  }
+}

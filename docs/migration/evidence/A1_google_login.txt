@@ -1,0 +1,14 @@
+$ vitest run test/google_login_security.test.ts
+
+ RUN  v3.2.7 <REPO_ROOT>/apps/api
+
+stdout | test/google_login_security.test.ts > A1: Google Login Audience & Security
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/google_login_security.test.ts (8 tests) 1675ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  00:49:57
+   Duration  2.39s (transform 168ms, setup 0ms, collect 571ms, tests 1.67s, environment 0ms, prepare 46ms)
+

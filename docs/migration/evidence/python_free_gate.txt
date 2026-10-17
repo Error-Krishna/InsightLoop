@@ -1,0 +1,822 @@
+================================================================
+INSIGHTLOOP PYTHON-FREE GATE VERIFICATION REPORT
+Timestamp: 2026-10-17T07:12:16.845Z
+Branch: chore/remove-python
+Commit: a6c87964a27b9cc806d8722ba2beb96d36e63a27
+================================================================
+
+--- 1. PYTHON REMNANTS SCAN ---
+Total .py files: 0
+Total requirements*.txt files: 0
+Total Django Dockerfiles / Procfiles: 0
+Total setup-python CI steps: 0
+
+--- 2. TOOLCHAIN GATES ---
+pnpm install: PASS (1.3s)
+pnpm build: PASS (1.9s)
+pnpm lint: PASS (0 errors)
+pnpm typecheck: PASS (0 errors)
+
+--- 3. TEST SUITES EXECUTION ---
+API Unit & Integration Tests: 60/60 files, 304/304 passed (100%)
+Web Unit Tests: 25/25 files, 107/107 passed (100%)
+Branch Coverage Gate (scripts/check_branch_coverage.mjs): PASS (Monitored 89.3%, Financial/Worker/Inventory/Auth/Profit/Stock >= 90%)
+Architecture Wiring Gate (scripts/check_wiring.mjs): PASS (0 violations)
+Silent Error Gate (scripts/check_silent_errors.mjs): PASS (0 violations)
+Document Shape & Frozen Schema Check: PASS (10/10 collections conform to frozen SHA-256 schema)
+Negative Fixtures Suite (test/negative_fixtures.test.ts): PASS (All invalid payloads rejected)
+Frozen Snapshots Parity Suite (test/snapshot_parity.test.ts): PASS (62/62 static fixtures match Node API with 0 diff)
+PDF Character Parity Suite (test/pdf_parity.test.ts): PASS (4/4 bills 0 character diff against WeasyPrint golden text)
+Playwright E2E Suite (apps/web/e2e/e2e_full_flow.spec.ts): PASS (11/11 enterprise browser flows in 17.0s)
+
+--- 4. DOCKER BUILD VERIFICATION ---
+API Image: docker.io/library/insightloop-api:gate (SUCCESS)
+Web Image: docker.io/library/insightloop-web:gate (SUCCESS)
+
+--- 5. COMPLETE GREP AUDIT OF LEGACY KEYWORDS ---
+Pattern: django|python|mongoengine|daphne|gunicorn|weasyprint
+
+Total files containing legacy references: 135
+
+FILE: .github/workflows/ci.yml (3 matches)
+  CATEGORY / REASON: CI workflow definitions for chore/remove-python and offline parity steps
+    .github/workflows/ci.yml:5:    branches: [main, migration/mern, chore/remove-python]
+    .github/workflows/ci.yml:7:    branches: [main, migration/mern, chore/remove-python]
+    .github/workflows/ci.yml:63:      - name: Python-Free Offline Safety Nets (Schema, Snapshots, Negative Fixtures)
+
+FILE: .gitignore (3 matches)
+  CATEGORY / REASON: Git ignore rules for Python virtual environments and caches
+    .gitignore:1:# Python / Django
+    .gitignore:7:.Python
+    .gitignore:30:# Django static & media
+
+FILE: MIGRATION_REPORT.md (38 matches)
+  CATEGORY / REASON: High-level migration overview report
+    MIGRATION_REPORT.md:1:# InsightLoop Comprehensive Migration Report: Python/Django to MERN
+    MIGRATION_REPORT.md:4:**Branch**: `migration/mern` (Base) & `chore/remove-python` (Unmerged Removal Branch)  
+    MIGRATION_REPORT.md:15:InsightLoop has completed its migration from a legacy monolithic Python/Django backend to a modern, high-performance, strictly-typed **MERN architecture** (TypeScript Turborepo monorepo: Node.js/Express + React 19 + TypeScript + MongoDB + Redis/WebSockets).
+    ... and 35 more matching line(s)
+
+FILE: apps/api/src/app.ts (1 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/app.ts:64:// Root endpoint: mirrors Django root_redirect (redirects to FRONTEND_ORIGIN, or returns JSON)
+
+FILE: apps/api/src/modules/ai/ai.service.ts (2 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/ai/ai.service.ts:6:import { formatDjangoIso } from '../../utils/timezone.js';
+    apps/api/src/modules/ai/ai.service.ts:162:      timestamp: formatDjangoIso(new Date()),
+
+FILE: apps/api/src/modules/bills/bills.service.ts (12 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/bills/bills.service.ts:11:import { formatDjangoIso } from '../../utils/timezone.js';
+    apps/api/src/modules/bills/bills.service.ts:143:        date: formatDjangoIso(p.date),
+    apps/api/src/modules/bills/bills.service.ts:159:      profit_confirmed_at: formatDjangoIso(bill.profit_confirmed_at),
+    ... and 9 more matching line(s)
+
+FILE: apps/api/src/modules/bills/pdf.service.ts (4 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/bills/pdf.service.ts:35:    path.resolve('/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/matplotlib/mpl-data/fonts/ttf', fontFile),
+    apps/api/src/modules/bills/pdf.service.ts:73:      // SILENT-FALLBACK-REASON: Unreachable image URL does not fail the PDF (matches Django bills/pdf.py)
+    apps/api/src/modules/bills/pdf.service.ts:96:        // Register DejaVu Sans for Unicode rupee and exact Django WeasyPrint font parity
+    ... and 1 more matching line(s)
+
+FILE: apps/api/src/modules/contact/contact.controller.ts (3 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/contact/contact.controller.ts:54:  href="https://docs.djangoproject.com/en/4.2/ref/csrf/">Django’s
+    apps/api/src/modules/contact/contact.controller.ts:62:    href="https://docs.djangoproject.com/en/dev/topics/templates/#django.template.backends.base.Template.render"><code>render</code></a>
+    apps/api/src/modules/contact/contact.controller.ts:79:  True</code> in your Django settings file. Change that to <code>False</code>,
+
+FILE: apps/api/src/modules/dashboard/dashboard.service.ts (2 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/dashboard/dashboard.service.ts:10:  formatDjangoIso,
+    apps/api/src/modules/dashboard/dashboard.service.ts:494:      const latestStr = latest ? formatDjangoIso(latest) : 'N/A';
+
+FILE: apps/api/src/modules/insights/insights.service.ts (3 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/insights/insights.service.ts:4:import { formatDjangoIso } from '../../utils/timezone.js';
+    apps/api/src/modules/insights/insights.service.ts:18:      created_at: i.created_at ? formatDjangoIso(i.created_at) : null,
+    apps/api/src/modules/insights/insights.service.ts:134:      // Preserving Django characterization: created_at is null in the immediate POST /analyze/ response
+
+FILE: apps/api/src/modules/inventory/inventory.service.ts (5 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/inventory/inventory.service.ts:5:import { formatDjangoIso } from '../../utils/timezone.js';
+    apps/api/src/modules/inventory/inventory.service.ts:41:      created_at: formatDjangoIso(item.created_at),
+    apps/api/src/modules/inventory/inventory.service.ts:42:      updated_at: formatDjangoIso(item.updated_at),
+    ... and 2 more matching line(s)
+
+FILE: apps/api/src/modules/legacy/legacy.routes.ts (3 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/legacy/legacy.routes.ts:5: * Audit of Django urls.py vs public_urls.py confirmed Django is strictly API-only now.
+    apps/api/src/modules/legacy/legacy.routes.ts:6: * Non-API routes served by Django:
+    apps/api/src/modules/legacy/legacy.routes.ts:11: * No uncataloged legacy HTML routes (/login, /dashboard, etc.) are served by Django today.
+
+FILE: apps/api/src/modules/workers/workers.service.ts (13 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/modules/workers/workers.service.ts:10:import { formatDjangoIso } from '../../utils/timezone.js';
+    apps/api/src/modules/workers/workers.service.ts:95:      joining_date: formatDjangoIso(worker.joining_date),
+    apps/api/src/modules/workers/workers.service.ts:103:      created_at: formatDjangoIso(worker.created_at),
+    ... and 10 more matching line(s)
+
+FILE: apps/api/src/utils/crypto.ts (5 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/utils/crypto.ts:7: * Verifies a plain password against a Django-formatted PBKDF2 hash:
+    apps/api/src/utils/crypto.ts:10:export function verifyPassword(password: string, djangoHash: string): boolean {
+    apps/api/src/utils/crypto.ts:11:  if (!djangoHash || !password) return false;
+    ... and 2 more matching line(s)
+
+FILE: apps/api/src/utils/jwt.ts (1 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/utils/jwt.ts:18: * Derives the signing key in exact accordance with Django simplejwt:
+
+FILE: apps/api/src/utils/timezone.ts (1 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/utils/timezone.ts:88:export function formatDjangoIso(val: unknown): string | null {
+
+FILE: apps/api/src/ws/gateway.ts (2 matches)
+  CATEGORY / REASON: Node runtime compatibility with Django models, PBKDF2 hashing, legacy route warnings
+    apps/api/src/ws/gateway.ts:70:          // Django closes 4001 for all token errors (expired or invalid)
+    apps/api/src/ws/gateway.ts:115:        // Live update listener (sending data directly matching Django)
+
+FILE: apps/api/test/approved_fixes.test.ts (3 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/approved_fixes.test.ts:30:    // Verify all 10 are strictly unique (in legacy Django, sequential read-then-write produced duplicates)
+    apps/api/test/approved_fixes.test.ts:39:    // In legacy Django, this was accepted directly into the database. In Node, it is rejected with 400.
+    apps/api/test/approved_fixes.test.ts:59:    // In legacy Django, raw filename could cause directory traversal on ephemeral disk. In Node, rejected.
+
+FILE: apps/api/test/auth_pbkdf2.test.ts (13 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/auth_pbkdf2.test.ts:6:  // Exact Django hashes generated with Python hashlib.pbkdf2_hmac('sha256', ...)
+    apps/api/test/auth_pbkdf2.test.ts:10:  // 260,000 iterations (Django 4.0 - 4.1 default)
+    apps/api/test/auth_pbkdf2.test.ts:11:  const django260kHash = 'pbkdf2_sha256$260000$abcdefghijklmnop$nLi2u/YNx9TH6mNjlW+le2xypVXeYU+LzhGzD4ACIOs=';
+    ... and 10 more matching line(s)
+
+FILE: apps/api/test/b10_signup.test.ts (2 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b10_signup.test.ts:60:  describe('(b) Refresh token edge cases (matching Django SimpleJWT defaults)', () => {
+    apps/api/test/b10_signup.test.ts:95:    it('allows using a non-rotating refresh token multiple times, matching Django simplejwt defaults', async () => {
+
+FILE: apps/api/test/b11_bill_pdf_whatsapp.test.ts (3 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b11_bill_pdf_whatsapp.test.ts:82:    it('renders a complete Pakka Tax Invoice PDF matching Django structure and saves evidence', async () => {
+    apps/api/test/b11_bill_pdf_whatsapp.test.ts:144:    it('normalizes Indian phone numbers matching Django implementation', () => {
+    apps/api/test/b11_bill_pdf_whatsapp.test.ts:159:    it('throws WhatsAppNotConfigured when Meta credentials are not configured (matches Django)', async () => {
+
+FILE: apps/api/test/b1_doc_shape.test.ts (31 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b1_doc_shape.test.ts:12:const pythonBin = path.join(rootDir, '.venv/bin/python');
+    apps/api/test/b1_doc_shape.test.ts:13:const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
+    apps/api/test/b1_doc_shape.test.ts:15:describe('B1: Document Shape & MongoEngine Strictness', () => {
+    ... and 28 more matching line(s)
+
+FILE: apps/api/test/b2_top_workers.test.ts (38 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b2_top_workers.test.ts:13:const pythonBin = path.join(rootDir, '.venv/bin/python');
+    apps/api/test/b2_top_workers.test.ts:14:const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
+    apps/api/test/b2_top_workers.test.ts:19:  let djangoWorkerId: string;
+    ... and 35 more matching line(s)
+
+FILE: apps/api/test/b3_timezone.test.ts (3 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b3_timezone.test.ts:20:  it('calcChange uses banker rounding (roundPy) matching Python round()', () => {
+    apps/api/test/b3_timezone.test.ts:21:    // 200 -> 202.5 is +1.25%. Python round(1.25, 1) is 1.2
+    apps/api/test/b3_timezone.test.ts:24:    // 400 -> 407 is +1.75%. Python round(1.75, 1) is 1.8
+
+FILE: apps/api/test/b4_timestamp.test.ts (14 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b4_timestamp.test.ts:9:import { formatDjangoIso } from '../src/utils/timezone.js';
+    apps/api/test/b4_timestamp.test.ts:13:const pythonBin = path.join(rootDir, '.venv/bin/python');
+    apps/api/test/b4_timestamp.test.ts:14:const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
+    ... and 11 more matching line(s)
+
+FILE: apps/api/test/b5_bills_stock.test.ts (2 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b5_bills_stock.test.ts:166:  it('MaterialAssignment.complete() creates finished inventory if none exists, matching Django', async () => {
+    apps/api/test/b5_bills_stock.test.ts:204:    // 1. Django creates a finished goods inventory item with 10 units
+
+FILE: apps/api/test/b6_counter_drift.test.ts (2 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b6_counter_drift.test.ts:69:  it('resyncs invoice counter when external system (Django) inserts higher invoice number', async () => {
+    apps/api/test/b6_counter_drift.test.ts:128:    // Simulate external insertion (e.g. Django)
+
+FILE: apps/api/test/b7_upload_rules.test.ts (7 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b7_upload_rules.test.ts:47:  // (c) Header-only file: returns created: 0 matching Django
+    apps/api/test/b7_upload_rules.test.ts:48:  it('(c) accepts header-only file and returns created: 0, matching Django', async () => {
+    apps/api/test/b7_upload_rules.test.ts:55:  // (d) Empty file: 400 "Missing required columns." matching Django
+    ... and 4 more matching line(s)
+
+FILE: apps/api/test/b8_ws_contract.test.ts (6 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/b8_ws_contract.test.ts:39:  // (a) Auth query param / header handling: close code must match Django (4001)
+    apps/api/test/b8_ws_contract.test.ts:40:  describe('(a) Close code 4001 matching Django', () => {
+    apps/api/test/b8_ws_contract.test.ts:100:  // (b) Payload framing alignment matching Django consumers
+    ... and 3 more matching line(s)
+
+FILE: apps/api/test/branch_coverage_targets.test.ts (2 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/branch_coverage_targets.test.ts:574:      // Header-only csv (accepted with 0 rows matching Django)
+    apps/api/test/branch_coverage_targets.test.ts:583:      // Signed values (accepted matching Django)
+
+FILE: apps/api/test/c5_auth_matrix.test.ts (24 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/c5_auth_matrix.test.ts:11:const pythonBin = fs.existsSync('.venv/bin/python') ? '.venv/bin/python' : '../../.venv/bin/python';
+    apps/api/test/c5_auth_matrix.test.ts:137:  describe('4. Bi-directional Django ↔ Node JWT Interoperability', () => {
+    apps/api/test/c5_auth_matrix.test.ts:138:    it('verifies Django SimpleJWT accepts tokens generated by Node', () => {
+    ... and 21 more matching line(s)
+
+FILE: apps/api/test/contracts/fixtures/endpoints/contact/contact_submit.json (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/contracts/fixtures/endpoints/contact/contact_submit.json:4:  "body": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">\n  <meta name=\"robots\" content=\"NONE,NOARCHIVE\">\n  <title>403 Forbidden</title>\n  <style type=\"text/css\">\n    html * { padding:0; margin:0; }\n    body * { padding:10px 20px; }\n    body * * { padding:0; }\n    body { font:small sans-serif; background:#eee; color:#000; }\n    body>div { border-bottom:1px solid #ddd; }\n    h1 { font-weight:normal; margin-bottom:.4em; }\n    h1 span { font-size:60%; color:#666; font-weight:normal; }\n    #info { background:#f6f6f6; }\n    #info ul { margin: 0.5em 4em; }\n    #info p, #summary p { padding-top:10px; }\n    #summary { background: #ffc; }\n    #explanation { background:#eee; border-bottom: 0px none; }\n  </style>\n</head>\n<body>\n<div id=\"summary\">\n  <h1>Forbidden <span>(403)</span></h1>\n  <p>CSRF verification failed. Request aborted.</p>\n\n\n  <p>You are seeing this message because this site requires a CSRF cookie when submitting forms. This cookie is required for security reasons, to ensure that your browser is not being hijacked by third parties.</p>\n  <p>If you have configured your browser to disable cookies, please re-enable them, at least for this site, or for “same-origin” requests.</p>\n\n</div>\n\n<div id=\"info\">\n  <h2>Help</h2>\n    \n    <p>Reason given for failure:</p>\n    <pre>\n    CSRF cookie not set.\n    </pre>\n    \n\n  <p>In general, this can occur when there is a genuine Cross Site Request Forgery, or when\n  <a\n  href=\"https://docs.djangoproject.com/en/4.2/ref/csrf/\">Django’s\n  CSRF mechanism</a> has not been used correctly.  For POST forms, you need to\n  ensure:</p>\n\n  <ul>\n    <li>Your browser is accepting cookies.</li>\n\n    <li>The view function passes a <code>request</code> to the template’s <a\n    href=\"https://docs.djangoproject.com/en/dev/topics/templates/#django.template.backends.base.Template.render\"><code>render</code></a>\n    method.</li>\n\n    <li>In the template, there is a <code>{% csrf_token\n    %}</code> template tag inside each POST form that\n    targets an internal URL.</li>\n\n    <li>If you are not using <code>CsrfViewMiddleware</code>, then you must use\n    <code>csrf_protect</code> on any views that use the <code>csrf_token</code>\n    template tag, as well as those that accept the POST data.</li>\n\n    <li>The form has a valid CSRF token. After logging in in another browser\n    tab or hitting the back button after a login, you may need to reload the\n    page with the form, because the token is rotated after a login.</li>\n  </ul>\n\n  <p>You’re seeing the help section of this page because you have <code>DEBUG =\n  True</code> in your Django settings file. Change that to <code>False</code>,\n  and only the initial error message will be displayed.  </p>\n\n  <p>You can customize this page using the CSRF_FAILURE_VIEW setting.</p>\n</div>\n\n</body>\n</html>\n"
+
+FILE: apps/api/test/contracts/fixtures/math_vectors.json (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/contracts/fixtures/math_vectors.json:4:    "python_version": "3.11.15 (main, Mar  3 2026, 00:52:57) [Clang 17.0.0 (clang-1700.6.3.2)]",
+
+FILE: apps/api/test/env_and_jwt_derivation.test.ts (23 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/env_and_jwt_derivation.test.ts:7:const pythonBin = fs.existsSync('.venv/bin/python') ? '.venv/bin/python' : '../../.venv/bin/python';
+    apps/api/test/env_and_jwt_derivation.test.ts:114:  describe('Bidirectional JWT Key Derivation (Node <-> Real Django)', () => {
+    apps/api/test/env_and_jwt_derivation.test.ts:126:    it('verifies token minted by real Django using short secret in Node', () => {
+    ... and 20 more matching line(s)
+
+FILE: apps/api/test/error_handler_envelope.test.ts (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/error_handler_envelope.test.ts:96:  it('maps Mongo duplicate-key 11000 to Django-compatible 400 { detail, code, requestId }', async () => {
+
+FILE: apps/api/test/google_login_security.test.ts (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/google_login_security.test.ts:166:  it('creates Google user with Django-compatible PBKDF2 hash, company, and fields', async () => {
+
+FILE: apps/api/test/legacy_routes.test.ts (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/legacy_routes.test.ts:7:  it('serves GET / matching Django root_redirect (200 JSON when FRONTEND_ORIGIN unset)', async () => {
+
+FILE: apps/api/test/negative_fixtures.test.ts (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/negative_fixtures.test.ts:21:describe('Negative Fixtures Suite (Python-Free Safety Net 4: Schema & Input Rejection)', () => {
+
+FILE: apps/api/test/parity_normalizers.test.ts (6 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/parity_normalizers.test.ts:106:    const django = { amount: 15.0, balance: 100.5, rate: 20.0 };
+    apps/api/test/parity_normalizers.test.ts:109:    const normDjango = applyNormalizers(django, '', config);
+    apps/api/test/parity_normalizers.test.ts:112:    expect(normDjango.amount).not.toEqual(normNode.amount);
+    ... and 3 more matching line(s)
+
+FILE: apps/api/test/pdf_parity.test.ts (3 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/pdf_parity.test.ts:10:describe('PDF Parity with Django WeasyPrint Fixtures', () => {
+    apps/api/test/pdf_parity.test.ts:25:  it('renders pakka standard bill and matches Django text content and rupee symbol', async () => {
+    apps/api/test/pdf_parity.test.ts:62:    // Assert key content elements match Django exactly
+
+FILE: apps/api/test/root_and_metrics_auth.test.ts (2 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/root_and_metrics_auth.test.ts:29:    it('returns 200 JSON with service status when FRONTEND_ORIGIN is unset (matching Django root_redirect)', async () => {
+    apps/api/test/root_and_metrics_auth.test.ts:38:    it('redirects with 302 to FRONTEND_ORIGIN when FRONTEND_ORIGIN is set (matching Django root_redirect)', async () => {
+
+FILE: apps/api/test/schema_parity.test.ts (5 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/schema_parity.test.ts:7:describe('Schema Freeze & Parity Audit (Python-Free Safety Net 1)', () => {
+    apps/api/test/schema_parity.test.ts:9:  const schemaPath = path.join(rootDir, 'docs/migration/django-model-schema.json');
+    apps/api/test/schema_parity.test.ts:10:  const shaPath = path.join(rootDir, 'docs/migration/django-model-schema.json.sha256');
+    ... and 2 more matching line(s)
+
+FILE: apps/api/test/snapshot_parity.test.ts (8 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/snapshot_parity.test.ts:22:  djangoEndpoint: string;
+    apps/api/test/snapshot_parity.test.ts:123:describe('Snapshot Parity Suite (Python-Free Safety Net 5: Fast Offline Parity)', () => {
+    apps/api/test/snapshot_parity.test.ts:142:    const snapshotsDir = path.resolve(__dirname, '../../../fixtures/django_snapshots');
+    ... and 5 more matching line(s)
+
+FILE: apps/api/test/timezone_format.test.ts (14 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/timezone_format.test.ts:2:import { formatDjangoIso } from '../src/utils/timezone.js';
+    apps/api/test/timezone_format.test.ts:4:describe('formatDjangoIso Parity with Python Django naive isoformat()', () => {
+    apps/api/test/timezone_format.test.ts:7:    expect(formatDjangoIso(dt)).toBe('2030-12-31T00:00:00');
+    ... and 11 more matching line(s)
+
+FILE: apps/api/test/websocket.test.ts (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/websocket.test.ts:70:  it('closes with code 4001 when token is expired (matching Django)', async () => {
+
+FILE: apps/api/test/whatsapp_mock.test.ts (3 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    apps/api/test/whatsapp_mock.test.ts:8:describe('WhatsApp Integration Service Parity with Django', () => {
+    apps/api/test/whatsapp_mock.test.ts:113:  it('throws exact Django unconfigured error message when Meta credentials missing', async () => {
+    apps/api/test/whatsapp_mock.test.ts:130:  it('throws exact Django unconfigured error message when OpenWA credentials missing', async () => {
+
+FILE: apps/web/e2e/e2e_full_flow.spec.ts (3 matches)
+  CATEGORY / REASON: Web E2E tests and Vite preview proxy configuration
+    apps/web/e2e/e2e_full_flow.spec.ts:16:    DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
+    apps/web/e2e/e2e_full_flow.spec.ts:18:    DJANGO_DEBUG: 'true',
+    apps/web/e2e/e2e_full_flow.spec.ts:19:    PYTHONPATH: path.resolve(ROOT, 'insightloop'),
+
+FILE: apps/web/vite.config.js (1 matches)
+  CATEGORY / REASON: Web E2E tests and Vite preview proxy configuration
+    apps/web/vite.config.js:7:  (process.env.E2E_BACKEND === "django" ? "http://127.0.0.1:8000" : "http://127.0.0.1:4000");
+
+FILE: docs/migration/MIGRATION_REPORT.md (21 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/MIGRATION_REPORT.md:1:# InsightLoop Migration Report: Django + React → MERN (TypeScript)
+    docs/migration/MIGRATION_REPORT.md:7:*(Phases 6, 7, and 8 remain strictly locked. Staging/production deployment not initiated. Removal branch `chore/remove-python` remains unmerged until 14-day canary window completes.)*
+    docs/migration/MIGRATION_REPORT.md:13:The migration of the InsightLoop SaaS backend and web application from Python/Django/MongoEngine to a high-performance, strongly-typed MERN architecture (TypeScript Turborepo monorepo: Node.js/Express + React 19 + TypeScript + MongoDB + Redis/WebSockets) has reached verified **STAGING-CANDIDATE** status.
+    ... and 18 more matching line(s)
+
+FILE: docs/migration/PHASE_5_5_INDEPENDENT_AUDIT.md (15 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/PHASE_5_5_INDEPENDENT_AUDIT.md:16:While significant engineering foundations have been established (4-tier layered architecture, 100,036 exact-match math vectors, 66 passing immutable contract fixtures, and a clean Django-safe working tree), **the migration does not satisfy the production-readiness criteria required for Phase 6 authorization**.
+    docs/migration/PHASE_5_5_INDEPENDENT_AUDIT.md:27:| **G4: Parity & Benchmarks** | **PARTIALLY PASSED** | 100,036 math vectors pass with 100% parity. Contract runner passes 66/66 executed endpoints. However, snapshot parity scanned only 133 documents across 8 collections (skipping 4 collections and GridFS), and load benchmarks only tested Node throughput without concurrent Django comparative measurements, latency percentiles (p50/p95/p99), memory profiling, or 3 repetitions. |
+    docs/migration/PHASE_5_5_INDEPENDENT_AUDIT.md:54:- **Commit History of Baseline:** Commit `9410c2a` was authored on October 14, 2026, and represents the exact Django state immediately prior to MERN migration work.
+    ... and 12 more matching line(s)
+
+FILE: docs/migration/PROGRESS.md (35 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/PROGRESS.md:4:- **Current Phase**: Phase 5.9 (Fix the Last Gaps: PDF Parity, True Dual Parity Run, Honest Branch & Mutation Metrics, Python-Free Gate Verification)
+    docs/migration/PROGRESS.md:7:- **Removal Branch Mandate**: `chore/remove-python` remains separate and UNMERGED. `migration/mern` retains Django for 14-day canary rollback window.
+    docs/migration/PROGRESS.md:21:  - Passing status confirmed on `migration/mern` and `chore/remove-python`:
+    ... and 32 more matching line(s)
+
+FILE: docs/migration/business-logic-inventory.md (3 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/business-logic-inventory.md:9:### 1.1 Python `round()` vs JavaScript `Math.round()`
+    docs/migration/business-logic-inventory.md:10:- **Python Behavior**: Python 3's built-in `round(x, n)` implements **banker's rounding (round half to even)** on binary floating-point numbers:
+    docs/migration/business-logic-inventory.md:14:- **Migration Requirement**: We must implement an exact `roundPy(val: number, ndigits: number = 2): number` utility in `packages/shared` and fuzz-test it against 100,000+ golden vectors generated from Python 3.11/3.13.
+
+FILE: docs/migration/data-model-inventory.md (18 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/data-model-inventory.md:3:This document details the database architecture of InsightLoop, introspecting both the MongoEngine ODM definitions and the live local MongoDB replica/instance (`mongodb://localhost:27017/InsightLoop`).
+    docs/migration/data-model-inventory.md:9:| Collection Name | MongoEngine Model | Document Count | Storage Size (Bytes) | Total Index Size (Bytes) | Missing / Null `company_id` |
+    docs/migration/data-model-inventory.md:35:| `pbkdf2_sha256$600000` | 1 | Standard Django 4.2+ PBKDF2-SHA256 | Iterations: 600,000; Hash format: `pbkdf2_sha256$<iterations>$<salt>$<hash>` |
+    ... and 15 more matching line(s)
+
+FILE: docs/migration/django-model-schema.json.sha256 (1 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/django-model-schema.json.sha256:1:93eca3913592ec8f0badbf20b615e547c401cbeeb8987d19c17f08a2ed6c5943  docs/migration/django-model-schema.json
+
+FILE: docs/migration/django-vs-node-audit.md (14 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/django-vs-node-audit.md:1:# InsightLoop Django vs. Node.js Full-Codebase Endpoint Parity Audit
+    docs/migration/django-vs-node-audit.md:3:This document establishes the line-by-line parity audit between the legacy Python Django backend and the migrated TypeScript Node.js Express backend. Every Django and Node source citation is verified against physical source code on disk. Rows without direct Django equivalents are marked `UNVERIFIED (Node-only extension)` or `UNVERIFIED (Client-side implementation)`.
+    docs/migration/django-vs-node-audit.md:9:| Endpoint | Method | Django Source Path & Function | Node Source Path & Function | Parameters | Status Code | Response Shape Parity | Notes / Parity Decisions |
+    ... and 11 more matching line(s)
+
+FILE: docs/migration/endpoint-inventory.md (7 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/endpoint-inventory.md:10:- **Trailing Slashes**: All routes in Django are defined with trailing slashes (e.g. `/api/v1/bills/`). Node/Express will accept both with and without trailing slash.
+    docs/migration/endpoint-inventory.md:45:| **GET** | `/api/v1/bills/<id>/pdf/` | Bearer | None | `200` `application/pdf` (binary stream) | Renders `invoice.html` via WeasyPrint with company logo/stamp/details; streams PDF attachment | `bills`, `company` | `BillManager.jsx`, `OrderDetailPage.jsx` | Blob response -> triggers browser download as `${bill.invoice_number}.pdf` |
+    docs/migration/endpoint-inventory.md:105:- **In Django**: Configured in `insightloop/insightloop/settings.py` via `REDIS_URL`. If set, used as the Channel Layer backend (`channels_redis.core.RedisChannelLayer`). If unset or invalid, falls back to in-memory channels with a warning.
+    ... and 4 more matching line(s)
+
+FILE: docs/migration/env-matrix.md (9 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/env-matrix.md:3:This matrix documents all configuration and environment variables across InsightLoop, mapping legacy Python/Django variables to their target Node/Express (`apps/api`) and Vite/React (`apps/web`) equivalents.
+    docs/migration/env-matrix.md:12:| Django Env Variable | Target Node Variable (`apps/api`) | Purpose / Description | Secret? | Default / Example Value | Used in Production? |
+    docs/migration/env-matrix.md:14:| `DJANGO_SECRET_KEY` | `JWT_SECRET` (or `API_SECRET_KEY`) | Cryptographic secret for signing SimpleJWT HS256 tokens and hashing | **YES** | *None (Fails fast if missing or < 32 chars)* | **REQUIRED** on Render |
+    ... and 6 more matching line(s)
+
+FILE: docs/migration/evidence/B1_doc_shape.txt (6 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/B1_doc_shape.txt:1:[check_doc_shape] 1. Extracting Django MongoEngine model definitions...
+    docs/migration/evidence/B1_doc_shape.txt:2:[check_doc_shape] Found 12 Django MongoEngine models registered.
+    docs/migration/evidence/B1_doc_shape.txt:18:[check_doc_shape] 4. Running specific Django model field and invariant assertions...
+    ... and 3 more matching line(s)
+
+FILE: docs/migration/evidence/B2_top_workers.txt (2 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/B2_top_workers.txt:9:   ✓ B2: Dashboard Top Workers & Deleted Worker Handling > aggregates top workers correctly across both Node-created and Django-created records  988ms
+    docs/migration/evidence/B2_top_workers.txt:10:   ✓ B2: Dashboard Top Workers & Deleted Worker Handling > handles deleted worker gracefully with "Deleted Worker" fallback matching Django  980ms
+
+FILE: docs/migration/evidence/B2_top_workers_dual_stack.txt (16 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/B2_top_workers_dual_stack.txt:8:Step 2: Authenticating with Alice on Django (port 8000) and Node (port 4000)...
+    docs/migration/evidence/B2_top_workers_dual_stack.txt:9:Django Token Acquired: eyJhbGciOiJIUzI...
+    docs/migration/evidence/B2_top_workers_dual_stack.txt:12:Step 3: Creating Worker via Django and Worker via Node...
+    ... and 13 more matching line(s)
+
+FILE: docs/migration/evidence/B4_timestamp.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/B4_timestamp.txt:9:   ✓ B4: Timestamp Serialization > Node response and Django capture for the same record produce identical timestamps  1215ms
+
+FILE: docs/migration/evidence/B7_upload_rules.txt (5 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/B7_upload_rules.txt:7:Django: 200 {"created":1,"warnings":[]}
+    docs/migration/evidence/B7_upload_rules.txt:12:Django: 200 {"created":2,"warnings":[]}
+    docs/migration/evidence/B7_upload_rules.txt:21:Django: 400 {"detail":"Missing required columns.","missing":["customer_type","date","product","production_cost","quantity","region","selling_price"]}
+    ... and 2 more matching line(s)
+
+FILE: docs/migration/evidence/B8_worker_module_parity.txt (13 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/B8_worker_module_parity.txt:9:Django age: null (object)
+    docs/migration/evidence/B8_worker_module_parity.txt:14:Django Status on wage < 0: 400
+    docs/migration/evidence/B8_worker_module_parity.txt:19:Django Batch Status: 201
+    ... and 10 more matching line(s)
+
+FILE: docs/migration/evidence/C3_load_benchmark.txt (33 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/C3_load_benchmark.txt:8:Sample Size: 1,000 requests per endpoint per concurrency level per stack (guarantees statistical significance and distinct p95 vs p99 quantiles; 5,000 requests per cell was tested but found too slow on this local development machine due to single-worker Daphne latency thresholds).
+    docs/migration/evidence/C3_load_benchmark.txt:12:1. Database Indexing: Identical indexes exist on both databases. Indexes in MongoDB are defined on the underlying database collections (e.g. { company_id: 1, invoice_number: 1 }, { company_id: 1, sku: 1 }, { company_id: 1, date: -1 }). Both Django (via MongoEngine) and Node (via MongoDB driver) query the same database collections with identical indexes active.
+    docs/migration/evidence/C3_load_benchmark.txt:14:3. Peak RSS Memory Comparison: Node peak RSS was measured dynamically at 212.6 MB, compared to 121.8 MB for Django Daphne. Node runs the V8 engine heap, libuv buffers, and MongoDB native driver connection pool; Django Daphne runs a single worker process with a smaller memory footprint.
+    ... and 30 more matching line(s)
+
+FILE: docs/migration/evidence/C3_parity_django_vs_node.txt (35 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/C3_parity_django_vs_node.txt:5:Database A (Django): InsightLoop_django_test
+    docs/migration/evidence/C3_parity_django_vs_node.txt:13:[PASS] GET    /api/v1/profile/                              | Django: 200 | Node: 200 | Diffs: 0
+    docs/migration/evidence/C3_parity_django_vs_node.txt:14:[PASS] GET    /api/v1/profile/settings/                     | Django: 200 | Node: 200 | Diffs: 0
+    ... and 32 more matching line(s)
+
+FILE: docs/migration/evidence/C5_auth_matrix.txt (3 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/C5_auth_matrix.txt:13:   ✓ C5: Comprehensive Auth Matrix Suite > 4. Bi-directional Django ↔ Node JWT Interoperability > verifies Django SimpleJWT accepts tokens generated by Node (118ms)
+    docs/migration/evidence/C5_auth_matrix.txt:14:   ✓ C5: Comprehensive Auth Matrix Suite > 4. Bi-directional Django ↔ Node JWT Interoperability > verifies Node accepts access and refresh tokens generated by Django SimpleJWT (67ms)
+    docs/migration/evidence/C5_auth_matrix.txt:23:7. Bidirectional Node <-> Python Django SimpleJWT validation: Passed both directions for short and long secrets.
+
+FILE: docs/migration/evidence/C6_contract_suite.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/C6_contract_suite.txt:114:All 69/69 golden master contract fixtures verified with 0 failures across both Django and Node API.
+
+FILE: docs/migration/evidence/C8_citations.txt (2 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/C8_citations.txt:8:Auditing line-by-line Django & Node symbols in docs/migration/django-vs-node-audit.md...
+    docs/migration/evidence/C8_citations.txt:9:Audit verified: 77 Django symbols, 76 Node symbols, 3 UNVERIFIED markers.
+
+FILE: docs/migration/evidence/D3_e2e.txt (3 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/D3_e2e.txt:3:All 11 flows run and verified against both Node and Django backends.
+    docs/migration/evidence/D3_e2e.txt:37:=== PLAYWRIGHT E2E AGAINST DJANGO BACKEND ===
+    docs/migration/evidence/D3_e2e.txt:38:$ E2E_BACKEND=django pnpm --filter @insightloop/web test:e2e
+
+FILE: docs/migration/evidence/D4_dashboard_parity.txt (6 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/D4_dashboard_parity.txt:5:Django Target: http://127.0.0.1:8000/api/v1
+    docs/migration/evidence/D4_dashboard_parity.txt:11:Django Status: 200
+    docs/migration/evidence/D4_dashboard_parity.txt:27:Django Status: 200
+    ... and 3 more matching line(s)
+
+FILE: docs/migration/evidence/E3_staging.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/E3_staging.txt:54:- Rollback protocol to Django standby if error rate > 0.1% or latency > 250ms
+
+FILE: docs/migration/evidence/django_diff.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/django_diff.txt:1:Django diff byte-for-byte check: 0 changes against pre-mern-migration-2026-10-15
+
+FILE: docs/migration/evidence/dual_stack.txt (14 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/dual_stack.txt:4:Django API: http://127.0.0.1:8000
+    docs/migration/evidence/dual_stack.txt:16:[PASS] Django cleanly read warehouse created by Node (name: "CrossStack WH 1792083964467")
+    docs/migration/evidence/dual_stack.txt:20:[PASS] Django cleanly read worker created by Node
+    ... and 11 more matching line(s)
+
+FILE: docs/migration/evidence/fixtures_integrity.txt (3 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/fixtures_integrity.txt:5:    test(contracts): capture 100k math vectors and 66 golden master endpoints from Django
+    docs/migration/evidence/fixtures_integrity.txt:1262:+  "body": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">\n  <meta name=\"robots\" content=\"NONE,NOARCHIVE\">\n  <title>403 Forbidden</title>\n  <style type=\"text/css\">\n    html * { padding:0; margin:0; }\n    body * { padding:10px 20px; }\n    body * * { padding:0; }\n    body { font:small sans-serif; background:#eee; color:#000; }\n    body>div { border-bottom:1px solid #ddd; }\n    h1 { font-weight:normal; margin-bottom:.4em; }\n    h1 span { font-size:60%; color:#666; font-weight:normal; }\n    #info { background:#f6f6f6; }\n    #info ul { margin: 0.5em 4em; }\n    #info p, #summary p { padding-top:10px; }\n    #summary { background: #ffc; }\n    #explanation { background:#eee; border-bottom: 0px none; }\n  </style>\n</head>\n<body>\n<div id=\"summary\">\n  <h1>Forbidden <span>(403)</span></h1>\n  <p>CSRF verification failed. Request aborted.</p>\n\n\n  <p>You are seeing this message because this site requires a CSRF cookie when submitting forms. This cookie is required for security reasons, to ensure that your browser is not being hijacked by third parties.</p>\n  <p>If you have configured your browser to disable cookies, please re-enable them, at least for this site, or for “same-origin” requests.</p>\n\n</div>\n\n<div id=\"info\">\n  <h2>Help</h2>\n    \n    <p>Reason given for failure:</p>\n    <pre>\n    CSRF cookie not set.\n    </pre>\n    \n\n  <p>In general, this can occur when there is a genuine Cross Site Request Forgery, or when\n  <a\n  href=\"https://docs.djangoproject.com/en/4.2/ref/csrf/\">Django’s\n  CSRF mechanism</a> has not been used correctly.  For POST forms, you need to\n  ensure:</p>\n\n  <ul>\n    <li>Your browser is accepting cookies.</li>\n\n    <li>The view function passes a <code>request</code> to the template’s <a\n    href=\"https://docs.djangoproject.com/en/dev/topics/templates/#django.template.backends.base.Template.render\"><code>render</code></a>\n    method.</li>\n\n    <li>In the template, there is a <code>{% csrf_token\n    %}</code> template tag inside each POST form that\n    targets an internal URL.</li>\n\n    <li>If you are not using <code>CsrfViewMiddleware</code>, then you must use\n    <code>csrf_protect</code> on any views that use the <code>csrf_token</code>\n    template tag, as well as those that accept the POST data.</li>\n\n    <li>The form has a valid CSRF token. After logging in in another browser\n    tab or hitting the back button after a login, you may need to reload the\n    page with the form, because the token is rotated after a login.</li>\n  </ul>\n\n  <p>You’re seeing the help section of this page because you have <code>DEBUG =\n  True</code> in your Django settings file. Change that to <code>False</code>,\n  and only the initial error message will be displayed.  </p>\n\n  <p>You can customize this page using the CSRF_FAILURE_VIEW setting.</p>\n</div>\n\n</body>\n</html>\n"
+    docs/migration/evidence/fixtures_integrity.txt:2345:+    "python_version": "3.11.15 (main, Mar  3 2026, 00:52:57) [Clang 17.0.0 (clang-1700.6.3.2)]",
+
+FILE: docs/migration/evidence/parity_django_vs_node.txt (72 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/parity_django_vs_node.txt:5:Database A (Django): InsightLoop_django_test
+    docs/migration/evidence/parity_django_vs_node.txt:35:[PASS] [profile  ] GET    /api/v1/profile/                                 | Django: 200 | Node: 200 | Diffs: 0
+    docs/migration/evidence/parity_django_vs_node.txt:36:[PASS] [profile  ] GET    /api/v1/profile/settings/                        | Django: 200 | Node: 200 | Diffs: 0
+    ... and 69 more matching line(s)
+
+FILE: docs/migration/evidence/pdf_parity/bill_1_pakka_standard_diff.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/pdf_parity/bill_1_pakka_standard_diff.txt:1:--- /Users/krishnagoyal/Development/personal projects/Insightloop/docs/migration/evidence/pdf_parity/bill_1_pakka_standard_django.txt	2026-10-17 01:19:57
+
+FILE: docs/migration/evidence/pdf_parity/bill_2_kacha_no_logo_diff.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/pdf_parity/bill_2_kacha_no_logo_diff.txt:1:--- /Users/krishnagoyal/Development/personal projects/Insightloop/docs/migration/evidence/pdf_parity/bill_2_kacha_no_logo_django.txt	2026-10-17 01:19:57
+
+FILE: docs/migration/evidence/pdf_parity/bill_3_pakka_multipage_diff.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/pdf_parity/bill_3_pakka_multipage_diff.txt:1:--- /Users/krishnagoyal/Development/personal projects/Insightloop/docs/migration/evidence/pdf_parity/bill_3_pakka_multipage_django.txt	2026-10-17 01:19:58
+
+FILE: docs/migration/evidence/pdf_parity/bill_4_kacha_multipage_diff.txt (1 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/pdf_parity/bill_4_kacha_multipage_diff.txt:1:--- /Users/krishnagoyal/Development/personal projects/Insightloop/docs/migration/evidence/pdf_parity/bill_4_kacha_multipage_django.txt	2026-10-17 01:19:58
+
+FILE: docs/migration/evidence/python_free_gate.txt (406 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/python_free_gate.txt:2:INSIGHTLOOP PYTHON-FREE GATE VERIFICATION REPORT
+    docs/migration/evidence/python_free_gate.txt:4:Branch: chore/remove-python
+    docs/migration/evidence/python_free_gate.txt:8:--- 1. PYTHON REMNANTS SCAN ---
+    ... and 403 more matching line(s)
+
+FILE: docs/migration/evidence/python_free_safety_nets.txt (20 matches)
+  CATEGORY / REASON: Parity run evidence, snapshot diffs, and benchmark logs against historical Django
+    docs/migration/evidence/python_free_safety_nets.txt:2:SECTION 3 EVIDENCE: PYTHON-FREE SAFETY NETS
+    docs/migration/evidence/python_free_safety_nets.txt:9:Django MongoEngine Model Schema File: docs/migration/django-model-schema.json
+    docs/migration/evidence/python_free_safety_nets.txt:11:Checksum File: docs/migration/django-model-schema.json.sha256 (matches)
+    ... and 17 more matching line(s)
+
+FILE: docs/migration/legacy-dead-code-report.md (12 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/legacy-dead-code-report.md:12:InsightLoop originally operated as a monolithic Django application with server-rendered HTML templates, session-based authentication (`request.session`), and Django CSRF tokens.
+    docs/migration/legacy-dead-code-report.md:16:As a consequence, several server-rendered views and session endpoints remain present in the Django codebase. Until Phase 8, **no Python code will be deleted**.
+    docs/migration/legacy-dead-code-report.md:20:## 2. Server-Rendered Django Templates (`templates/`)
+    ... and 9 more matching line(s)
+
+FILE: docs/migration/phase8_django_decommissioning_plan.md (16 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/phase8_django_decommissioning_plan.md:1:# Phase 8: Django Decommissioning & Cleanup Plan
+    docs/migration/phase8_django_decommissioning_plan.md:15:  1. Zero traffic hitting Django backend for 14 consecutive days.
+    docs/migration/phase8_django_decommissioning_plan.md:23:Upon formal authorization of Phase 8, the following legacy Python artifacts will be permanently removed from the repository:
+    ... and 13 more matching line(s)
+
+FILE: docs/migration/public-api-surface.md (14 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/public-api-surface.md:47:## 5. Deprecated Server-Rendered Django Shadow Routes (`NEEDS-TRAFFIC-EVIDENCE`)
+    docs/migration/public-api-surface.md:48:These routes are registered in Express to monitor uncataloged legacy traffic. They set `X-InsightLoop-Shadow-Route: legacy-django-view` and respond with 404 JSON while logging access hits to Pino structured logs.
+    docs/migration/public-api-surface.md:51:| `ALL`  | `/login` | Shadow Route | Django legacy server-rendered login view monitor. |
+    ... and 11 more matching line(s)
+
+FILE: docs/migration/python-feature-ledger.md (32 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/python-feature-ledger.md:1:# Python Feature & Asset Parity Ledger (Phase 5.9)
+    docs/migration/python-feature-ledger.md:6:- **Total Cataloged Assets**: 120 (All 87 Python files + 13 HTML templates + 5 static assets + 2 requirements files + 4 deployment files + 9 environment variable definitions)
+    docs/migration/python-feature-ledger.md:12:- **DEAD-CODE**: Django admin, legacy ORM migrations, or unused scripts with zero production dependencies.
+    ... and 29 more matching line(s)
+
+FILE: docs/migration/quirks.md (5 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/quirks.md:3:In accordance with Section 7 (The Quirk Policy), all quirks and behavioral anomalies discovered in the Django implementation are documented here. The default policy is **`PRESERVE`** (port exact behavior first, proven by characterization tests). Only items approved by the user move to the Approved Fix List.
+    docs/migration/quirks.md:10:- **What It Does**: Queries the highest candidate sequence (`order_by("-invoice_number").first()`), parses the integer, increments it, checks if it exists in a `while` loop, and attempts to save. Under concurrent saves, two requests can calculate the same number; Django relies on a unique index violation catching the error and retrying up to 5 times.
+    docs/migration/quirks.md:13:- **Recommendation**: **`PROPOSE-FIX`** (Approved Fix #1): Add an additive `counters` collection with atomic `findOneAndUpdate({$inc})`, while retaining a fallback that tolerates numbers generated concurrently by Django during canary.
+    ... and 2 more matching line(s)
+
+FILE: docs/migration/risk-register.md (19 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/risk-register.md:3:This document details the top technical, data-integrity, and operational risks associated with migrating InsightLoop from Django to Node/Express/TypeScript, along with specific mitigations and rollback plans.
+    docs/migration/risk-register.md:11:| **RSK-01** | Multi-Tenancy Data Leakage (Missing `company_id`) | Low | Critical | **CRITICAL** | Strict compile-time `TenantScope` in all Repositories; automated ID-probing integration test across 100% of routes. | Revert frontend to Django API URL (< 5 min). |
+    docs/migration/risk-register.md:12:| **RSK-02** | User Lockout via Password Hash Incompatibility | Low | Critical | **CRITICAL** | Byte-level reproduction of Django `pbkdf2_sha256` hashing in Node `crypto`; zero password rehashing/upgrading (`REHASH_PASSWORDS_ON_LOGIN=false`). | Immediate rollback to Django; users continue with original hashes untouched. |
+    ... and 16 more matching line(s)
+
+FILE: docs/migration/ws-inventory.md (2 matches)
+  CATEGORY / REASON: Migration architecture audit, feature ledger, and decommissioning specifications
+    docs/migration/ws-inventory.md:100:    ```python
+    docs/migration/ws-inventory.md:155:*Note on Approved Fix #4*: In Django's `AIAssistantConsumer`, responses are broadcast to the entire company group `ai_assistant_{company_id}`, rather than sent back strictly to the connection that asked. Fix #4 proposes scoping AI responses directly to the requesting client socket.
+
+FILE: docs/runbooks/canary_rollback.md (13 matches)
+  CATEGORY / REASON: Runbook / Rollback / Operational documentation for migration and canary window
+    docs/runbooks/canary_rollback.md:5:Throughout the MERN migration, the legacy Python Django backend (`insightloop/`) is preserved byte-for-byte in an immutable state to guarantee instant, risk-free rollback during canary evaluation and the 14-day observation window.
+    docs/runbooks/canary_rollback.md:18:When Phase 6 and 7 are formally authorized, traffic routing between Django and Node will transition gradually via Cloudflare Workers / Reverse Proxy weighting:
+    docs/runbooks/canary_rollback.md:20:| Stage | Node (MERN) Traffic | Django Traffic | Duration | Exit Criteria / Checks |
+    ... and 10 more matching line(s)
+
+FILE: docs/runbooks/env.md (7 matches)
+  CATEGORY / REASON: Runbook / Rollback / Operational documentation for migration and canary window
+    docs/runbooks/env.md:12:| `JWT_SECRET` | Node API / Django | Signs and verifies user authentication tokens. Must be >= 32 characters in production. | Mint secondary secret, update both stacks with dual verification, drain existing tokens (access tokens expire in 60m), remove old secret. |
+    docs/runbooks/env.md:13:| `MONGODB_URI` | Node API / Django | Connection URI for MongoDB Atlas cluster. Must include authentication credentials. | Create new Atlas database user, update `MONGODB_URI` on Render, restart API services, drop old Atlas database user. |
+    docs/runbooks/env.md:14:| `MONGODB_DB_NAME` | Node API / Django | Target database name (`insightloop`). In production, booted server rejects any DB ending with `_test`. | Controlled schema migration procedure. |
+    ... and 4 more matching line(s)
+
+FILE: docs/runbooks/observability.md (4 matches)
+  CATEGORY / REASON: Runbook / Rollback / Operational documentation for migration and canary window
+    docs/runbooks/observability.md:126:## 4. Django vs Node Observability Delta
+    docs/runbooks/observability.md:128:| Feature | Legacy Django Architecture | Modern MERN Node Architecture |
+    docs/runbooks/observability.md:134:| **Connection Pooling** | MongoEngine relied on static PyMongo pools with opaque runtime status. | Direct MongoDB driver client pool options inspection (`maxPoolSize`, `minPoolSize`). |
+    ... and 1 more matching line(s)
+
+FILE: docs/runbooks/python_removal_merge.md (25 matches)
+  CATEGORY / REASON: Runbook / Rollback / Operational documentation for migration and canary window
+    docs/runbooks/python_removal_merge.md:1:# Runbook: Post-Canary Python Removal Merge (`chore/remove-python`)
+    docs/runbooks/python_removal_merge.md:4:> **DO NOT MERGE `chore/remove-python` INTO `migration/mern` NOW.**
+    docs/runbooks/python_removal_merge.md:6:> `migration/mern` is the deployment and canary branch that intentionally preserves the Django backend (`insightloop/`) to guarantee immediate zero-downtime rollback capability.
+    ... and 22 more matching line(s)
+
+FILE: docs/runbooks/staging.md (3 matches)
+  CATEGORY / REASON: Runbook / Rollback / Operational documentation for migration and canary window
+    docs/runbooks/staging.md:43:The Django monolithic codebase historically exposed server-rendered Django template HTML views. In Phase 5.7b, all user flows are migrated to the React SPA. However, to guarantee zero customer disruption, no legacy route will be deleted or altered without verified traffic logs:
+    docs/runbooks/staging.md:118:1. Re-route DNS / CDN traffic back to the standby Python Django service.
+    docs/runbooks/staging.md:119:2. The MongoDB database remains 100% compatible and unharmed because all indexes applied were additive-only and document shapes adhere to the verified Django schema contracts.
+
+FILE: fixtures/django_snapshots/bills_list_kacha.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/bills_list_kacha.json:5:  "djangoEndpoint": "/api/v1/bills/?type=kacha",
+
+FILE: fixtures/django_snapshots/bills_list_pakka.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/bills_list_pakka.json:5:  "djangoEndpoint": "/api/v1/bills/?type=pakka",
+
+FILE: fixtures/django_snapshots/inventory_finished.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_finished.json:5:  "djangoEndpoint": "/api/v1/inventory/finished/",
+
+FILE: fixtures/django_snapshots/inventory_finished_invalid_id.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_finished_invalid_id.json:5:  "djangoEndpoint": "/api/v1/inventory/finished/invalid_id/",
+
+FILE: fixtures/django_snapshots/inventory_finished_not_found.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_finished_not_found.json:5:  "djangoEndpoint": "/api/v1/inventory/finished/670d8a000000000000000099/",
+
+FILE: fixtures/django_snapshots/inventory_raw.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_raw.json:5:  "djangoEndpoint": "/api/v1/inventory/raw/",
+
+FILE: fixtures/django_snapshots/inventory_raw_invalid_id.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_raw_invalid_id.json:5:  "djangoEndpoint": "/api/v1/inventory/raw/invalid_id/",
+
+FILE: fixtures/django_snapshots/inventory_raw_not_found.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_raw_not_found.json:5:  "djangoEndpoint": "/api/v1/inventory/raw/670d8a000000000000000099/",
+
+FILE: fixtures/django_snapshots/inventory_semi_finished.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_semi_finished.json:5:  "djangoEndpoint": "/api/v1/inventory/semi-finished/",
+
+FILE: fixtures/django_snapshots/inventory_semi_finished_invalid_id.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_semi_finished_invalid_id.json:5:  "djangoEndpoint": "/api/v1/inventory/semi-finished/invalid_id/",
+
+FILE: fixtures/django_snapshots/inventory_semi_finished_live.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_semi_finished_live.json:5:  "djangoEndpoint": "/api/v1/inventory/semi-finished/live/",
+
+FILE: fixtures/django_snapshots/inventory_semi_finished_not_found.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_semi_finished_not_found.json:5:  "djangoEndpoint": "/api/v1/inventory/semi-finished/670d8a000000000000000099/",
+
+FILE: fixtures/django_snapshots/inventory_warehouse_invalid_id.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_warehouse_invalid_id.json:5:  "djangoEndpoint": "/api/v1/inventory/warehouses/invalid_id/",
+
+FILE: fixtures/django_snapshots/inventory_warehouse_not_found.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_warehouse_not_found.json:5:  "djangoEndpoint": "/api/v1/inventory/warehouses/670d8a000000000000000099/",
+
+FILE: fixtures/django_snapshots/inventory_warehouse_summary.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_warehouse_summary.json:5:  "djangoEndpoint": "/api/v1/inventory/meta/warehouse-summary/",
+
+FILE: fixtures/django_snapshots/inventory_warehouses.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/inventory_warehouses.json:5:  "djangoEndpoint": "/api/v1/inventory/warehouses/",
+
+FILE: fixtures/django_snapshots/workers_list.json (1 matches)
+  CATEGORY / REASON: Frozen historical DRF API response snapshots for offline parity verification
+    fixtures/django_snapshots/workers_list.json:5:  "djangoEndpoint": "/api/v1/workers/",
+
+FILE: fixtures/golden_vectors.json (1 matches)
+  CATEGORY / REASON: Historical math test vectors computed and validated against Django Decimal logic
+    fixtures/golden_vectors.json:4:    "python_version": "3.11.15 (main, Mar  3 2026, 00:52:57) [Clang 17.0.0 (clang-1700.6.3.2)]",
+
+FILE: packages/shared/src/math.ts (4 matches)
+  CATEGORY / REASON: Shared financial math library referencing parity with Django decimal arithmetic
+    packages/shared/src/math.ts:53: * Exact Python round() equivalent using banker's rounding (round half to even).
+    packages/shared/src/math.ts:68: * Exact Python round for currency (2 decimal places).
+    packages/shared/src/math.ts:107: * Calculates bill financial totals according to Indian GST conventions and Python logic.
+    ... and 1 more matching line(s)
+
+FILE: packages/shared/test/math.test.ts (2 matches)
+  CATEGORY / REASON: Shared financial math library referencing parity with Django decimal arithmetic
+    packages/shared/test/math.test.ts:47:  it('matches Python bill derived calculations and profit logic', () => {
+    packages/shared/test/math.test.ts:88:  it('matches Python metric percentage change formulas', () => {
+
+FILE: render.yaml (11 matches)
+  CATEGORY / REASON: Infrastructure deployment blueprint showing Node services and deprecated Django service config
+    render.yaml:4:    env: python
+    render.yaml:8:      python manage.py collectstatic --noinput
+    render.yaml:11:      daphne -b 0.0.0.0 -p $PORT insightloop.asgi:application
+    ... and 8 more matching line(s)
+
+FILE: scripts/check_citations.mjs (18 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/check_citations.mjs:9:const hasDjango = fs.existsSync(path.resolve(REPO_ROOT, 'insightloop/settings.py'));
+    scripts/check_citations.mjs:66:    const isDjangoCandidate = candidate.endsWith('.py') || candidate.startsWith('insightloop/') || /^(bills|dashboard|insights|worker|upload|landing|misc|templates)\//.test(candidate);
+    scripts/check_citations.mjs:67:    if (!hasDjango && isDjangoCandidate) {
+    ... and 15 more matching line(s)
+
+FILE: scripts/check_doc_shape.mjs (33 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/check_doc_shape.mjs:11:const pythonBin = path.join(rootDir, '.venv/bin/python');
+    scripts/check_doc_shape.mjs:12:const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
+    scripts/check_doc_shape.mjs:20:console.log(`[check_doc_shape] 1. Extracting Django MongoEngine model definitions...`);
+    ... and 30 more matching line(s)
+
+FILE: scripts/check_feature_ledger.mjs (15 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/check_feature_ledger.mjs:4: * Verifies completeness and integrity of docs/migration/python-feature-ledger.md
+    scripts/check_feature_ledger.mjs:7: * 1. Every non-test Python file in insightloop/ MUST be cataloged in the ledger.
+    scripts/check_feature_ledger.mjs:8: * 2. Every non-Python Django asset (templates, static files, requirements, Dockerfiles) MUST be cataloged.
+    ... and 12 more matching line(s)
+
+FILE: scripts/generate_python_free_gate.mjs (22 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/generate_python_free_gate.mjs:17:log('INSIGHTLOOP PYTHON-FREE GATE VERIFICATION REPORT');
+    scripts/generate_python_free_gate.mjs:19:log(`Branch: chore/remove-python`);
+    scripts/generate_python_free_gate.mjs:23:// 1. Filesystem check for Python remnants
+    ... and 19 more matching line(s)
+
+FILE: scripts/parity_normalizers.json (1 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/parity_normalizers.json:65:      "justification": "Timestamp recorded at the instant of write execution. Both stacks emit naive ISO 8601 (formatDjangoIso) but exact wall-clock second/microsecond differs between sequential HTTP calls."
+
+FILE: scripts/record_django_snapshots.mjs (28 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/record_django_snapshots.mjs:2: * Capture static Django responses into fixtures/django_snapshots/
+    scripts/record_django_snapshots.mjs:3: * for offline snapshot parity verification without requiring Python/Django.
+    scripts/record_django_snapshots.mjs:11:const SNAPSHOTS_DIR = path.resolve(__dirname, '../fixtures/django_snapshots');
+    ... and 25 more matching line(s)
+
+FILE: scripts/run_contract_suite.mjs (6 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/run_contract_suite.mjs:4: * Runs characterization tests against Django (mode: record) or Node API (mode: assert).
+    scripts/run_contract_suite.mjs:28:    DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
+    scripts/run_contract_suite.mjs:30:    DJANGO_DEBUG: 'true',
+    ... and 3 more matching line(s)
+
+FILE: scripts/run_load_benchmark.mjs (12 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/run_load_benchmark.mjs:3: * Compares Node Express API vs Django Daphne under concurrent load.
+    scripts/run_load_benchmark.mjs:7:const DJANGO_URL = process.env.DJANGO_URL || "http://127.0.0.1:8000";
+    scripts/run_load_benchmark.mjs:67:  const [nodeToken, djangoToken] = await Promise.all([login(NODE_URL), login(DJANGO_URL)]);
+    ... and 9 more matching line(s)
+
+FILE: scripts/run_snapshot_parity.mjs (6 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/run_snapshot_parity.mjs:5: * exercises 5,000+ concurrent requests across Node and Django, and performs
+    scripts/run_snapshot_parity.mjs:15:const DJANGO_URL = process.env.DJANGO_URL || 'http://127.0.0.1:8000';
+    scripts/run_snapshot_parity.mjs:29:  // 1. Companies & Users (with Django PBKDF2 hashes)
+    ... and 3 more matching line(s)
+
+FILE: scripts/run_true_dual_parity.mjs (161 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/run_true_dual_parity.mjs:6: *    - DB A: InsightLoop_django_test (backed by real Django Daphne on port 8001)
+    scripts/run_true_dual_parity.mjs:17: *    - WebSocket: capture real Django frames for dashboard update and AI reply and compare with Node's, plus close codes for bad/expired token (4001)
+    scripts/run_true_dual_parity.mjs:20: * 6. Save evidence to docs/migration/evidence/parity_django_vs_node.txt and C3_load_benchmark.txt
+    ... and 158 more matching line(s)
+
+FILE: scripts/seed.ts (4 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/seed.ts:28:function djangoIso(d: Date): string {
+    scripts/seed.ts:286:        date: djangoIso(daysAgo(5)),
+    scripts/seed.ts:335:    payments: [{ amount: 5000.0, date: djangoIso(daysAgo(2)), notes: 'Advance' }],
+    ... and 1 more matching line(s)
+
+FILE: scripts/test_b2_top_workers.mjs (46 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/test_b2_top_workers.mjs:27:  DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
+    scripts/test_b2_top_workers.mjs:29:  DJANGO_DEBUG: 'true',
+    scripts/test_b2_top_workers.mjs:30:  PYTHONPATH: path.resolve(ROOT, 'insightloop'),
+    ... and 43 more matching line(s)
+
+FILE: scripts/test_b7_upload_rules_dual_stack.mjs (20 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/test_b7_upload_rules_dual_stack.mjs:4: * Tests Node (port 4000) and Django (port 8000) with identical fixtures for rules (a)-(g):
+    scripts/test_b7_upload_rules_dual_stack.mjs:10: * (f) Partial success: if row 3 of 5 is invalid, does Django roll back the whole upload or insert 4 and report errors? Replicate Django's EXACT behavior.
+    scripts/test_b7_upload_rules_dual_stack.mjs:15:const DJANGO_URL = process.env.DJANGO_API_URL || 'http://127.0.0.1:8000';
+    ... and 17 more matching line(s)
+
+FILE: scripts/test_dual_stack.mjs (73 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/test_dual_stack.mjs:5: * and Python Django API (port 8000) backed by the same MongoDB database (InsightLoop_test).
+    scripts/test_dual_stack.mjs:8: * 1. Node creates entity -> Django reads & mutates
+    scripts/test_dual_stack.mjs:9: * 2. Django creates entity -> Node reads & mutates
+    ... and 70 more matching line(s)
+
+FILE: scripts/test_pdf_parity.ts (3 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/test_pdf_parity.ts:150:    const djangoTxtPath = path.join(OUTPUT_DIR, `${tc.name}_django.txt`);
+    scripts/test_pdf_parity.ts:159:    // Diff against Django text
+    scripts/test_pdf_parity.ts:161:      execSync(`diff -u "${djangoTxtPath}" "${nodeTxtPath}" > "${diffPath}" || true`);
+
+FILE: scripts/test_tenancy_security.mjs (1 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/test_tenancy_security.mjs:45:  const seedProc = spawnSync(".venv/bin/python", ["scripts/seed_test_db.py"], {
+
+FILE: scripts/test_worker_module_parity.mjs (46 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/test_worker_module_parity.mjs:28:  DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
+    scripts/test_worker_module_parity.mjs:30:  DJANGO_DEBUG: 'true',
+    scripts/test_worker_module_parity.mjs:31:  PYTHONPATH: path.resolve(ROOT, 'insightloop'),
+    ... and 43 more matching line(s)
+
+FILE: scripts/verify_dashboard_parity.mjs (19 matches)
+  CATEGORY / REASON: Parity, benchmark, migration verification, and schema freeze tooling
+    scripts/verify_dashboard_parity.mjs:15:  DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
+    scripts/verify_dashboard_parity.mjs:17:  DJANGO_DEBUG: 'true',
+    scripts/verify_dashboard_parity.mjs:18:  PYTHONPATH: path.resolve(ROOT, 'insightloop'),
+    ... and 16 more matching line(s)
+
+FILE: test/negative_fixtures.test.ts (1 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    test/negative_fixtures.test.ts:21:describe('Negative Fixtures Suite (Python-Free Safety Net 4: Schema & Input Rejection)', () => {
+
+FILE: test/schema_parity.test.ts (5 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    test/schema_parity.test.ts:7:describe('Schema Freeze & Parity Audit (Python-Free Safety Net 1)', () => {
+    test/schema_parity.test.ts:9:  const schemaPath = path.join(rootDir, 'docs/migration/django-model-schema.json');
+    test/schema_parity.test.ts:10:  const shaPath = path.join(rootDir, 'docs/migration/django-model-schema.json.sha256');
+    ... and 2 more matching line(s)
+
+FILE: test/snapshot_parity.test.ts (8 matches)
+  CATEGORY / REASON: Offline parity safety net / negative fixture suite verifying Node against Django contract
+    test/snapshot_parity.test.ts:22:  djangoEndpoint: string;
+    test/snapshot_parity.test.ts:123:describe('Snapshot Parity Suite (Python-Free Safety Net 5: Fast Offline Parity)', () => {
+    test/snapshot_parity.test.ts:142:    const snapshotsDir = path.resolve(__dirname, '../fixtures/django_snapshots');
+    ... and 5 more matching line(s)
+
+--- END OF AUDIT ---

@@ -1,0 +1,21 @@
+{
+  "status": 201,
+  "contentType": "application/json",
+  "body": {
+    "cost_price": 8000,
+    "created_at": "<ISO_TIMESTAMP>",
+    "id": "<OBJECT_ID>",
+    "image_url": null,
+    "name": "Dining Table",
+    "quantity": 15,
+    "reorder_level": 3,
+    "selling_price": 12000,
+    "sku": "SKU-00004",
+    "status": "In Stock",
+    "type": "finished",
+    "unit": "pcs",
+    "updated_at": "<ISO_TIMESTAMP>",
+    "warehouse_id": "<OBJECT_ID>",
+    "warehouse_name": "Central Warehouse"
+  }
+}

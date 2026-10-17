@@ -1,0 +1,14 @@
+$ vitest run test/b10_signup.test.ts
+
+ RUN  v3.2.7 /Users/krishnagoyal/Development/personal projects/Insightloop/apps/api
+
+stdout | test/b10_signup.test.ts > B10: Signup Race Conditions & Refresh Token Edge Cases Suite
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/b10_signup.test.ts (6 tests) 1813ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  01:45:59
+   Duration  2.84s (transform 228ms, setup 0ms, collect 877ms, tests 1.81s, environment 0ms, prepare 54ms)
+

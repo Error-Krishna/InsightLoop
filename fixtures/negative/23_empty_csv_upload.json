@@ -1,0 +1,10 @@
+{
+  "id": "23_empty_csv_upload",
+  "description": "Uploading empty CSV file",
+  "endpoint": "/api/v1/upload/csv",
+  "method": "POST",
+  "payload": {},
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "csv file is required",
+  "useAuth": true
+}

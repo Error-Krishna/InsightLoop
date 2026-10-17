@@ -1,0 +1,11 @@
+{
+  "id": "inventory_warehouse_invalid_id",
+  "description": "Update warehouse with malformed ObjectId",
+  "nodeEndpoint": "/api/v1/inventory/warehouses/invalid_id",
+  "djangoEndpoint": "/api/v1/inventory/warehouses/invalid_id/",
+  "method": "PUT",
+  "status": 400,
+  "body": {
+    "detail": "Invalid id."
+  }
+}

@@ -1,0 +1,248 @@
+[
+  {
+    "id": "01_missing_company_id_bill",
+    "description": "Bill creation without authentication credentials",
+    "endpoint": "/api/v1/bills/pakka",
+    "method": "POST",
+    "payload": {
+      "buyer": { "name": "Buyer Test" },
+      "products": [{ "name": "Item", "quantity": 1, "rate": 100 }]
+    },
+    "expectedStatus": 401,
+    "expectedErrorSubstring": "Authentication credentials were not provided",
+    "useAuth": false
+  },
+  {
+    "id": "02_duplicate_bill_conversion",
+    "description": "Attempting to convert an already pakka bill",
+    "endpoint": "/api/v1/bills/:pakkaBillId/convert",
+    "method": "POST",
+    "payload": { "gst_number": "29ABCDE1234F1Z5" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Bill is already a pakka (formal) bill.",
+    "useAuth": true
+  },
+  {
+    "id": "03_shipment_without_ready_to_deliver",
+    "description": "Confirming shipment on bill without ready-to-deliver batches",
+    "endpoint": "/api/v1/bills/:kachaBillId/confirm-shipment",
+    "method": "POST",
+    "payload": {},
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "No ready-to-deliver batches recorded for this order yet.",
+    "useAuth": true
+  },
+  {
+    "id": "04_empty_products_list_bill",
+    "description": "Bill with empty products array",
+    "endpoint": "/api/v1/bills/pakka",
+    "method": "POST",
+    "payload": {
+      "buyer": { "name": "Buyer Test" },
+      "products": []
+    },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "At least one product is required",
+    "useAuth": true
+  },
+  {
+    "id": "05_negative_transportation_cost",
+    "description": "Adding transportation cost with non-positive amount",
+    "endpoint": "/api/v1/bills/:kachaBillId/transportation-cost",
+    "method": "POST",
+    "payload": { "amount": -50 },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Amount must be positive",
+    "useAuth": true
+  },
+  {
+    "id": "06_missing_worker_name",
+    "description": "Worker missing required name",
+    "endpoint": "/api/v1/workers",
+    "method": "POST",
+    "payload": { "phone": "9999999999", "address": "Test Addr" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Worker name is required",
+    "useAuth": true
+  },
+  {
+    "id": "07_completed_assignment_complete",
+    "description": "Attempting to complete an assignment that is already completed",
+    "endpoint": "/api/v1/workers/materials/:completedAssignmentId/complete",
+    "method": "PUT",
+    "payload": {},
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "This assignment is already marked complete",
+    "useAuth": true
+  },
+  {
+    "id": "08_missing_assignment_material_name",
+    "description": "Worker assignment missing material_name",
+    "endpoint": "/api/v1/workers/:workerId/materials",
+    "method": "POST",
+    "payload": { "quantity": 10, "price_per_unit": 50 },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Material name is required",
+    "useAuth": true
+  },
+  {
+    "id": "09_negative_assignment_quantity",
+    "description": "Material assignment with negative quantity",
+    "endpoint": "/api/v1/workers/:workerId/materials",
+    "method": "POST",
+    "payload": { "material_name": "Wood", "quantity": -10, "price_per_unit": 50 },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Quantity must be a positive number",
+    "useAuth": true
+  },
+  {
+    "id": "10_negative_assignment_price",
+    "description": "Material assignment with negative price per unit",
+    "endpoint": "/api/v1/workers/:workerId/materials",
+    "method": "POST",
+    "payload": { "material_name": "Wood", "quantity": 10, "price_per_unit": -5 },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Price per unit must be a positive number",
+    "useAuth": true
+  },
+  {
+    "id": "11_negative_batch_quantity",
+    "description": "Batch returned with negative quantity",
+    "endpoint": "/api/v1/workers/materials/:assignmentId/batches",
+    "method": "POST",
+    "payload": { "quantity": -5 },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Batch quantity must be a positive number",
+    "useAuth": true
+  },
+  {
+    "id": "12_zero_batch_quantity",
+    "description": "Batch returned with zero quantity",
+    "endpoint": "/api/v1/workers/materials/:assignmentId/batches",
+    "method": "POST",
+    "payload": { "quantity": 0 },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Batch quantity must be a positive number",
+    "useAuth": true
+  },
+  {
+    "id": "13_missing_inventory_name",
+    "description": "Inventory item missing required name",
+    "endpoint": "/api/v1/inventory/finished",
+    "method": "POST",
+    "payload": { "name": "   ", "unit": "pcs", "selling_price": 100 },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Item name is required",
+    "useAuth": true
+  },
+  {
+    "id": "14_invalid_inventory_id",
+    "description": "Inventory item retrieval with malformed ObjectId",
+    "endpoint": "/api/v1/inventory/finished/invalid_id",
+    "method": "PUT",
+    "payload": { "name": "Updated" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Invalid id",
+    "useAuth": true
+  },
+  {
+    "id": "15_cross_company_worker_access",
+    "description": "Accessing worker belonging to another company (Tenant Isolation)",
+    "endpoint": "/api/v1/workers/670d8a000000000000000031",
+    "method": "GET",
+    "payload": {},
+    "expectedStatus": 404,
+    "expectedErrorSubstring": "Worker not found",
+    "useAuth": true
+  },
+  {
+    "id": "16_cross_company_bill_access",
+    "description": "Accessing bill belonging to another company",
+    "endpoint": "/api/v1/bills/670d8a000000000000000099",
+    "method": "GET",
+    "payload": {},
+    "expectedStatus": 404,
+    "expectedErrorSubstring": "Bill not found",
+    "useAuth": true
+  },
+  {
+    "id": "17_invalid_user_email_signup",
+    "description": "User signup with invalid email syntax",
+    "endpoint": "/api/v1/auth/signup",
+    "method": "POST",
+    "payload": { "name": "Test User", "company": "Test Co", "email": "not-an-email-address", "password": "password123" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Name, email, company, and password are required",
+    "useAuth": false
+  },
+  {
+    "id": "18_short_user_password_signup",
+    "description": "User signup with password less than 6 characters",
+    "endpoint": "/api/v1/auth/signup",
+    "method": "POST",
+    "payload": { "name": "Test User", "company": "Test Co", "email": "valid@example.com", "password": "123" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Name, email, company, and password are required",
+    "useAuth": false
+  },
+  {
+    "id": "19_negative_payment_amount",
+    "description": "Recording negative payment amount on bill",
+    "endpoint": "/api/v1/bills/:kachaBillId/record-payment",
+    "method": "POST",
+    "payload": { "amount": -100, "date": "2026-10-15T00:00:00.000Z" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Payment amount must be positive",
+    "useAuth": true
+  },
+  {
+    "id": "20_zero_payment_amount",
+    "description": "Recording zero payment amount on bill",
+    "endpoint": "/api/v1/bills/:kachaBillId/record-payment",
+    "method": "POST",
+    "payload": { "amount": 0, "date": "2026-10-15T00:00:00.000Z" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Payment amount must be positive",
+    "useAuth": true
+  },
+  {
+    "id": "21_invalid_login_credentials",
+    "description": "Login with non-existent account",
+    "endpoint": "/api/v1/auth/login",
+    "method": "POST",
+    "payload": { "email": "nonexistent@example.com", "password": "wrongpassword" },
+    "expectedStatus": 401,
+    "expectedErrorSubstring": "Invalid email or password",
+    "useAuth": false
+  },
+  {
+    "id": "22_invalid_warehouse_name",
+    "description": "Warehouse creation with empty name",
+    "endpoint": "/api/v1/inventory/warehouses",
+    "method": "POST",
+    "payload": { "name": "", "location": "Delhi" },
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "Warehouse name is required",
+    "useAuth": true
+  },
+  {
+    "id": "23_empty_csv_upload",
+    "description": "Uploading empty CSV file",
+    "endpoint": "/api/v1/upload/csv",
+    "method": "POST",
+    "payload": {},
+    "expectedStatus": 400,
+    "expectedErrorSubstring": "csv file is required",
+    "useAuth": true
+  },
+  {
+    "id": "24_non_existent_insight_delete",
+    "description": "Deleting insight that does not exist",
+    "endpoint": "/api/v1/insights/670d8a000000000000000099",
+    "method": "DELETE",
+    "payload": {},
+    "expectedStatus": 404,
+    "expectedErrorSubstring": "Insight not found",
+    "useAuth": true
+  }
+]

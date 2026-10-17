@@ -1,0 +1,109 @@
+services:
+  # -------------------------------------------------------------
+  # InsightLoop Node.js TypeScript Backend API Service
+  # -------------------------------------------------------------
+  - name: insightloop-api
+    type: web
+    env: node
+    plan: standard
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @insightloop/shared build && pnpm --filter @insightloop/api build
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: 1
+      - key: APP_TIME_ZONE
+        value: UTC
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 1h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: REDIS_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: UPLOAD_DIR
+        value: ./uploads
+      - key: MAX_FILE_SIZE_MB
+        value: 10
+      - key: WHATSAPP_ENABLED
+        sync: false
+      - key: WHATSAPP_PROVIDER
+        sync: false
+      - key: REHASH_PASSWORDS_ON_LOGIN
+        value: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: AUTH_RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: AUTH_RATE_LIMIT_MAX_ATTEMPTS
+        value: 10
+      - key: STORAGE_DRIVER
+        value: gridfs
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: SERVE_STATIC
+        value: false
+      - key: GOOGLE_TOKENINFO_URL
+        value: https://oauth2.googleapis.com/tokeninfo
+      - key: OPENWA_API_KEY
+        sync: false
+      - key: OPENWA_BASE_URL
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_BUSINESS_ACCOUNT_ID
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v21.0
+      - key: WHATSAPP_BILL_TEMPLATE_NAME
+        value: bill_share
+      - key: WHATSAPP_BILL_TEMPLATE_LANGUAGE
+        value: en_US
+      - key: WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR
+        value: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: METRICS_TOKEN
+        sync: false
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_USE_TLS
+        value: true
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: noreply@insightloop.io
+      - key: ADMIN_EMAIL
+        value: admin@insightloop.io
+
+  # ----------------------------------------------------------------------------
+  # Frontend Web Deployment Note:
+  # The InsightLoop React SPA is deployed on Vercel.
+  # Configuration details (VITE_API_BASE_URL, VITE_WS_BASE_URL, VITE_GOOGLE_CLIENT_ID)
+  # are defined in vercel.json and documented in docs/runbooks/staging.md.
+  # ----------------------------------------------------------------------------

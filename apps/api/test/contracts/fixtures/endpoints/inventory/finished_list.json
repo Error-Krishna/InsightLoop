@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "cost_price": 3000,
+      "created_at": "<ISO_TIMESTAMP>",
+      "id": "<OBJECT_ID>",
+      "image_url": null,
+      "name": "Finished Desk",
+      "quantity": 50,
+      "reorder_level": 10,
+      "selling_price": 5000,
+      "sku": "SKU-00001",
+      "status": "In Stock",
+      "type": "finished",
+      "unit": "pcs",
+      "updated_at": "<ISO_TIMESTAMP>",
+      "warehouse_id": "<OBJECT_ID>",
+      "warehouse_name": "Central Warehouse"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "22_invalid_warehouse_name",
+  "description": "Warehouse creation with empty name",
+  "endpoint": "/api/v1/inventory/warehouses",
+  "method": "POST",
+  "payload": {
+    "name": "",
+    "location": "Delhi"
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Warehouse name is required",
+  "useAuth": true
+}

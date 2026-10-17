@@ -1,0 +1,10 @@
+{
+  "id": "15_cross_company_worker_access",
+  "description": "Accessing worker belonging to another company (Tenant Isolation)",
+  "endpoint": "/api/v1/workers/670d8a000000000000000031",
+  "method": "GET",
+  "payload": {},
+  "expectedStatus": 404,
+  "expectedErrorSubstring": "Worker not found",
+  "useAuth": true
+}

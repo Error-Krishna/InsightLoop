@@ -1,0 +1,13 @@
+{
+  "id": "08_missing_assignment_material_name",
+  "description": "Worker assignment missing material_name",
+  "endpoint": "/api/v1/workers/:workerId/materials",
+  "method": "POST",
+  "payload": {
+    "quantity": 10,
+    "price_per_unit": 50
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Material name is required",
+  "useAuth": true
+}

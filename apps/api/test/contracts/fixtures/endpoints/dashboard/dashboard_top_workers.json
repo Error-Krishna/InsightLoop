@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "workers": [
+      {
+        "latest_payment": "<ISO_TIMESTAMP>",
+        "name": "Ramesh Carpenter",
+        "payment_count": 2,
+        "total_payout": 500
+      }
+    ]
+  }
+}

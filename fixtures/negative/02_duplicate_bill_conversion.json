@@ -1,0 +1,12 @@
+{
+  "id": "02_duplicate_bill_conversion",
+  "description": "Attempting to convert an already pakka bill",
+  "endpoint": "/api/v1/bills/:pakkaBillId/convert",
+  "method": "POST",
+  "payload": {
+    "gst_number": "29ABCDE1234F1Z5"
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Bill is already a pakka (formal) bill.",
+  "useAuth": true
+}

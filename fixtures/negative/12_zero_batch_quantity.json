@@ -1,0 +1,12 @@
+{
+  "id": "12_zero_batch_quantity",
+  "description": "Batch returned with zero quantity",
+  "endpoint": "/api/v1/workers/materials/:assignmentId/batches",
+  "method": "POST",
+  "payload": {
+    "quantity": 0
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Batch quantity must be a positive number",
+  "useAuth": true
+}

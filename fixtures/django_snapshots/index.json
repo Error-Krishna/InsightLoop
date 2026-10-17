@@ -1,0 +1,138 @@
+[
+  {
+    "id": "inventory_warehouses",
+    "description": "List all warehouses for Company A",
+    "nodeEndpoint": "/api/v1/inventory/warehouses",
+    "method": "GET",
+    "status": 200,
+    "file": "inventory_warehouses.json"
+  },
+  {
+    "id": "inventory_warehouse_summary",
+    "description": "Warehouse summary breakdown across inventory types",
+    "nodeEndpoint": "/api/v1/inventory/meta/warehouse-summary",
+    "method": "GET",
+    "status": 200,
+    "file": "inventory_warehouse_summary.json"
+  },
+  {
+    "id": "inventory_finished",
+    "description": "List finished goods inventory items",
+    "nodeEndpoint": "/api/v1/inventory/finished",
+    "method": "GET",
+    "status": 200,
+    "file": "inventory_finished.json"
+  },
+  {
+    "id": "inventory_semi_finished",
+    "description": "List semi-finished inventory items",
+    "nodeEndpoint": "/api/v1/inventory/semi-finished",
+    "method": "GET",
+    "status": 200,
+    "file": "inventory_semi_finished.json"
+  },
+  {
+    "id": "inventory_semi_finished_live",
+    "description": "Live semi-finished inventory with active worker calculations",
+    "nodeEndpoint": "/api/v1/inventory/semi-finished/live",
+    "method": "GET",
+    "status": 200,
+    "file": "inventory_semi_finished_live.json"
+  },
+  {
+    "id": "inventory_raw",
+    "description": "List raw materials inventory items",
+    "nodeEndpoint": "/api/v1/inventory/raw",
+    "method": "GET",
+    "status": 200,
+    "file": "inventory_raw.json"
+  },
+  {
+    "id": "inventory_warehouse_invalid_id",
+    "description": "Update warehouse with malformed ObjectId",
+    "nodeEndpoint": "/api/v1/inventory/warehouses/invalid_id",
+    "method": "PUT",
+    "status": 400,
+    "file": "inventory_warehouse_invalid_id.json"
+  },
+  {
+    "id": "inventory_warehouse_not_found",
+    "description": "Update non-existent warehouse",
+    "nodeEndpoint": "/api/v1/inventory/warehouses/670d8a000000000000000099",
+    "method": "PUT",
+    "status": 404,
+    "file": "inventory_warehouse_not_found.json"
+  },
+  {
+    "id": "inventory_finished_invalid_id",
+    "description": "Update finished item with malformed ObjectId",
+    "nodeEndpoint": "/api/v1/inventory/finished/invalid_id",
+    "method": "PUT",
+    "status": 400,
+    "file": "inventory_finished_invalid_id.json"
+  },
+  {
+    "id": "inventory_finished_not_found",
+    "description": "Update non-existent finished item",
+    "nodeEndpoint": "/api/v1/inventory/finished/670d8a000000000000000099",
+    "method": "PUT",
+    "status": 404,
+    "file": "inventory_finished_not_found.json"
+  },
+  {
+    "id": "inventory_semi_finished_invalid_id",
+    "description": "Update semi-finished item with malformed ObjectId",
+    "nodeEndpoint": "/api/v1/inventory/semi-finished/invalid_id",
+    "method": "PUT",
+    "status": 400,
+    "file": "inventory_semi_finished_invalid_id.json"
+  },
+  {
+    "id": "inventory_semi_finished_not_found",
+    "description": "Update non-existent semi-finished item",
+    "nodeEndpoint": "/api/v1/inventory/semi-finished/670d8a000000000000000099",
+    "method": "PUT",
+    "status": 404,
+    "file": "inventory_semi_finished_not_found.json"
+  },
+  {
+    "id": "inventory_raw_invalid_id",
+    "description": "Update raw material with malformed ObjectId",
+    "nodeEndpoint": "/api/v1/inventory/raw/invalid_id",
+    "method": "PUT",
+    "status": 400,
+    "file": "inventory_raw_invalid_id.json"
+  },
+  {
+    "id": "inventory_raw_not_found",
+    "description": "Update non-existent raw material",
+    "nodeEndpoint": "/api/v1/inventory/raw/670d8a000000000000000099",
+    "method": "PUT",
+    "status": 404,
+    "file": "inventory_raw_not_found.json"
+  },
+  {
+    "id": "bills_list_pakka",
+    "description": "List pakka bills for Company A",
+    "nodeEndpoint": "/api/v1/bills?type=pakka",
+    "method": "GET",
+    "status": 200,
+    "file": "bills_list_pakka.json"
+  },
+  {
+    "id": "bills_list_kacha",
+    "description": "List kacha bills for Company A",
+    "nodeEndpoint": "/api/v1/bills?type=kacha",
+    "method": "GET",
+    "status": 200,
+    "file": "bills_list_kacha.json"
+  },
+  {
+    "id": "workers_list",
+    "description": "List all workers for Company A",
+    "nodeEndpoint": "/api/v1/workers",
+    "method": "GET",
+    "status": 200,
+    "file": "workers_list.json"
+  }
+]

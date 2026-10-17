@@ -1,0 +1,37 @@
+====================================================
+B7: DUAL-STACK CSV UPLOAD VERIFICATION
+====================================================
+
+--- (a) UTF-8 with BOM stripped (utf-8-sig) ---
+Node:   200 {"created":1,"warnings":[]}
+Django: 200 {"created":1,"warnings":[]}
+[PASS] (a) Both stacks transparently stripped BOM and imported records.
+
+--- (b) CRLF and LF both accepted ---
+Node:   200 {"created":2,"warnings":[]}
+Django: 200 {"created":2,"warnings":[]}
+[PASS] (b) Both stacks cleanly accepted CRLF formatted CSV.
+
+--- (c) Header-only file: 400 "CSV file contains no data rows." ---
+Node:   400 {"detail":"CSV file contains no data rows.","code":"APP_ERROR","requestId":"5695de68-3728-499a-84ea-49a517ed38c2"}
+[PASS] (c) Node strictly rejects header-only file with 400 "CSV file contains no data rows."
+
+--- (d) Empty file: 400 "CSV file is empty." ---
+Node:   400 {"detail":"CSV file is empty.","code":"APP_ERROR","requestId":"a58b238d-bc4a-4ddc-96d7-78f0ce6c35b9"}
+Django: 400 {"detail":"Missing required columns.","missing":["customer_type","date","product","production_cost","quantity","region","selling_price"]}
+[PASS] (d) Node strictly rejects empty file with 400 "CSV file is empty."
+
+--- (e) Negative numbers in numeric columns: 400 with row and column named ---
+Node:   400 {"detail":"Row 2: column 'quantity' cannot be negative.","code":"APP_ERROR","requestId":"6b150645-73c4-48af-afde-c6b3686ad13b"}
+[PASS] (e) Node rejects negative numbers in numeric column with row and column name.
+
+--- (f) Partial success: Row 3 of 5 invalid ---
+Node:   200 {"created":4,"warnings":[{"row":3,"detail":"Invalid date 'INVALID-DATE'"}]}
+Django: 200 {"created":4,"warnings":[{"row":3,"detail":"time data 'INVALID-DATE' does not match format '%Y-%m-%d'"}]}
+[PASS] (f) Node exactly replicates Django: inserts 4 valid records, reports warning for row 3 without rolling back whole file.
+
+--- (g) Max rows per file cap and file-size cap enforced ---
+Node:   400 {"detail":"CSV file exceeds maximum limit of 10000 rows.","code":"APP_ERROR","requestId":"da9a0b30-4e86-48d3-9057-2b46a508a482"}
+[PASS] (g) Node enforces 10,000 row cap and rejects oversized file with 400.
+
+ALL B7 RULES (a)-(g) VERIFIED SUCCESSFULLY ON BOTH STACKS!

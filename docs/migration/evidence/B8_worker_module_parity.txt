@@ -1,0 +1,61 @@
+=================================================================
+ITEM 8: WORKER MODULE DETAILED DUAL-STACK PARITY AUDIT
+Timestamp: 2026-10-16T10:19:15.180Z
+=================================================================
+
+Step 1: Reseeding test database...
+
+--- Test Case 1: Worker Age default (omitted age -> null on both stacks) ---
+Django age: null (object)
+Node age:   null (object)
+✅ [PASS] Worker Age default (omitted age -> null on both stacks)
+
+--- Test Case 2: Wage amount < 0 rejected on assignment creation ---
+Django Status on wage < 0: 400
+Node Status on wage < 0:   400
+✅ [PASS] Wage amount < 0 rejected on assignment creation
+
+--- Test Case 3: Batch future date acceptance & ISO serialization ---
+Django Batch Status: 201
+Node Batch Status:   201
+Django Batch Date: 2030-12-31T00:00:00
+Node Batch Date:   2030-12-31T00:00:00
+✅ [PASS] Batch future date acceptance & ISO serialization
+
+--- Test Case 4: Units produced string vs int parsing on payment creation ---
+Django Units Produced: 15 (number)
+Node Units Produced:   15 (number)
+✅ [PASS] Units produced string vs int parsing on payment creation
+
+--- Test Case 5: MarkPaymentPaid on already-paid record idempotency ---
+Django mark-paid status: 200
+Node mark-paid status:   200
+✅ [PASS] MarkPaymentPaid on already-paid record idempotency
+
+--- Test Case 6: Delete Worker Cascades to Assignments and Payments in both stacks (direct DB collection check) ---
+Django Worker 6ad1fa24e7caf2bd1e427119 before delete in DB: assignments=1, pay_records=1
+Django Worker DELETE Status: 204
+Django Worker 6ad1fa24e7caf2bd1e427119 after delete in DB: remaining assignments=0, pay_records=0
+Node Worker 6ad1fa24b8006e1ba29abd21 before delete in DB: assignments=1, pay_records=1
+Node Worker DELETE Status: 204
+Node Worker 6ad1fa24b8006e1ba29abd21 after delete in DB: remaining assignments=0, pay_records=0
+Confirmed: Worker delete cleanly cascades to assignments and pay_records in BOTH stacks at the collection level.
+✅ [PASS] Delete Worker Cascades to Assignments and Payments in both stacks (direct DB collection check)
+
+--- Test Case 7: Batch Creation Messages, Integer Parsing, and Completed Status Parity ---
+Django qty<=0 detail: "Batch quantity must be a positive number."
+Node qty<=0 detail:   "Batch quantity must be a positive number."
+Django Batch Date: 2026-10-15T00:00:00
+Node Batch Date:   2026-10-15T00:00:00
+Django completed detail: "This assignment is already marked complete. Reopen it before adding more batches."
+Node completed detail:   "This assignment is already marked complete. Reopen it before adding more batches."
+✅ [PASS] Batch Creation Messages, Integer Parsing, and Completed Status Parity
+
+--- Test Case 8: Partial Payment Returns HTTP 201 on both stacks ---
+Django Partial Payment Status: 201
+Node Partial Payment Status:   201
+✅ [PASS] Partial Payment Returns HTTP 201 on both stacks
+
+=================================================================
+SUMMARY: 8/8 checks passed.
+=================================================================

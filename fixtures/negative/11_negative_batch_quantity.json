@@ -1,0 +1,12 @@
+{
+  "id": "11_negative_batch_quantity",
+  "description": "Batch returned with negative quantity",
+  "endpoint": "/api/v1/workers/materials/:assignmentId/batches",
+  "method": "POST",
+  "payload": {
+    "quantity": -5
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Batch quantity must be a positive number",
+  "useAuth": true
+}

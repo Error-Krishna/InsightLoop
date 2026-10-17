@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "count": 1,
+    "insights": [
+      {
+        "created_at": null,
+        "data_points": [
+          725000
+        ],
+        "description": "Finished Desk is the top performer with $725000.00 in sales",
+        "id": "<OBJECT_ID>",
+        "labels": [
+          "Finished Desk"
+        ],
+        "note": "",
+        "title": "Top Performing Products"
+      }
+    ]
+  }
+}

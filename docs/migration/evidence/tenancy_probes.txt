@@ -1,0 +1,31 @@
+=======================================================
+INSIGHTLOOP MULTI-TENANCY ISOLATION SECURITY SWEEP
+Target: http://127.0.0.1:4000/api/v1
+=======================================================
+--- 1. Resetting test DB with deterministic seed ---
+Test database seeded successfully.
+
+✓ Authenticated Alice (Company A) and Bob (Company B)
+✓ Created Company A resources:
+   Warehouse: 6ad0db209f4d3e44152acb64
+   Item:      6ad0db209f4d3e44152acb65
+   Worker:    6ad0db209f4d3e44152acb66
+   Bill:      6ad0db209f4d3e44152acb67
+
+--- Executing Cross-Tenant Access Probes (User B against Company A) ---
+  [PASS] Warehouse list isolation (Company A warehouse hidden from Bob)
+  [PASS] Inventory list isolation (Company A product hidden from Bob)
+  [PASS] GET Company A worker detail -> status 404
+  [PASS] POST material assignment to Company A worker -> status 404
+  [PASS] POST record payment on Company A worker -> status 404
+  [PASS] GET Company A bill detail -> status 404
+  [PASS] PUT modify Company A bill -> status 404
+  [PASS] POST convert Company A bill -> status 404
+  [PASS] POST record payment on Company A bill -> status 404
+  [PASS] POST confirm profit on Company A bill -> status 404
+  [PASS] GET download PDF of Company A bill -> status 404
+  [PASS] DELETE Company A bill -> status 404
+
+=======================================================
+MULTI-TENANCY ISOLATION RESULTS: 12/12 PASSED (100%)
+=======================================================

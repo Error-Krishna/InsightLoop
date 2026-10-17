@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "cost_price": 1200,
+      "created_at": "<ISO_TIMESTAMP>",
+      "id": "<OBJECT_ID>",
+      "image_url": null,
+      "name": "Desk Frame",
+      "quantity": 30,
+      "reorder_level": 5,
+      "selling_price": 2000,
+      "sku": "SKU-00002",
+      "status": "In Stock",
+      "type": "semi_finished",
+      "unit": "pcs",
+      "updated_at": "<ISO_TIMESTAMP>",
+      "warehouse_id": "<OBJECT_ID>",
+      "warehouse_name": "Central Warehouse"
+    }
+  ]
+}

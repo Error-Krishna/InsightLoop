@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-core.json",
+  "packageManager": "pnpm",
+  "mutate": ["src/math.ts"],
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "./node_modules/.bin/vitest run"
+  },
+  "coverageAnalysis": "off",
+  "reporters": ["progress", "clear-text"],
+  "concurrency": 4,
+  "timeoutMS": 20000
+}

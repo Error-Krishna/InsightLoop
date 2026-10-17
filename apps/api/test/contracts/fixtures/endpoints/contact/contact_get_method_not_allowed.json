@@ -1,0 +1,7 @@
+{
+  "status": 405,
+  "contentType": "application/json",
+  "body": {
+    "detail": "Use POST to submit the contact form."
+  }
+}

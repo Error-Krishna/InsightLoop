@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-core.json",
+  "packageManager": "pnpm",
+  "mutate": [
+    "src/modules/bills/bills.service.ts:233-243",
+    "src/modules/bills/bills.service.ts:382-425",
+    "src/modules/bills/bills.service.ts:610-685",
+    "src/modules/bills/bills.service.ts:830-870",
+    "src/modules/workers/workers.service.ts:49-65",
+    "src/modules/workers/workers.service.ts:150-170",
+    "src/modules/workers/workers.service.ts:475-555"
+  ],
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "./node_modules/.bin/vitest run test/branch_coverage_phase59.test.ts test/bills_profit.test.ts test/b5_bills_stock.test.ts test/workers_complete.test.ts test/workers_deep.test.ts"
+  },
+  "coverageAnalysis": "off",
+  "reporters": ["progress", "clear-text"],
+  "concurrency": 4,
+  "timeoutMS": 15000
+}

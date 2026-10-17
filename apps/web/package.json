@@ -1,0 +1,42 @@
+{
+  "name": "@insightloop/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@insightloop/shared": "workspace:*",
+    "axios": "^1.8.4",
+    "lucide-react": "^0.507.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.6.0",
+    "recharts": "^2.15.3",
+    "sonner": "^2.0.3"
+  },
+  "devDependencies": {
+    "@insightloop/eslint-config": "workspace:*",
+    "@insightloop/tsconfig": "workspace:*",
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.1.7",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "jsdom": "^30.1.2",
+    "msw": "^3.0.3",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.5",
+    "vitest": "3.2.7"
+  }
+}

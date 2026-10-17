@@ -1,0 +1,45 @@
+=======================================================
+INSIGHTLOOP HUSKY V9 HOOK ENFORCEMENT PROOFS
+=======================================================
+
+1. COMMIT-MSG HOOK ENFORCEMENT PROOF (Commitlint Conventional Commits)
+----------------------------------------------------------------------
+Command Attempted:
+git commit -m "bad commit message without type"
+
+Blocked Output:
+⧗   --- input ---
+bad commit message without type
+✖   subject may not be empty [subject-empty]
+✖   type may not be empty [type-empty]
+
+✖   found 2 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+husky - commit-msg script failed (code 1)
+
+
+2. PRE-COMMIT HOOK ENFORCEMENT PROOF (Lint-Staged + ESLint Strict Type-Checked)
+-------------------------------------------------------------------------------
+File Staged: packages/shared/src/temp_bad_lint.ts containing `export const badLintTest: any = 123;`
+Command Attempted:
+git commit -m "test: attempt commit with bad lint"
+
+Blocked Output:
+⋯ Running tasks for staged files…
+    *.{js,jsx,ts,tsx} — 1 file
+      ⋯ eslint --fix --no-warn-ignored
+
+✖ eslint --fix --no-warn-ignored
+
+✖ Failed to run tasks for staged files!
+↓ Skipped staging changes from tasks…
+⋯ Reverting to original state because of errors…
+✔ Done reverting to original state!
+
+✖ eslint --fix --no-warn-ignored:
+<REPO_ROOT>/packages/shared/src/temp_bad_lint.ts
+  1:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 1 problem (1 error, 0 warnings)
+husky - pre-commit script failed (code 1)

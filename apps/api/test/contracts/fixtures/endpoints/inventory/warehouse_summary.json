@@ -1,0 +1,90 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "by_type": {
+        "finished": {
+          "items_count": 1,
+          "stock_value": 150000,
+          "total_quantity": 50
+        },
+        "raw": {
+          "items_count": 0,
+          "stock_value": 0,
+          "total_quantity": 0
+        },
+        "semi_finished": {
+          "items_count": 1,
+          "stock_value": 36000,
+          "total_quantity": 30
+        }
+      },
+      "items_count": 2,
+      "stock_value": 186000,
+      "total_quantity": 80,
+      "warehouse": {
+        "created_at": "<ISO_TIMESTAMP>",
+        "id": "<OBJECT_ID>",
+        "location": "City A",
+        "name": "Central Warehouse"
+      }
+    },
+    {
+      "by_type": {
+        "finished": {
+          "items_count": 0,
+          "stock_value": 0,
+          "total_quantity": 0
+        },
+        "raw": {
+          "items_count": 0,
+          "stock_value": 0,
+          "total_quantity": 0
+        },
+        "semi_finished": {
+          "items_count": 0,
+          "stock_value": 0,
+          "total_quantity": 0
+        }
+      },
+      "items_count": 0,
+      "stock_value": 0,
+      "total_quantity": 0,
+      "warehouse": {
+        "created_at": "<ISO_TIMESTAMP>",
+        "id": "<OBJECT_ID>",
+        "location": "City North",
+        "name": "North Annex"
+      }
+    },
+    {
+      "by_type": {
+        "finished": {
+          "items_count": 0,
+          "stock_value": 0,
+          "total_quantity": 0
+        },
+        "raw": {
+          "items_count": 1,
+          "stock_value": 60000,
+          "total_quantity": 200
+        },
+        "semi_finished": {
+          "items_count": 0,
+          "stock_value": 0,
+          "total_quantity": 0
+        }
+      },
+      "items_count": 1,
+      "stock_value": 60000,
+      "total_quantity": 200,
+      "warehouse": {
+        "created_at": "<ISO_TIMESTAMP>",
+        "id": "<OBJECT_ID>",
+        "location": "City A South",
+        "name": "South Depot"
+      }
+    }
+  ]
+}

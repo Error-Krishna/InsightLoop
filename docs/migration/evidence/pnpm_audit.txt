@@ -1,0 +1,2 @@
+3 vulnerabilities found
+Severity: 3 moderate

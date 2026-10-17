@@ -1,0 +1,15 @@
+{
+  "status": 201,
+  "contentType": "application/json",
+  "body": {
+    "category": "Furniture",
+    "customer_type": "Wholesale",
+    "date": "2026-10-14",
+    "id": "<OBJECT_ID>",
+    "product": "Finished Desk",
+    "production_cost": 3000,
+    "quantity": 4,
+    "region": "North",
+    "selling_price": 5200
+  }
+}

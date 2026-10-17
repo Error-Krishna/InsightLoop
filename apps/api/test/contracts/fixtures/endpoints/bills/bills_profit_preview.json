@@ -1,0 +1,27 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "cost_basis_full": 6000,
+    "cost_basis_scaled": 4421.05,
+    "cost_breakdown": {
+      "material_cost": 6000,
+      "misc_cost": 0,
+      "transportation_cost": 0,
+      "worker_cost": 0
+    },
+    "lines": [
+      {
+        "cost_known": true,
+        "inventory_item_id": "<OBJECT_ID>",
+        "line_cost": 6000,
+        "name": "Finished Desk",
+        "quantity": 2,
+        "unit_cost": 3000
+      }
+    ],
+    "payment_fraction": 0.7368,
+    "revenue_collected": 7000,
+    "suggested_profit": 2578.95
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "status": 201,
+  "contentType": "application/json",
+  "body": {
+    "amount_received": 7000,
+    "balance_due": 2500,
+    "bill_type": "kacha",
+    "buyer": {
+      "address": "Market Rd",
+      "name": "Kacha Buyer",
+      "phone": "9811223344"
+    },
+    "company_id": "<UUID>",
+    "created_at": "<ISO_TIMESTAMP>",
+    "discount": 500,
+    "grand_total": 9500,
+    "gst_amount": 0,
+    "gst_percentage": 0,
+    "id": "<OBJECT_ID>",
+    "invoice_number": "INV-2026-00001",
+    "misc_cost_total": 150,
+    "misc_costs": [
+      {
+        "amount": 150,
+        "date": "<ISO_TIMESTAMP>",
+        "notes": "Foam protection packaging"
+      }
+    ],
+    "order_status": "draft",
+    "over_received": false,
+    "payment_status": "partial",
+    "payments": [
+      {
+        "amount": 5000,
+        "date": "<ISO_TIMESTAMP>",
+        "notes": "Advance"
+      },
+      {
+        "amount": 2000,
+        "date": "<ISO_TIMESTAMP>",
+        "notes": "Direct bank transfer"
+      }
+    ],
+    "products": [
+      {
+        "description": "Standard",
+        "inventory_item_id": "<OBJECT_ID>",
+        "name": "Finished Desk",
+        "quantity": 2,
+        "rate": 5000,
+        "total": 10000,
+        "unit": "pcs"
+      }
+    ],
+    "profit_confirmed": false,
+    "profit_confirmed_amount": null,
+    "profit_confirmed_at": null,
+    "profit_suggested_amount": 2578.95,
+    "ready_to_deliver": [
+      {
+        "date": "<ISO_TIMESTAMP>",
+        "inventory_item_id": "<OBJECT_ID>",
+        "item_name": "Finished Desk",
+        "notes": "Ready for loading",
+        "quantity": 1
+      }
+    ],
+    "ready_to_deliver_quantity": 1,
+    "shipment_confirmed": false,
+    "shipment_confirmed_at": null,
+    "subtotal": 10000,
+    "transportation_cost_total": 450,
+    "transportation_costs": [
+      {
+        "amount": 450,
+        "date": "<ISO_TIMESTAMP>",
+        "notes": "Express cargo dispatch"
+      }
+    ],
+    "updated_at": "<ISO_TIMESTAMP>",
+    "worker_assignment_ids": [],
+    "worker_cost_total": 0
+  }
+}

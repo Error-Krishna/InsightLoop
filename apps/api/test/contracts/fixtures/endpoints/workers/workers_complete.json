@@ -1,0 +1,35 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "assignment_date": "<ISO_TIMESTAMP>",
+    "balance_quantity": 5,
+    "batches": [
+      {
+        "date": "<ISO_TIMESTAMP>",
+        "notes": "First chunk",
+        "quantity": 10
+      },
+      {
+        "date": "<ISO_TIMESTAMP>",
+        "notes": "Delivered batch of 5",
+        "quantity": 5
+      }
+    ],
+    "bill_id": null,
+    "completed_at": "<ISO_TIMESTAMP>",
+    "delivered_quantity": 15,
+    "id": "<OBJECT_ID>",
+    "material_name": "Desk Assembly",
+    "notes": "Urgent consignment",
+    "over_returned": false,
+    "pay_record_id": "<OBJECT_ID>",
+    "price_per_unit": 50,
+    "quantity": 20,
+    "status": "completed",
+    "total_value": 1000,
+    "wage_amount": 500,
+    "wastage_quantity": 5,
+    "worker_id": "<OBJECT_ID>"
+  }
+}

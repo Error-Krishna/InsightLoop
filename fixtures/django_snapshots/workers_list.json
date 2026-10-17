@@ -1,0 +1,28 @@
+{
+  "id": "workers_list",
+  "description": "List all workers for Company A",
+  "nodeEndpoint": "/api/v1/workers",
+  "djangoEndpoint": "/api/v1/workers/",
+  "method": "GET",
+  "status": 200,
+  "body": [
+    {
+      "id": "670d8a000000000000000030",
+      "name": "Ramesh Carpenter",
+      "age": 35,
+      "address": "Woodland St",
+      "phone": "9988776655",
+      "image_url": null,
+      "joining_date": "2026-04-17T21:00:00",
+      "is_active": true,
+      "material_assigned": 20,
+      "material_delivered": 10,
+      "pending_amount": 0,
+      "open_assignments": 1,
+      "total_wasted": 0,
+      "wastage_rate": 0,
+      "created_at": "2026-04-17T21:00:00",
+      "updated_at": "2026-04-17T21:00:00"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "07_negative_worker_age",
+  "description": "Worker with negative age",
+  "endpoint": "/api/v1/workers",
+  "method": "POST",
+  "payload": {
+    "name": "Bad Age Worker",
+    "age": -5
+  },
+  "expectedStatus": 400,
+  "expectedErrorSubstring": "Age must be a positive integer"
+}

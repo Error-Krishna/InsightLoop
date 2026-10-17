@@ -1,0 +1,54 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "amount_received": 0,
+    "balance_due": 5900,
+    "bill_type": "pakka",
+    "buyer": {
+      "address": "Bazaar Line",
+      "gst_number": "27AAAAA1234A1Z1",
+      "name": "Local Trader",
+      "phone": "9812345678"
+    },
+    "company_id": "<UUID>",
+    "created_at": "<ISO_TIMESTAMP>",
+    "discount": 200,
+    "grand_total": 5900,
+    "gst_amount": 900,
+    "gst_percentage": 18,
+    "id": "<OBJECT_ID>",
+    "invoice_number": "INV-2026-00004",
+    "misc_cost_total": 0,
+    "misc_costs": [],
+    "order_status": "confirmed",
+    "over_received": false,
+    "payment_status": "unpaid",
+    "payments": [],
+    "products": [
+      {
+        "description": "",
+        "inventory_item_id": "<OBJECT_ID>",
+        "name": "Finished Desk",
+        "quantity": 1,
+        "rate": 5200,
+        "total": 5200,
+        "unit": "pcs"
+      }
+    ],
+    "profit_confirmed": false,
+    "profit_confirmed_amount": null,
+    "profit_confirmed_at": null,
+    "profit_suggested_amount": null,
+    "ready_to_deliver": [],
+    "ready_to_deliver_quantity": 0,
+    "shipment_confirmed": false,
+    "shipment_confirmed_at": null,
+    "subtotal": 5200,
+    "transportation_cost_total": 0,
+    "transportation_costs": [],
+    "updated_at": "<ISO_TIMESTAMP>",
+    "worker_assignment_ids": [],
+    "worker_cost_total": 0
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": [
+    {
+      "amount_received": 35400,
+      "balance_due": 0,
+      "bill_type": "pakka",
+      "buyer": {
+        "address": "Corporate Park",
+        "gst_number": "27AAAAA1234A1Z1",
+        "name": "Pakka Buyer Ltd",
+        "phone": "9822334455"
+      },
+      "company_id": "<UUID>",
+      "created_at": "<ISO_TIMESTAMP>",
+      "discount": 0,
+      "grand_total": 35400,
+      "gst_amount": 5400,
+      "gst_percentage": 18,
+      "id": "<OBJECT_ID>",
+      "invoice_number": "INV-2026-00002",
+      "misc_cost_total": 0,
+      "misc_costs": [],
+      "order_status": "closed",
+      "over_received": false,
+      "payment_status": "paid",
+      "payments": [
+        {
+          "amount": 35400,
+          "date": "<ISO_TIMESTAMP>",
+          "notes": "Full payment"
+        }
+      ],
+      "products": [
+        {
+          "description": "Premium",
+          "inventory_item_id": "<OBJECT_ID>",
+          "name": "Finished Desk",
+          "quantity": 5,
+          "rate": 6000,
+          "total": 30000,
+          "unit": "pcs"
+        }
+      ],
+      "profit_confirmed": true,
+      "profit_confirmed_amount": 15000,
+      "profit_confirmed_at": "<ISO_TIMESTAMP>",
+      "profit_suggested_amount": 15000,
+      "ready_to_deliver": [],
+      "ready_to_deliver_quantity": 0,
+      "shipment_confirmed": false,
+      "shipment_confirmed_at": null,
+      "subtotal": 30000,
+      "transportation_cost_total": 0,
+      "transportation_costs": [],
+      "updated_at": "<ISO_TIMESTAMP>",
+      "worker_assignment_ids": [],
+      "worker_cost_total": 0
+    }
+  ]
+}

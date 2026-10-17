@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "contentType": "application/json",
+  "body": {
+    "address": "Woodland St",
+    "age": 35,
+    "created_at": "<ISO_TIMESTAMP>",
+    "id": "<OBJECT_ID>",
+    "image_url": null,
+    "is_active": true,
+    "joining_date": "<ISO_TIMESTAMP>",
+    "material_assigned": 20,
+    "material_delivered": 10,
+    "name": "Ramesh Carpenter",
+    "open_assignments": 1,
+    "pending_amount": 0,
+    "phone": "9988776655",
+    "total_wasted": 0,
+    "updated_at": "<ISO_TIMESTAMP>",
+    "wastage_rate": 0
+  }
+}

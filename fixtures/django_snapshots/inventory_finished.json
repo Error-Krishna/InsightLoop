@@ -1,0 +1,27 @@
+{
+  "id": "inventory_finished",
+  "description": "List finished goods inventory items",
+  "nodeEndpoint": "/api/v1/inventory/finished",
+  "djangoEndpoint": "/api/v1/inventory/finished/",
+  "method": "GET",
+  "status": 200,
+  "body": [
+    {
+      "id": "670d8a000000000000000020",
+      "name": "Finished Desk",
+      "unit": "pcs",
+      "type": "finished",
+      "selling_price": 5000,
+      "cost_price": 3000,
+      "quantity": 50,
+      "reorder_level": 10,
+      "warehouse_id": "670d8a000000000000000010",
+      "warehouse_name": "Central Warehouse",
+      "image_url": null,
+      "sku": "SKU-00001",
+      "status": "In Stock",
+      "created_at": "2026-04-07T21:00:00",
+      "updated_at": "2026-04-07T21:00:00"
+    }
+  ]
+}

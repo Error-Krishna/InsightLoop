@@ -1,0 +1,14 @@
+$ vitest run test/b3_timezone.test.ts
+
+ RUN  v3.2.7 /Users/krishnagoyal/Development/personal projects/Insightloop/apps/api
+
+stdout | test/b3_timezone.test.ts > B3: Timezone and Boundaries
+Connected to MongoDB: InsightLoop_test
+
+ ✓ test/b3_timezone.test.ts (3 tests) 41ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:18:59
+   Duration  262ms (transform 43ms, setup 0ms, collect 101ms, tests 41ms, environment 0ms, prepare 35ms)
+
