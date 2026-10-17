@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import compression from 'compression';
 import cors from 'cors';
 import express, { type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { env } from './config/env.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
+import { requestTimingMiddleware } from './middleware/requestTiming.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { asyncHandler } from './utils/asyncHandler.js';
 
@@ -66,6 +68,8 @@ app.use(
 );
 
 app.use(requestIdMiddleware);
+app.use(requestTimingMiddleware);
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
