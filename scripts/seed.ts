@@ -67,7 +67,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
 
   // 2. Company A (Main Tenant)
   const compAOid = new ObjectId('670d8a000000000000000001');
-  const compAUuid = '00000000-0000-4000-8000-000000000001';
+  const compAUuid = 'company-a-uuid-0000-000000000001';
   await db.collection('company').insertOne({
     _id: compAOid,
     company_id: compAUuid,
@@ -110,7 +110,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
 
   // 3. Company B (Secondary Tenant)
   const compBOid = new ObjectId('670d8a000000000000000003');
-  const compBUuid = '00000000-0000-4000-8000-000000000002';
+  const compBUuid = 'company-b-uuid-0000-000000000002';
   await db.collection('company').insertOne({
     _id: compBOid,
     company_id: compBUuid,

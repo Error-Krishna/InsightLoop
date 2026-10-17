@@ -45,8 +45,11 @@ function normalizeValue(val) {
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(val)) {
       return '<ISO_TIMESTAMP>';
     }
-    // UUID v4
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+    // UUID v4 or deterministic company UUID
+    if (
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val) ||
+      /^company-[ab]-uuid-\d{4}-\d{12}$/.test(val)
+    ) {
       return '<UUID>';
     }
     // Prefixed MongoDB ObjectIds (e.g. assignment:6acff8...)
