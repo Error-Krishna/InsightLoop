@@ -8,102 +8,42 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
-const pythonBin = path.join(rootDir, '.venv/bin/python');
-const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
-
+const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/InsightLoop_test';
+const dbName = process.env.MONGODB_DB_NAME || 'InsightLoop_test';
 const require = createRequire(import.meta.url);
 const { MongoClient, ObjectId } = require(path.join(rootDir, 'apps/api/node_modules/mongodb'));
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/InsightLoop_test';
-const dbName = process.env.MONGODB_DB_NAME || 'InsightLoop_test';
-
-console.log(`[check_doc_shape] 1. Extracting Django MongoEngine model definitions...`);
-
-let schemaJson = '';
-if (hasDjango) {
-  try {
-    schemaJson = execSync(
-      `"${pythonBin}" -c "
-import os, sys, django, json
-sys.path.insert(0, 'insightloop')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
-django.setup()
-import mongoengine
-import landing.mongo_models
-import landing.models
-import worker.models
-import bills.models
-import inventory.models
-import upload.models
-import dashboard.models
-import insights.models
-
-collections = {}
-for name, cls in list(mongoengine.base._document_registry.items()):
-    if hasattr(cls, '_fields') and not getattr(cls, '_is_base_cls', False):
-        coll = getattr(cls, '_meta', {}).get('collection')
-        if not coll:
-            coll = mongoengine.common._camel_case_to_spaces(cls.__name__).replace(' ', '_')
-        fields = {}
-        for fname, fval in cls._fields.items():
-            db_field = getattr(fval, 'db_field', fname) or fname
-            ftype = type(fval).__name__
-            fields[db_field] = {
-                'name': fname,
-                'type': ftype,
-                'required': getattr(fval, 'required', False),
-            }
-        collections[coll] = {
-            'model': cls.__name__,
-            'collection': coll,
-            'fields': fields,
-            'strict': not getattr(cls._meta, 'dynamic', False)
-        }
-
-print(json.dumps(collections))
-"`,
-      { cwd: rootDir, encoding: 'utf-8' }
-    );
-  } catch (err) {
-    console.error('[check_doc_shape] Failed to extract Django MongoEngine models:', err);
-    process.exit(1);
-  }
-} else {
-  console.log('[check_doc_shape] Python/Django runtime not present. Loading frozen schema from docs/migration/django-model-schema.json...');
-  const frozen = JSON.parse(fs.readFileSync(path.join(rootDir, 'docs/migration/django-model-schema.json'), 'utf8'));
-  const collections = {};
-  for (const [coll, def] of Object.entries(frozen)) {
-    const fields = {
-      _id: { name: 'id', type: 'ObjectIdField', required: false },
-    };
-    for (const [fName, fMeta] of Object.entries(def.fields)) {
-      const dbKey = fName === 'id' ? '_id' : fName;
-      fields[dbKey] = {
-        name: fName,
-        type: fMeta.bson_type === 'string' ? 'StringField'
-            : fMeta.bson_type === 'int' ? 'IntField'
-            : fMeta.bson_type === 'double' ? 'FloatField'
-            : fMeta.bson_type === 'decimal' ? 'DecimalField'
-            : fMeta.bson_type === 'bool' ? 'BooleanField'
-            : fMeta.bson_type === 'date' ? 'DateTimeField'
-            : fMeta.bson_type === 'objectId' ? 'ObjectIdField'
-            : fMeta.bson_type === 'array' ? 'ListField'
-            : 'DictField',
-        required: fMeta.required,
-      };
-    }
-    collections[coll] = {
-      model: coll,
-      collection: coll,
-      fields,
-      strict: true,
+console.log(`[check_doc_shape] 1. Loading frozen schema from docs/migration/django-model-schema.json...`);
+const frozen = JSON.parse(fs.readFileSync(path.join(rootDir, 'docs/migration/django-model-schema.json'), 'utf8'));
+const schemas = {};
+for (const [coll, def] of Object.entries(frozen)) {
+  const fields = {
+    _id: { name: 'id', type: 'ObjectIdField', required: false },
+  };
+  for (const [fName, fMeta] of Object.entries(def.fields)) {
+    const dbKey = fName === 'id' ? '_id' : fName;
+    fields[dbKey] = {
+      name: fName,
+      type: fMeta.bson_type === 'string' ? 'StringField'
+          : fMeta.bson_type === 'int' ? 'IntField'
+          : fMeta.bson_type === 'double' ? 'FloatField'
+          : fMeta.bson_type === 'decimal' ? 'DecimalField'
+          : fMeta.bson_type === 'bool' ? 'BooleanField'
+          : fMeta.bson_type === 'date' ? 'DateTimeField'
+          : fMeta.bson_type === 'objectId' ? 'ObjectIdField'
+          : fMeta.bson_type === 'array' ? 'ListField'
+          : 'DictField',
+      required: fMeta.required,
     };
   }
-  schemaJson = JSON.stringify(collections);
+  schemas[coll] = {
+    model: coll,
+    collection: coll,
+    fields,
+    strict: true,
+  };
 }
-
-const schemas = JSON.parse(schemaJson);
-console.log(`[check_doc_shape] Found ${Object.keys(schemas).length} Django MongoEngine models registered.`);
+console.log(`[check_doc_shape] Found ${Object.keys(schemas).length} model definitions registered.`);
 
 console.log(`[check_doc_shape] 2. Deterministically seeding one document of EVERY entity type created by Node...`);
 const client = new MongoClient(uri);
@@ -530,113 +470,7 @@ try {
     process.exit(1);
   }
 
-  if (hasDjango) {
-    console.log(`[check_doc_shape] 5. Executing Django API roundtrip: Load, List, Update, and Delete through Django API...`);
-    const djangoApiOutput = execSync(
-    `"${pythonBin}" -c "
-import os, sys, django
-sys.path.insert(0, 'insightloop')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
-django.setup()
 
-from rest_framework.test import APIClient
-from landing.authentication import issue_tokens_for_user
-from landing.mongo_models import User, Company
-from bson import ObjectId
-import worker.models as wm
-import bills.models as bm
-import inventory.models as im
-import insights.models as inm
-import landing.mongo_models as lm
-
-cid = '${testCompanyId}'
-user = User.objects.get(id=ObjectId('${testUserId.toString()}'))
-tokens = issue_tokens_for_user(user)
-
-client = APIClient()
-client.credentials(HTTP_AUTHORIZATION='Bearer ' + str(tokens['access']))
-
-# 1. Workers API
-res = client.get('/api/v1/workers/')
-assert res.status_code == 200, f'Workers list failed: {res.status_code}'
-assert len(res.data) >= 1
-
-res = client.get(f'/api/v1/workers/${testWorkerId.toString()}/')
-assert res.status_code == 200, f'Worker get failed: {res.status_code}'
-
-res = client.put(f'/api/v1/workers/${testWorkerId.toString()}/', {'name': 'Updated Master Artisan'}, format='json')
-assert res.status_code == 200, f'Worker update failed: {res.status_code}'
-
-# 2. Inventory Warehouses API
-res = client.get('/api/v1/inventory/warehouses/')
-assert res.status_code == 200
-assert len(res.data) >= 1
-
-res = client.put(f'/api/v1/inventory/warehouses/${testWarehouseId.toString()}/', {'name': 'Updated Warehouse Name', 'location': 'Gate 9'}, format='json')
-assert res.status_code == 200
-
-# 3. Inventory Finished Items API
-res = client.get('/api/v1/inventory/finished/')
-assert res.status_code == 200
-assert len(res.data) >= 1
-
-res = client.put(f'/api/v1/inventory/finished/${testItemId.toString()}/', {'name': 'Updated Pashmina Shawl', 'quantity': 55}, format='json')
-assert res.status_code == 200
-
-# 4. Bills API
-res = client.get('/api/v1/bills/')
-assert res.status_code == 200
-assert len(res.data) >= 1
-
-res = client.get(f'/api/v1/bills/${testBillId.toString()}/')
-assert res.status_code == 200
-
-res = client.put(f'/api/v1/bills/${testBillId.toString()}/', {'discount': 600, 'gst_number': '29ABCDE1234F1Z5', 'gst_percentage': 12}, format='json')
-assert res.status_code == 200, f'Bill update failed: {res.status_code} {res.data}'
-
-# 5. Insights API
-res = client.get('/api/v1/insights/')
-assert res.status_code == 200
-assert len(res.data) >= 1
-
-# 6. Deletions via API
-res = client.delete(f'/api/v1/bills/${testBillId.toString()}/')
-assert res.status_code in [200, 204], f'Bill delete failed: {res.status_code}'
-
-res = client.delete(f'/api/v1/inventory/finished/${testItemId.toString()}/')
-assert res.status_code in [200, 204], f'Inventory delete failed: {res.status_code}'
-
-res = client.delete(f'/api/v1/inventory/warehouses/${testWarehouseId.toString()}/')
-assert res.status_code in [200, 204], f'Warehouse delete failed: {res.status_code}'
-
-res = client.delete(f'/api/v1/insights/${testInsightId.toString()}/')
-assert res.status_code in [200, 204], f'Insight delete failed: {res.status_code}'
-
-res = client.delete(f'/api/v1/workers/${testWorkerId.toString()}/')
-assert res.status_code in [200, 204], f'Worker delete failed: {res.status_code}'
-
-print('DJANGO_API_ROUNDTRIP_PASSED')
-"`,
-    {
-      cwd: rootDir,
-      encoding: 'utf-8',
-      env: {
-        ...process.env,
-        MONGODB_URI: uri,
-        MONGODB_DB_NAME: dbName,
-        DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
-      },
-    }
-  );
-
-    if (!djangoApiOutput.includes('DJANGO_API_ROUNDTRIP_PASSED')) {
-      console.error(`[ERROR] Django API roundtrip did not pass! Output:\n${djangoApiOutput}`);
-      process.exit(1);
-    }
-    console.log(`[check_doc_shape] Django API roundtrip successfully validated load, list, update, and delete!`);
-  } else {
-    console.log(`[check_doc_shape] 5. Python-free environment: Django codebase removed, skipping Django API roundtrip.`);
-  }
 
 } finally {
   console.log(`[check_doc_shape] 6. Cleaning up temporary deterministic test entities...`);

@@ -39,20 +39,9 @@ Every deployment to staging or production MUST complete and sign off on each ite
   ```
 - [ ] Verify that all 18 core indexes across `user`, `company`, `bills`, `inventory_items`, `warehouses`, `workers`, `assignments`, `pay_records`, and `business_data` are confirmed without errors.
 
-### C. Legacy HTML Routes Traffic Evidence Audit
-The Django monolithic codebase historically exposed server-rendered Django template HTML views. In Phase 5.7b, all user flows are migrated to the React SPA. However, to guarantee zero customer disruption, no legacy route will be deleted or altered without verified traffic logs:
-
-| Legacy Route | Template Path | Status | Migration Action |
-|---|---|---|---|
-| `/dashboard/` | `insightloop/templates/dashboard/Dashboard.html` | `NEEDS-TRAFFIC-EVIDENCE` | Do not remove; monitor NGINX access logs for 30 consecutive days of 0 hits. |
-| `/distribution/` | `insightloop/templates/workers/MaterialDistribution.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/distribution/manage-workers/` | `insightloop/templates/workers/Worker.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/insights/` | `insightloop/templates/insights/InsightDetails.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/upload/` | `insightloop/templates/upload/DataUpload.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/aiexport/` | `insightloop/templates/AIExport/Export&AI.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/user/profile/` | `insightloop/templates/misc/Profile.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/user/settings/` | `insightloop/templates/misc/Setting.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
-| `/user/billing/` | `insightloop/templates/misc/Billing.html` | `NEEDS-TRAFFIC-EVIDENCE` | Audit legacy sessions before deprecation. |
+### C. Single Page Application Route Audit
+All user flows are fully handled by the React SPA (`apps/web`) routing directly to Express API endpoints (`apps/api`).
+All client routes are served by Vercel rewrites directly to `index.html`.
 
 
 ---
@@ -126,5 +115,6 @@ If any of the following occur within 60 minutes of staging deployment:
 - WebSocket connection drop rate > 1%
 
 **Immediate Actions**:
-1. Re-route DNS / CDN traffic back to the standby Python Django service.
-2. The MongoDB database remains 100% compatible and unharmed because all indexes applied were additive-only and document shapes adhere to the verified Django schema contracts.
+1. Roll back the Render web service to the previous deployment via Render Dashboard ("Rollback to this deploy").
+2. Roll back the Vercel frontend to the previous deployment via Vercel Deployments ("Promote to Production").
+3. See [Rollback Runbook](./rollback.md) for full procedures and verification checklist.

@@ -5,7 +5,7 @@ import { generateTokens } from '../src/utils/jwt.js';
 import { hashPassword } from '../src/utils/crypto.js';
 import { app } from '../src/app.js';
 
-export { getDb, getDb as getDatabase, getCollection };
+export { getDb, getDb as getDatabase };
 
 let replSet: MongoMemoryReplSet | null = null;
 

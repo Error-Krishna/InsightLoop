@@ -50,7 +50,7 @@ export function floatToExactDecimal(num: number): Decimal {
 }
 
 /**
- * Exact Python round() equivalent using banker's rounding (round half to even).
+ * Banker's rounding (round half to even).
  */
 export function roundPy(val: number, n = 0): number {
   if (isNaN(val) || !isFinite(val)) return val;
@@ -65,7 +65,7 @@ export function roundPy(val: number, n = 0): number {
 }
 
 /**
- * Exact Python round for currency (2 decimal places).
+ * Banker's rounding for currency (2 decimal places).
  */
 export function roundCurrency(val: number): number {
   return roundPy(val, 2);
@@ -104,7 +104,7 @@ export interface BillTotals {
 }
 
 /**
- * Calculates bill financial totals according to Indian GST conventions and Python logic.
+ * Calculates bill financial totals according to Indian GST conventions.
  */
 export function calculateBillTotals(
   rawProducts: BillProductInput[],
@@ -163,7 +163,7 @@ export interface BillDerivedStatus {
 }
 
 /**
- * Computes derived payment status and order status from bill financial state matching Django model properties.
+ * Computes derived payment status and order status from bill financial state.
  */
 export function calculateBillDerived(
   grandTotal: number,

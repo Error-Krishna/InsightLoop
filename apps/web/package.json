@@ -13,7 +13,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@insightloop/shared": "workspace:*",
     "axios": "^1.8.4",
     "lucide-react": "^0.507.0",
     "react": "^19.0.0",

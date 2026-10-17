@@ -1,81 +1,46 @@
-# Python / Django
-*.pyc
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
+# Dependencies
+node_modules/
+.npm
+.pnpm-debug.log*
+
+# Build outputs
 dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-*.pot
-db.sqlite3
-*.sqlite3
-*.log
-*.log.*
-importtime.log
-
-# Django static & media
-staticfiles/
-media/
-/insightloop/staticfiles/
-/insightloop/static/
-/insightloop/media/
-/insightloop/uploads/
-insightloop/db.sqlite3
-*.sqlite3
-
-# Virtual environments
-venv/
-.venv/
-.venv_backup/
-env/
-ENV/
-env.bak/
-venv.bak/
+build/
+.turbo/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 *.env
-frontend/.env
-insightloop/.env
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing & Coverage
+coverage/
+reports/
+.stryker-tmp/
+test-results/
+playwright-report/
 
 # Redis
 dump.rdb
 *.rdb
 
-# Node / Frontend / Vite
-node_modules/
-dist/
-build/
-npm-debug.log
-npm-debug.log.*
-yarn-debug.log.*
-yarn-error.log.*
-.npm
-.pnpm-debug.log
+# Sensitive files
+client_secret_*.json
 
-# Vite
-frontend/.vite/
-frontend/dist/
-frontend/.env.local
-frontend/node_modules/
-.venv312/
-# IDE
+# IDE & OS
 .vscode/
 .idea/
 *.swp
@@ -83,57 +48,14 @@ frontend/node_modules/
 *~
 .DS_Store
 Thumbs.db
-*.sublime-project
-*.sublime-workspace
-.project
-.pydevproject
-.settings/
-*.iml
-
-# macOS
-.DS_Store
 .AppleDouble
 .LSOverride
 ._*
 
-# Testing
-.coverage
-.coverage.*
-.pytest_cache/
-htmlcov/
-
-# Misc
+# Temporary files
 *.bak
 *.tmp
 *.temp
 *.pid
 *.seed
-insightloop/import.log
-folder_structure.txt
-
-# Sensitive files
-client_secret_*.json
-insightloop/client_secret_*.json
-
-
-
-
-
-# Development
-.env.development
-.env.development.local
-.env.production
-.env.production.local
-
-# Staging area for files flagged as stale/dead code during cleanup passes
 _stale_files_safe_to_delete/
-
-# Turborepo & Test outputs
-.turbo/
-coverage/
-reports/
-.stryker-tmp/
-test-results/
-playwright-report/
-
-

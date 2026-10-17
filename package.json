@@ -11,12 +11,11 @@
     "test": "turbo run test",
     "test:contracts": "node scripts/run_contract_suite.mjs --assert",
     "test:contracts:record": "node scripts/run_contract_suite.mjs --record",
-    "test:dual-stack": "node scripts/test_dual_stack.mjs",
     "test:tenancy": "node scripts/test_tenancy_security.mjs",
     "test:chaos": "node scripts/test_chaos_resilience.mjs",
-    "test:benchmark": "node scripts/run_load_benchmark.mjs",
     "check:citations": "node scripts/check_citations.mjs",
     "check:shape": "node scripts/check_doc_shape.mjs",
+    "check:no-python": "node scripts/check_no_python.mjs",
     "typecheck": "turbo run typecheck",
     "prepare": "husky"
   },

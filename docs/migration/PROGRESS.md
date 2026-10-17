@@ -1,17 +1,19 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 7 (Latency Diagnostic, Performance Optimization & Python Removal Gate)
-- **Status**: PHASE 7 PERFORMANCE FIXES & PYTHON REMOVAL PREPARED
-- **Deployment & Perf Status**:
-  - Live Render latency benchmarked across 10 runs (cold start 52.2s, warm median /health 292ms, auth 1.6s, overview 1.97s, bills 757ms, pdf 1.25s).
-  - Performance fixes committed on `perf/live-latency` (additive indexes, font resolution caching, N+1 query elimination, gzip compression, request timing middleware).
-  - Python removal prepared and verified on `chore/remove-python` from a clean clone with Python disabled: frozen-lockfile build, typecheck, lint, 356 API tests, 111 web tests, 16/16 production boot smoke test, and container builds of `insightloop-api` and `insightloop-web`.
-- **Phase Locks**: No remote push, no autonomous deploy executed, no branches merged. User will review PR and merge on GitHub.
-- **Branches**: `main` (deploy-ready baseline), `perf/live-latency` (performance fixes from main), `chore/remove-python` (recreated with perf fixes + Python code purged).
+- **Current Phase**: Phase 8 (Final Monorepo Cleanup & MERN-Only Verification)
+- **Status**: FINAL: MERN-ONLY
+- **Deployment & Monorepo Status**:
+  - Node API is LIVE in production on Render (`https://insightloop.onrender.com`), database on MongoDB Atlas.
+  - Frontend is LIVE in production on Vercel.
+  - All Python and Django leftovers, migration-only scripts, legacy fallback routes, dead code, and unused dependencies have been permanently removed.
+  - Permanent automated guard `scripts/check_no_python.mjs` wired to `package.json` and CI workflow `.github/workflows/ci.yml`.
+  - Full suite verified with clean clone and Python binaries disabled: frozen-lockfile build, typecheck, lint (0 warnings), 111 web tests, 355 API tests, 89 routes verified identical to baseline, citations, silent errors, 89.3% branch coverage, 16/16 production boot smoke test, and Docker container builds.
+- **Phase Locks**: No remote push, no autonomous deploy executed, no branches merged. Ready for user pull request and merge.
+- **Branches**: `chore/final-cleanup` (branched from `main`).
 - **Safety Tag**: `pre-mern-migration-2026-10-15` (commit `9410c2a33f6fef2ceed8a07843cfb52f7a04be71`) verified intact.
-- **Last Updated**: 2026-10-18 00:10 UTC
-- **Next Action**: User reviews PRs on GitHub, merges `perf/live-latency` and `chore/remove-python`, and considers recommended Render/Atlas infrastructure adjustments.
+- **Last Updated**: 2026-10-18 01:45 UTC
+- **Next Action**: User reviews PR on GitHub, merges `chore/final-cleanup` to `main`.
 
 ---
 
@@ -413,4 +415,33 @@ The codebase on `main` is deploy-ready and verified. The following operational i
   - Verified baseline tag `pre-mern-migration-2026-10-15` (`9410c2a33f6fef2ceed8a07843cfb52f7a04be71`) exists and documented exact commands to restore Django code.
   - Categorized audit of all remaining keyword references recorded in `docs/migration/evidence/python_free_gate.txt`.
 - **Status**: STOPPED without pushing to remote or merging branches. Ready for user pull request and GitHub merge.
+
+---
+
+## 5. Phase 8 Final Cleanup Summary (`chore/final-cleanup`)
+
+Completed comprehensive monorepo cleanup per Section 0–6 guidelines:
+- **Category A (Python & Django Leftovers)**: Deleted untracked `.venv`, `insightloop/`, python cache folders (`__pycache__`), `.vscode/`, `render.yaml`. Cleaned `.gitignore`, `.dockerignore`, `.github/workflows/ci.yml`.
+- **Category E (Django Env Fallbacks)**: Removed `DJANGO_SECRET_KEY`, `DJANGO_CORS_ALLOWED_ORIGINS`, `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_REGION_NAME` from `apps/api/src/config/env.ts`. Updated `docs/runbooks/env_mapping.md`. Removed obsolete fallback test in `cors.test.ts`. Preserved `REHASH_PASSWORDS_ON_LOGIN` pending user decision.
+- **Category B (Migration Tooling & Legacy Router)**: Removed `legacy.routes.ts` module and its mount in `app.ts`. Deleted 8 obsolete migration and parity scripts. Archived old canary rollback runbooks to `docs/archive/canary_rollback.md` and `python_removal_merge.md`. Created unified redeploy runbook `docs/runbooks/rollback.md`.
+- **Category C (Dead Code & Dependencies)**: Deleted `tokens.ts`, redundant `commitlint.config.js`, unused `serializeBillSync` parameter, unused exports in `jwt.ts` and `testHelper.ts`. Removed unused dependencies `pino-http` from API and `@insightloop/shared` from Web.
+- **Category D (Documentation & Evidence Consolidation)**: Created canonical `docs/MIGRATION_HISTORY.md` and clean Node-only `README.md`. Archived historical migration logs and evidence to `docs/archive/`. Updated citation checker with 0 broken citations.
+- **Section 5 (Permanent Guard)**: Added `scripts/check_no_python.mjs` wired into `package.json` (`pnpm run check:no-python`) and CI workflow. Verified failure on planted `.py` file and 100% pass on clean tree. Replaced old dual-stack scripts with pure TypeScript seeder `scripts/seed.ts`.
+- **Section 4 Verification Gate (Python Disabled)**:
+  - Clean clone with Python binaries shimmed to exit code 127.
+  - `pnpm install --frozen-lockfile`: PASS
+  - `pnpm build`: PASS
+  - `pnpm typecheck`: PASS (0 errors)
+  - `pnpm lint`: PASS (0 warnings)
+  - Frontend web tests: 26 files, 111 tests passed
+  - Backend API tests: 64 files, 355 tests passed (-1 obsolete fallback test)
+  - Route wiring: 89 registered routes, diff against baseline is **EMPTY**
+  - Citations check: 695 citations verified, 154 symbols verified
+  - Silent error check: 0 violations
+  - Branch coverage: 89.3% (PASS)
+  - Golden fixtures safety nets: 19/19 tests passed
+  - Local production boot smoke test: 16/16 steps passed
+  - Docker builds: API and Web container builds passed cleanly
+  - Evidence saved to `docs/migration/evidence/final_cleanup_after.txt`.
+
 

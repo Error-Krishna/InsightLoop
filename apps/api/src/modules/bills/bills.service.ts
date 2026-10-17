@@ -62,7 +62,7 @@ export interface ReadyToDeliverInput {
 }
 
 export class BillsService {
-  private static serializeBillSync(bill: BillDoc, linkedPayRecords: Document[], linkedAssignments: Document[]) {
+  private static serializeBillSync(bill: BillDoc, linkedAssignments: Document[]) {
     const grandTotal = Number(bill.grand_total) || 0;
     const payments = bill.payments ?? [];
     const profitConfirmed = Boolean(bill.profit_confirmed);
@@ -190,7 +190,7 @@ export class BillsService {
   private static async serializeBill(bill: BillDoc, scope: TenantScope) {
     const billIdStr = bill._id.toString();
     const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, billIdStr);
-    return this.serializeBillSync(bill, [], linkedAssignments);
+    return this.serializeBillSync(bill, linkedAssignments);
   }
 
   static async listBills(scope: TenantScope, billType?: string) {
@@ -217,7 +217,7 @@ export class BillsService {
     return bills.map((b) => {
       const bIdStr = b._id.toString();
       const linkedAssigns = assignmentsByBill.get(bIdStr) ?? [];
-      return this.serializeBillSync(b, [], linkedAssigns);
+      return this.serializeBillSync(b, linkedAssigns);
     });
   }
 

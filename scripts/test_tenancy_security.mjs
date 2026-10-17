@@ -42,7 +42,8 @@ async function run() {
 
   // 1. Re-seed test DB
   console.log("--- 1. Resetting test DB with deterministic seed ---");
-  const seedProc = spawnSync(".venv/bin/python", ["scripts/seed_test_db.py"], {
+  const seedProc = spawnSync("npx", ["tsx", "scripts/seed.ts"], {
+    cwd: ROOT,
     encoding: "utf-8",
     env: {
       ...process.env,

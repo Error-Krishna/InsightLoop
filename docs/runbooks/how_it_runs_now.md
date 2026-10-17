@@ -2,7 +2,7 @@
 
 ## 1. Overview & Architecture
 
-InsightLoop has completed its migration from a monolithic Django application to a modern, decoupled TypeScript/Node stack (MERN). Python, Daphne, Gunicorn, WeasyPrint, and MongoEngine have been removed from the runtime.
+InsightLoop runs as a modern, decoupled TypeScript/Node stack (MERN). All runtime dependencies are pure Node.js and TypeScript.
 
 ```mermaid
 flowchart LR
@@ -50,10 +50,10 @@ flowchart LR
 
 ### C. Database (MongoDB Atlas)
 - **Cluster**: MongoDB Atlas Shared/Dedicated tier
-- **Database Name**: `InsightLoop` (exact casing matching the historical Django database)
+- **Database Name**: `InsightLoop` (canonical casing preserved)
 - **Data Compatibility**:
   - All existing documents (Bills, Workers, PayRecords, MaterialAssignments, InventoryItems, Users) retain exact BSON types.
-  - Password hashes use Django's PBKDF2 SHA-256 scheme (`pbkdf2_sha256$600000$<salt>$<hash>`). Node hashes and verifies against this standard natively using Node `crypto.pbkdf2Sync` with 600,000 iterations.
+  - Password hashes use PBKDF2 SHA-256 scheme (`pbkdf2_sha256$600000$<salt>$<hash>`). Node hashes and verifies against this standard natively using Node `crypto.pbkdf2Sync` with 600,000 iterations.
   - Indexing: Additive compound indexes are ensured automatically on application boot in `apps/api/src/db/mongo.ts:ensureIndexes`.
 
 ---
@@ -106,18 +106,8 @@ If an application bug is detected in production:
    - Select the last stable deployment.
    - Click `...` -> **Promote to Production** (traffic switches instantly).
 
-### B. Full Code Restoration of Django Codebase
-The complete original Python/Django application is preserved byte-for-byte in git tag `pre-mern-migration-2026-10-15` (commit `9410c2a33f6fef2ceed8a07843cfb52f7a04be71`).
-
-To restore the removed Django files into your working tree:
-```bash
-git checkout pre-mern-migration-2026-10-15 -- insightloop/ requirements.txt requirements-lock.txt scripts/seed_test_db.py scripts/export_django_model_schema.py scripts/generate_golden_vectors.py scripts/generate_django_test_pdfs.py scripts/sitecustomize.py
-```
-
-To create a new emergency branch containing the exact historical Django codebase:
-```bash
-git checkout -b emergency-django-restore pre-mern-migration-2026-10-15
-```
+### B. Historical Codebase Restoration
+The complete original application state prior to migration is preserved byte-for-byte in git tag `pre-mern-migration-2026-10-15` (commit `9410c2a33f6fef2ceed8a07843cfb52f7a04be71`). See [Migration History](../MIGRATION_HISTORY.md) for full restoration commands and safety tag verification.
 
 ---
 

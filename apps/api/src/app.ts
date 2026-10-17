@@ -23,7 +23,6 @@ import { insightsRouter } from './modules/insights/insights.routes.js';
 import { uploadRouter } from './modules/upload/upload.routes.js';
 import { aiRouter } from './modules/ai/ai.routes.js';
 import { contactRouter } from './modules/contact/contact.routes.js';
-import { legacyRouter } from './modules/legacy/legacy.routes.js';
 import { StorageService, getMimeType } from './modules/upload/storage.service.js';
 
 import { requireMetricsAuth } from './middleware/metricsAuth.js';
@@ -73,7 +72,7 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Root endpoint: mirrors Django root_redirect (redirects to FRONTEND_ORIGIN, or returns JSON)
+// Root endpoint: root_redirect (redirects to FRONTEND_ORIGIN, or returns JSON)
 app.get('/', (_req: Request, res: Response) => {
   const origin = env.FRONTEND_ORIGIN;
   if (origin && typeof origin === 'string' && origin.trim()) {
@@ -104,7 +103,6 @@ app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/ai', aiRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/contact', contactRouter);
-app.use(legacyRouter);
 
 // Media serving endpoint (persisted via MongoDB GridFS / S3)
 app.get(

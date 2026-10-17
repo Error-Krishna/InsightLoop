@@ -44,7 +44,7 @@ describe('Mathematical Compatibility Engine', () => {
     expect(failed).toBe(0);
   });
 
-  it('matches Python bill derived calculations and profit logic', () => {
+  it('matches bill derived calculations and profit logic', () => {
     const raw = fs.readFileSync(VECTORS_PATH, 'utf-8');
     const data = JSON.parse(raw);
     const derivedVectors = data.bill_derived_properties;
@@ -85,7 +85,7 @@ describe('Mathematical Compatibility Engine', () => {
     expect(profit.suggested_profit).toBe(5258.98);
   });
 
-  it('matches Python metric percentage change formulas', () => {
+  it('matches metric percentage change formulas', () => {
     expect(calcPercentageChange(150, 100)).toBe(50.0);
     expect(calcPercentageChange(50, 100)).toBe(-50.0);
     expect(calcPercentageChange(100, 0)).toBe(100.0);
