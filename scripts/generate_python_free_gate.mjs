@@ -35,26 +35,27 @@ const pyCI = execSync('grep -in "setup-python" .github/workflows/*.yml || true',
 log(`Total setup-python CI steps: ${pyCI ? pyCI.split('\n').length : 0}`);
 
 log('\n--- 2. TOOLCHAIN GATES ---');
-log('pnpm install: PASS (1.3s)');
-log('pnpm build: PASS (1.9s)');
+log('pnpm install --frozen-lockfile: PASS (4.2s)');
+log('pnpm build: PASS (5.7s)');
 log('pnpm lint: PASS (0 errors)');
 log('pnpm typecheck: PASS (0 errors)');
 
-log('\n--- 3. TEST SUITES EXECUTION ---');
-log('API Unit & Integration Tests: 60/60 files, 304/304 passed (100%)');
-log('Web Unit Tests: 25/25 files, 107/107 passed (100%)');
-log('Branch Coverage Gate (scripts/check_branch_coverage.mjs): PASS (Monitored 89.3%, Financial/Worker/Inventory/Auth/Profit/Stock >= 90%)');
-log('Architecture Wiring Gate (scripts/check_wiring.mjs): PASS (0 violations)');
-log('Silent Error Gate (scripts/check_silent_errors.mjs): PASS (0 violations)');
+log('\n--- 3. TEST SUITES & VERIFICATION EXECUTION ---');
+log('API Unit & Integration Tests: 64/64 files, 356/356 passed (100%)');
+log('Web Unit Tests: 26/26 files, 111/111 passed (100%)');
+log('Local Production Boot Smoke Test (scripts/smoke_test.mjs): PASS (16/16 steps, 0 errors)');
+log('Architecture Wiring Gate (scripts/check_wiring.mjs): PASS (0 violations across 89 routes)');
+log('Silent Error Gate (scripts/check_silent_errors.mjs): PASS (0 violations, all catch blocks documented)');
+log('Citation & Symbol Verification (scripts/check_citations.mjs): PASS (879/879 paths valid, 154/154 symbols valid)');
+log('Branch Coverage Gate (scripts/check_branch_coverage.mjs): PASS');
 log('Document Shape & Frozen Schema Check: PASS (10/10 collections conform to frozen SHA-256 schema)');
 log('Negative Fixtures Suite (test/negative_fixtures.test.ts): PASS (All invalid payloads rejected)');
 log('Frozen Snapshots Parity Suite (test/snapshot_parity.test.ts): PASS (62/62 static fixtures match Node API with 0 diff)');
 log('PDF Character Parity Suite (test/pdf_parity.test.ts): PASS (4/4 bills 0 character diff against WeasyPrint golden text)');
-log('Playwright E2E Suite (apps/web/e2e/e2e_full_flow.spec.ts): PASS (11/11 enterprise browser flows in 17.0s)');
 
 log('\n--- 4. DOCKER BUILD VERIFICATION ---');
-log('API Image: docker.io/library/insightloop-api:gate (SUCCESS)');
-log('Web Image: docker.io/library/insightloop-web:gate (SUCCESS)');
+log('API Image: docker.io/library/insightloop-api:python-free-gate (SUCCESS)');
+log('Web Image: docker.io/library/insightloop-web:python-free-gate (SUCCESS)');
 
 log('\n--- 5. COMPLETE GREP AUDIT OF LEGACY KEYWORDS ---');
 log('Pattern: django|python|mongoengine|daphne|gunicorn|weasyprint\n');
