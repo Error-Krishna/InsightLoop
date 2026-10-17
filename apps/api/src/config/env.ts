@@ -95,13 +95,8 @@ const WHATSAPP_PLACEHOLDER_VALUES = new Set([
 export function validateEnv(raw: NodeJS.ProcessEnv = process.env) {
   const isProd = raw.NODE_ENV === 'production';
 
-  // Normalize Django environment variable fallbacks
   const mappedRaw: Record<string, unknown> = {
     ...raw,
-    JWT_SECRET: raw.JWT_SECRET || raw.DJANGO_SECRET_KEY,
-    CORS_ORIGIN: raw.CORS_ORIGIN || raw.DJANGO_CORS_ALLOWED_ORIGINS,
-    S3_BUCKET_NAME: raw.S3_BUCKET_NAME || raw.AWS_STORAGE_BUCKET_NAME,
-    AWS_REGION: raw.AWS_REGION || raw.AWS_S3_REGION_NAME,
   };
 
   // WhatsApp provider and enabled status parity with Django

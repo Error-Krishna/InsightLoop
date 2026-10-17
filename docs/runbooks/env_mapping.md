@@ -1,89 +1,70 @@
-# InsightLoop Django-to-Node Environment Variable Mapping Runbook
+# InsightLoop Production Environment Variables Specification
 
-This runbook documents every configuration variable referenced in the legacy Django backend (`settings.py`, `os.getenv()` across all apps, and the historical `render.yaml`), alongside the corresponding Node.js Express variable, defaults in each stack, required production actions on Render, and alias compatibility.
-
----
-
-## 1. Master Environment Variable Mapping Table
-
-| Django Variable | Node Replacement | Django Default | Node Default | Must Set on Render? | Notes & Parity Guarantees |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `DJANGO_SECRET_KEY` | `JWT_SECRET` | None (crashes if unset or placeholder) | None (validated by Zod schema) | **YES** | Set `JWT_SECRET` to the exact value of `DJANGO_SECRET_KEY` so existing user tokens remain valid. Node also accepts `DJANGO_SECRET_KEY` as fallback if `JWT_SECRET` is omitted. |
-| `MONGODB_URI` | `MONGODB_URI` | `mongodb://localhost:27017/InsightLoop` | None (required) | **YES** | Production MongoDB Atlas connection URI. Rejects `_test` suffix in production. |
-| `MONGODB_DB_NAME` | `MONGODB_DB_NAME` | `InsightLoop` | `InsightLoop` | Optional | Defaults to `InsightLoop`. If set on Render, keeps the same database. |
-| `REDIS_URL` | `REDIS_URL` | `""` (in-memory channel layer) | `""` (in-memory rate limiting / events) | Optional | Redis connection string. If omitted, Node smoothly defaults to in-memory store. |
-| `FRONTEND_ORIGIN` | `FRONTEND_ORIGIN` | `""` | `""` | **YES** | Vercel production frontend origin (e.g., `https://insightloop.vercel.app`). Node automatically appends this to allowed CORS origins and uses it for root `/` redirect. |
-| `DJANGO_CORS_ALLOWED_ORIGINS` | `CORS_ORIGIN` | `""` | `""` | Optional | Comma-separated list of additional allowed CORS origins. Node accepts `DJANGO_CORS_ALLOWED_ORIGINS` as an alias if `CORS_ORIGIN` is not provided. |
-| `GOOGLE_CLIENT_ID` | `GOOGLE_CLIENT_ID` | `""` | `""` | **YES** (if Google auth enabled) | Public OAuth2 client ID used for validating Google ID tokens on login. Must match frontend `VITE_GOOGLE_CLIENT_ID`. |
-| `GOOGLE_CLIENT_SECRET` | *(None / Obsolete)* | `""` | N/A | **NO** | Obsolete. Google ID token validation in Node verifies signatures via Google's `tokeninfo` or cert endpoints, requiring no client secret. |
-| `GOOGLE_REDIRECT_URI` | *(None / Obsolete)* | `https://insightloop.onrender.com/auth/google/callback/` | N/A | **NO** | Obsolete. React frontend handles GIS flow directly in the browser. |
-| `WHATSAPP_API_VERSION` | `WHATSAPP_API_VERSION` | `v21.0` | `v21.0` | Optional | Graph API version for Meta WhatsApp Cloud API. |
-| `WHATSAPP_PHONE_NUMBER_ID` | `WHATSAPP_PHONE_NUMBER_ID` | `"REPLACE_WITH_PHONE_NUMBER_ID"` | `""` | Optional | Meta sender phone number ID. |
-| `WHATSAPP_ACCESS_TOKEN` | `WHATSAPP_ACCESS_TOKEN` | `"REPLACE_WITH_ACCESS_TOKEN"` | `""` | Optional | System User access token from Meta Developer portal. |
-| `WHATSAPP_BUSINESS_ACCOUNT_ID` | `WHATSAPP_BUSINESS_ACCOUNT_ID` | `"REPLACE_WITH_BUSINESS_ACCOUNT_ID"` | `""` | Optional | Meta WABA ID. |
-| `WHATSAPP_BILL_TEMPLATE_NAME` | `WHATSAPP_BILL_TEMPLATE_NAME` | `bill_share` | `bill_share` | Optional | Pre-approved template name. |
-| `WHATSAPP_BILL_TEMPLATE_LANGUAGE` | `WHATSAPP_BILL_TEMPLATE_LANGUAGE` | `en_US` | `en_US` | Optional | Template locale code. |
-| `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` | `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` | `false` | `false` | Optional | Boolean flag indicating whether template body expects company name variable. Evaluated via Django `env_bool` rule (`"1"`, `"true"`, `"yes"`, `"on"` are true; everything else false). |
-| `WHATSAPP_ENABLED` | `WHATSAPP_ENABLED` | `false` (auto-computed from credentials) | `false` (auto-computed from credentials) | Optional | Provider enable flag (`sync: false` in blueprint). If omitted or empty, auto-resolves to `true` iff real Meta credentials exist, matching Django's rule in `settings.py`. Parsed with Django's `env_bool` rule. |
-| `WHATSAPP_PROVIDER` | `WHATSAPP_PROVIDER` | `"openwa"` if placeholder, else `"meta"` | `"openwa"` if placeholder, else `"meta"` | Optional | Provider selector (`meta` vs `openwa`, `sync: false` in blueprint). If omitted or empty, auto-resolves to `"meta"` if real Meta credentials exist, else `"openwa"`. |
-| `OPENWA_BASE_URL` | `OPENWA_BASE_URL` | `http://localhost:2785` | `http://localhost:2785` | Optional | Base URL for self-hosted OpenWA WhatsApp bridge. |
-| `OPENWA_API_KEY` | `OPENWA_API_KEY` | `""` | `""` | Optional | OpenWA authentication key. |
-| `EMAIL_HOST` | `EMAIL_HOST` | `smtp.gmail.com` | `smtp.gmail.com` | Optional | SMTP host for contact messages. |
-| `EMAIL_PORT` | `EMAIL_PORT` | `587` | `587` | Optional | SMTP port (STARTTLS). |
-| `EMAIL_USE_TLS` | `EMAIL_USE_TLS` | `true` | `true` | Optional | Enables STARTTLS. |
-| `EMAIL_HOST_USER` | `EMAIL_HOST_USER` | `""` | `""` | Optional | SMTP authentication username. |
-| `EMAIL_HOST_PASSWORD` | `EMAIL_HOST_PASSWORD` | `""` | `""` | Optional | SMTP authentication password/app password. |
-| `DEFAULT_FROM_EMAIL` | `DEFAULT_FROM_EMAIL` | `noreply@localhost` or user | `noreply@insightloop.io` | Optional | From address header for contact form notifications. |
-| `ADMIN_EMAIL` | `ADMIN_EMAIL` | `DEFAULT_FROM_EMAIL` | `admin@insightloop.io` | Optional | Destination email address for inbound contact submissions. |
-| `EMAIL_BACKEND` | *(None / Obsolete)* | `django.core.mail.backends.smtp.EmailBackend` | N/A | **NO** | Obsolete. Node uses `nodemailer` with built-in STARTTLS and auth. |
-| `AWS_STORAGE_BUCKET_NAME` | `S3_BUCKET_NAME` | None | `""` | Optional | S3 Bucket name. Node accepts both `S3_BUCKET_NAME` and `AWS_STORAGE_BUCKET_NAME`. |
-| `AWS_S3_REGION_NAME` | `AWS_REGION` | None | `ap-south-1` | Optional | S3 AWS Region. Node accepts both `AWS_REGION` and `AWS_S3_REGION_NAME`. |
-| `AWS_ACCESS_KEY_ID` | `AWS_ACCESS_KEY_ID` | None | `""` | Optional | AWS IAM access key ID for S3 uploads. |
-| `AWS_SECRET_ACCESS_KEY` | `AWS_SECRET_ACCESS_KEY` | None | `""` | Optional | AWS IAM secret access key for S3 uploads. |
-| `STORAGE_DRIVER` | `STORAGE_DRIVER` | N/A | `gridfs` | Optional | Defaults to `gridfs` (MongoDB binary storage). Set to `s3` to enable AWS S3 storage. |
-| `APP_TIME_ZONE` | `APP_TIME_ZONE` | N/A (Django used UTC) | `UTC` | Optional | Server reference timezone for date boundaries and aggregations. Defaults to `UTC` matching Django on Render. |
-| `METRICS_TOKEN` | `METRICS_TOKEN` | N/A | None (required in prod) | **YES** | Shared secret token required in production to query `/health/detailed` and `/metrics`. Must be >= 16 characters. |
-| `DJANGO_ALLOWED_HOSTS` | *(None / Not Needed)* | `127.0.0.1,localhost,...` | N/A | **NO** | Not needed in Node. Express handles requests bound to `0.0.0.0` or forwarded by Render reverse proxy. |
-| `DJANGO_CSRF_TRUSTED_ORIGINS`| *(None / Not Needed)* | `https://insightloop.onrender.com` | N/A | **NO** | Not needed in Node. Node API uses stateless Bearer JWT auth for all endpoints. |
-| `DJANGO_DEBUG` | `NODE_ENV` | `false` | `production` | **NO** | Node uses standard `NODE_ENV=production`. |
-| `RENDER_EXTERNAL_HOSTNAME` | *(None / Render Internal)* | Injected by Render | N/A | **NO** | Render platform internal metadata. |
-| `DISABLE_COLLECTSTATIC` | *(None / Obsolete)* | `0` | N/A | **NO** | Obsolete. Python static collection step eliminated. |
-| `PYTHONPATH` | *(None / Obsolete)* | `/opt/render/project/src` | N/A | **NO** | Obsolete. Python runtime eliminated. |
-| `GITHUB_*` / `LINKEDIN_*` | *(None / Obsolete)* | `""` | N/A | **NO** | Obsolete unused social auth stubs. |
+This document lists all environment variables read by the InsightLoop Node.js/TypeScript backend API service (`apps/api`) in production, their purposes, defaults, and requirements for deployment on Render.
 
 ---
 
-## 2. Variables That MUST Be Set in Render Dashboard
+## 1. Required Environment Variables on Render
 
-When creating or updating the `insightloop-api` service on Render:
+These variables **must** be set in the Render Dashboard (Environment tab) for the production API service:
 
-1. **`JWT_SECRET`**:
-   - Copy the existing value from `DJANGO_SECRET_KEY`.
-   - *Parity guarantee*: Node will verify existing JWT access/refresh tokens issued by Django without forcing users to re-login.
-2. **`MONGODB_URI`**:
-   - Copy the existing Atlas connection URI.
-3. **`FRONTEND_ORIGIN`**:
-   - Set to your Vercel URL (e.g. `https://insightloop.vercel.app`).
-   - Automatically included in Node's CORS allowlist and root `/` redirect.
-4. **`METRICS_TOKEN`**:
-   - Generate a random 32-character secret string:
-     ```bash
-     openssl rand -hex 16
-     ```
-   - Used by uptime monitors or internal observability to query `/health/detailed` and `/metrics`.
-5. **`GOOGLE_CLIENT_ID`** (if Google Sign-In is active):
-   - Set to the same Google Client ID configured on Vercel.
+| Variable Name | Required? | Example / Format | Purpose |
+| :--- | :--- | :--- | :--- |
+| `NODE_ENV` | **YES** | `production` | Enables production mode, strict validation, and security safeguards. |
+| `PORT` | **YES** (by Render) | `4000` | Port on which Express listens (Render injects `PORT` automatically). |
+| `MONGODB_URI` | **YES** | `mongodb+srv://user:pass@cluster.mongodb.net/InsightLoop` | MongoDB Atlas connection string. (Rejects `_test` suffix in production). |
+| `MONGODB_DB_NAME` | **YES** | `InsightLoop` | Target MongoDB database name. |
+| `JWT_SECRET` | **YES** | `min-32-chars-cryptographic-random-secret` | Cryptographic secret used to sign and verify HMAC-SHA256 JWT tokens. Must match the secret previously used to preserve existing user sessions. |
+| `CORS_ORIGIN` | **YES** | `https://insightloop.vercel.app` | Comma-separated list of allowed browser origins for CORS. |
+| `FRONTEND_ORIGIN` | **YES** | `https://insightloop.vercel.app` | Production frontend URL. Used for root `/` redirect and automatically added to CORS. |
+| `GOOGLE_CLIENT_ID` | **YES** | `xyz.apps.googleusercontent.com` | Google OAuth2 Client ID for verifying Google Sign-In tokens from the frontend. |
+| `METRICS_TOKEN` | **YES** | `min-16-chars-random-secret` | Shared secret token required via `x-metrics-token` header to query `/metrics` and `/health/detailed`. |
 
 ---
 
-## 3. Backward Compatibility Fallbacks in Node
+## 2. Optional Environment Variables & Defaults
 
-To prevent operational accidents during migration, Node's environment parser (`apps/api/src/config/env.ts`) includes automated aliases:
-- If `JWT_SECRET` is unset, Node reads `DJANGO_SECRET_KEY`.
-- If `CORS_ORIGIN` is unset, Node reads `DJANGO_CORS_ALLOWED_ORIGINS`.
-- If `S3_BUCKET_NAME` is unset, Node reads `AWS_STORAGE_BUCKET_NAME`.
-- If `AWS_REGION` is unset, Node reads `AWS_S3_REGION_NAME`.
-- `FRONTEND_ORIGIN` is dynamically injected into CORS allowed origins.
-- `WHATSAPP_ENABLED` and `WHATSAPP_PROVIDER` (`sync: false` in `render-blueprint.yaml`): automatically resolved following Django's rule in `settings.py`. If real Meta credentials (`WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_ACCESS_TOKEN`) are configured, `WHATSAPP_PROVIDER` defaults to `'meta'` and `WHATSAPP_ENABLED` defaults to `true`. Otherwise, `WHATSAPP_PROVIDER` defaults to `'openwa'` and `WHATSAPP_ENABLED` defaults to `false`.
-- **Boolean Parsing Parity (`env_bool`)**: All boolean environment variables (`EMAIL_USE_TLS`, `WHATSAPP_ENABLED`, `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR`, `REHASH_PASSWORDS_ON_LOGIN`) are evaluated using Django's exact `env_bool` implementation: only values in `{"1", "true", "yes", "on"}` (case-insensitive, trimmed) evaluate to `true`. All other values (including `"false"`, `"0"`, `"no"`, `""`) evaluate to `false`. Default values apply only when the variable is unset (`undefined` or `null`).
+| Variable Name | Default Value | Purpose |
+| :--- | :--- | :--- |
+| `HOST` | `0.0.0.0` | Network binding interface. |
+| `JWT_ACCESS_EXPIRES_IN` | `1h` | Access token lifespan. |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifespan. |
+| `REDIS_URL` | `""` (in-memory fallback) | Optional Redis connection string for distributed rate limiting & pub/sub. |
+| `APP_TIME_ZONE` | `UTC` | Server reference timezone for date boundaries and aggregations. |
+| `TRUST_PROXY` | `1` | Reverse proxy trust level for client IP detection behind Render/Cloudflare. |
+| `STORAGE_DRIVER` | `gridfs` | File storage driver (`gridfs`, `s3`, or `local`). Defaults to MongoDB GridFS. |
+| `S3_BUCKET_NAME` | `""` | AWS S3 bucket name (required if `STORAGE_DRIVER=s3`). |
+| `AWS_REGION` | `""` | AWS S3 region (e.g. `ap-south-1`). |
+| `AWS_ACCESS_KEY_ID` | `""` | AWS IAM Access Key ID for S3 storage. |
+| `AWS_SECRET_ACCESS_KEY` | `""` | AWS IAM Secret Access Key for S3 storage. |
+| `WHATSAPP_ENABLED` | `false` (auto-computed) | WhatsApp messaging toggle. Auto-enabled if valid Meta credentials exist. |
+| `WHATSAPP_PROVIDER` | `meta` | WhatsApp provider (`meta` or `openwa`). |
+| `WHATSAPP_API_VERSION` | `v21.0` | Meta Graph API version. |
+| `WHATSAPP_PHONE_NUMBER_ID`| `""` | Meta Cloud API Sender Phone Number ID. |
+| `WHATSAPP_ACCESS_TOKEN` | `""` | Meta Cloud API System User Access Token. |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | `""` | Meta WhatsApp Business Account ID. |
+| `WHATSAPP_BILL_TEMPLATE_NAME` | `bill_share` | Pre-approved Meta message template name. |
+| `WHATSAPP_BILL_TEMPLATE_LANGUAGE` | `en_US` | Template language code. |
+| `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` | `false` | Whether template includes company variable. |
+| `OPENWA_BASE_URL` | `http://localhost:2785` | OpenWA bridge URL. |
+| `OPENWA_API_KEY` | `""` | OpenWA authentication key. |
+| `EMAIL_HOST` | `smtp.gmail.com` | SMTP host for contact form delivery. |
+| `EMAIL_PORT` | `587` | SMTP port (STARTTLS). |
+| `EMAIL_USE_TLS` | `true` | STARTTLS toggle for SMTP. |
+| `EMAIL_HOST_USER` | `""` | SMTP sender username. |
+| `EMAIL_HOST_PASSWORD` | `""` | SMTP sender password / App password. |
+| `DEFAULT_FROM_EMAIL` | `noreply@insightloop.io` | Default sender email address. |
+| `ADMIN_EMAIL` | `admin@insightloop.io` | Destination address for inbound contact submissions. |
+| `REHASH_PASSWORDS_ON_LOGIN` | `false` | Password rehashing on login flag. |
+| `UPLOAD_DIR` | `./uploads` | Local upload directory if `STORAGE_DRIVER=local`. |
+| `MAX_FILE_SIZE_MB` | `10` | Maximum file size in MB for uploads. |
+| `AUTH_RATE_LIMIT_WINDOW_MS`| `900000` (15 min) | Rate limiter window duration. |
+| `AUTH_RATE_LIMIT_MAX_ATTEMPTS` | `10` | Maximum failed auth attempts per window. |
 
+---
+
+## 3. Strict Parity Guarantees
+
+- **No Fallback Aliases**: Legacy Django environment variables (`DJANGO_SECRET_KEY`, `DJANGO_CORS_ALLOWED_ORIGINS`, `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_REGION_NAME`) are not read. Production Render environments must declare canonical names (`JWT_SECRET`, `CORS_ORIGIN`, `S3_BUCKET_NAME`, `AWS_REGION`).
+- **Boolean Parsing (`parseEnvBool`)**: Boolean variables evaluate to `true` strictly for values in `{"1", "true", "yes", "on"}` (case-insensitive, trimmed). All other values evaluate to `false`.
+- **Password Hashes**: Existing user passwords stored in Django's PBKDF2 format (`pbkdf2_sha256$...`) continue verifying with byte-for-byte mathematical parity in Node native `crypto.pbkdf2Sync`.
