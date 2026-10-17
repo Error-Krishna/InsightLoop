@@ -42,7 +42,7 @@ async function run() {
 
   // 1. Re-seed test DB
   console.log("--- 1. Resetting test DB with deterministic seed ---");
-  const seedProc = spawnSync("npx", ["tsx", "-e", "import('./scripts/seed.ts').then(m => m.seed())"], {
+  const seedProc = spawnSync("npx", ["tsx", "scripts/seed.ts"], {
     cwd: ROOT,
     encoding: "utf-8",
     env: {

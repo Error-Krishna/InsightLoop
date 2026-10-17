@@ -27,7 +27,7 @@ function seedTestDatabase() {
     MONGODB_DB_NAME: 'InsightLoop_test',
   };
   const stdout = execSync(
-    'npx tsx -e "import(\'./scripts/seed.ts\').then(m => m.seed())"',
+    'npx tsx scripts/seed.ts',
     { cwd: ROOT, env, encoding: 'utf-8' }
   );
   console.log(stdout.trim());

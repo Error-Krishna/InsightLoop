@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, chore/final-cleanup]
   pull_request:
     branches: [main]
 
@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build Monorepo
+        run: pnpm build
+
       - name: Security Audit
         run: pnpm audit --audit-level=high
 
@@ -70,9 +73,6 @@ jobs:
           pnpm --filter @insightloop/api test test/snapshot_parity.test.ts
           pnpm --filter @insightloop/api test test/pdf_parity.test.ts
 
-      - name: Build Monorepo
-        run: pnpm build
-
       - name: Seed Test Database (Pure TypeScript)
         run: pnpm tsx scripts/seed.ts mongodb://localhost:27017/InsightLoop_test
 
@@ -85,8 +85,19 @@ jobs:
           MONGODB_DB_NAME: "InsightLoop_test"
           JWT_SECRET: "ci-secret-key-must-be-long-enough-32-chars"
         run: |
-          node apps/api/dist/server.js &
-          sleep 3
+          nohup node apps/api/dist/server.js > /tmp/api_server.log 2>&1 &
+          echo $! > /tmp/api_server.pid
+          echo "Waiting for API server to become healthy on http://127.0.0.1:4000/health..."
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:4000/health > /dev/null 2>&1; then
+              echo "API server is ready (waited ${i}s)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API server failed to respond on http://127.0.0.1:4000/health within 60s"
+          cat /tmp/api_server.log
+          exit 1
 
       - name: Run Contract Parity Suite (Assert Mode)
         env:
@@ -100,6 +111,14 @@ jobs:
           MONGODB_URI: "mongodb://localhost:27017/InsightLoop_test"
           MONGODB_DB_NAME: "InsightLoop_test"
         run: node scripts/check_doc_shape.mjs
+
+      - name: Stop Node API Server
+        if: always()
+        run: |
+          if [ -f /tmp/api_server.pid ]; then
+            kill $(cat /tmp/api_server.pid) 2>/dev/null || true
+            rm -f /tmp/api_server.pid
+          fi
 
       - name: Build Docker Containers
         run: |

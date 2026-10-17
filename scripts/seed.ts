@@ -54,8 +54,10 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
     'insights',
     'financial_summaries',
     'contact_messages',
+    'contact_message',
     'user',
     'company',
+    'counters',
   ];
   for (const c of collections) {
     try {
@@ -65,7 +67,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
 
   // 2. Company A (Main Tenant)
   const compAOid = new ObjectId('670d8a000000000000000001');
-  const compAUuid = 'company-a-uuid-0000-000000000001';
+  const compAUuid = '00000000-0000-4000-8000-000000000001';
   await db.collection('company').insertOne({
     _id: compAOid,
     company_id: compAUuid,
@@ -108,7 +110,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
 
   // 3. Company B (Secondary Tenant)
   const compBOid = new ObjectId('670d8a000000000000000003');
-  const compBUuid = 'company-b-uuid-0000-000000000002';
+  const compBUuid = '00000000-0000-4000-8000-000000000002';
   await db.collection('company').insertOne({
     _id: compBOid,
     company_id: compBUuid,
@@ -291,21 +293,6 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
     wage_amount: 500.0,
     created_at: daysAgo(10),
     updated_at: daysAgo(10),
-  });
-
-  // 7b. Pay Record for Worker 1
-  const payRecord1Oid = new ObjectId('670d8a000000000000000070');
-  await db.collection('pay_records').insertOne({
-    _id: payRecord1Oid,
-    company_id: compAUuid,
-    worker: worker1Oid,
-    product_name: 'Desk Assembly',
-    units_produced: 1,
-    rate_per_unit: 500.0,
-    amount_paid: 500.0,
-    paid: true,
-    date: daysAgo(5),
-    source_assignment_id: assignment1Oid.toString(),
   });
 
   // 8. Bills for Company A
