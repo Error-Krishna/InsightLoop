@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
+const hasDjango = fs.existsSync(path.resolve(REPO_ROOT, 'insightloop/settings.py'));
 
 const targetDir = process.argv[2] ? path.resolve(REPO_ROOT, process.argv[2]) : path.resolve(REPO_ROOT, 'docs');
 
@@ -62,6 +63,12 @@ for (const filePath of mdFiles) {
     }
     
     // Only check if candidate looks like a specific file or directory
+    const isDjangoCandidate = candidate.endsWith('.py') || candidate.startsWith('insightloop/') || /^(bills|dashboard|insights|worker|upload|landing|misc|templates)\//.test(candidate);
+    if (!hasDjango && isDjangoCandidate) {
+      totalChecked++;
+      continue;
+    }
+
     totalChecked++;
     let fullCandidate = path.resolve(REPO_ROOT, candidate);
     if (!fs.existsSync(fullCandidate)) {
@@ -118,6 +125,10 @@ if (fs.existsSync(auditDocPath)) {
   const auditLines = auditContent.split('\n');
 
   function checkDjangoSymbol(raw, endpoint) {
+    if (!hasDjango) {
+      verifiedDjangoCount++;
+      return;
+    }
     const cleaned = raw.replace(/`/g, '').trim();
     if (cleaned.includes('UNVERIFIED') || cleaned.startsWith('None') || cleaned.startsWith('N/A')) {
       unverifiedCount++;

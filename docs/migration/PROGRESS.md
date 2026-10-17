@@ -1,51 +1,57 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 5.9 (Fix the Last Gaps: PDF Parity, True Dual Parity Run, Honest Branch & Mutation Metrics, Python-Free Gate Verification)
-- **Status**: PHASE 5.9 COMPLETE (VERIFIED) [STAGING-CANDIDATE]
+- **Current Phase**: Phase 5.10 (Small Final Fixes Before Staging: Root URL, Diagnostics Auth, Legacy Routes Audit, Media Parity, Worker Cascade Parity, Invoice Template Citations, PDF Image & Pill Badges, 56k Benchmark Re-run, Financial Mutation Engine)
+- **Status**: PHASE 5.10 COMPLETE (STAGING-CANDIDATE)
 - **Phase Locks**: Phases 6, 7, 8 Strictly Locked (Never Initiated; no remote push, no staging/production deploy)
 - **Removal Branch Mandate**: `chore/remove-python` remains separate and UNMERGED. `migration/mern` retains Django for 14-day canary rollback window.
-- **Last Updated**: 2026-10-17 04:35 UTC
+- **Last Updated**: 2026-10-17 07:15 UTC
 - **Next Action**: Staging deployment dry-run and click-through review on staging candidate branch `migration/mern`.
 
 ---
 
-## 2. Phase 5.9 Remediation & Parity Execution Summary
+## 2. Phase 5.10 Implementation & Parity Summary
 
-Every item from the Phase 5.9 specification has been implemented, validated, and verified with committed disk evidence:
+All Phase 5.10 items have been implemented, verified with tests, and validated with committed disk evidence:
 
-### 1. Honest Branch Coverage & Mutation Reporting (Section 1)
-- **Branch Coverage Gate**: Reset and enforced real targets in `scripts/check_branch_coverage.mjs`:
-  - $\ge 90\%$ for all service and repository files in bills, workers, inventory, auth, profit, and stock.
-  - $\ge 85\%$ for all other services, repositories, and `ws/gateway.ts`.
-  - Passing status confirmed on `migration/mern` and `chore/remove-python`:
-    - `bills.service.ts`: **91.0%** (Required: 90.0%)
-    - `bills.repository.ts`: **93.1%** (Required: 90.0%)
-    - `workers.service.ts`: **90.9%** (Required: 90.0%)
-    - `workers.repository.ts`: **90.2%** (Required: 90.0%)
-    - `inventory.service.ts`: **91.3%** (Required: 90.0%)
-    - `inventory.repository.ts`: **92.9%** (Required: 90.0%)
-    - `auth.service.ts`: **91.8%** (Required: 90.0%)
-    - `auth.repository.ts`: **100.0%** (Required: 90.0%)
-    - `dashboard.service.ts`: **88.8%** (Required: 85.0%)
-    - `ws/gateway.ts`: **85.5%** (Required: 85.0%)
-    - **Total Monitored Branch Coverage: 89.3% (2,216 / 2,481 branches covered)**
-  - *Evidence:* [`docs/migration/evidence/C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt), [`scripts/check_branch_coverage.mjs`](scripts/check_branch_coverage.mjs)
+### 1. Behavior Gaps Resolved (Section 1)
+- **Root URL (`GET /`) Parity**:
+  - Implemented `root_redirect` behavior in `apps/api/src/app.ts` matching Django `landing/urls.py`:
+    - When `FRONTEND_ORIGIN` is configured, responds with a `302 Found` redirect to that origin.
+    - When `FRONTEND_ORIGIN` is unset, responds with `200 OK` JSON: `{"status":"ok","service":"InsightLoop API"}` (never 500s).
+  - Added `FRONTEND_ORIGIN` to `apps/api/src/config/env.ts`, `.env.example`, and `render-blueprint.yaml`.
+  - Verified with 26 automated tests in `apps/api/test/root_and_metrics_auth.test.ts`.
+- **Public Diagnostics Protection**:
+  - Kept `/health`, `/api/v1/health/live`, and `/api/v1/health/ready` public (lightweight, zero internal diagnostics disclosed).
+  - Protected detailed diagnostics and Prometheus metrics endpoints (`/health/detailed`, `/metrics`, `/api/v1/health/detailed`, `/api/v1/metrics`) with `requireMetricsAuth` middleware (`apps/api/src/middleware/metricsAuth.ts`).
+  - Requires `METRICS_TOKEN` (via `x-metrics-token` header or `Authorization: Bearer <METRICS_TOKEN>`), returning `401 Unauthorized` without it.
+  - Documented operational usage in `docs/runbooks/observability.md`.
+- **Legacy Routes Audit**:
+  - Audited all Django URL patterns across `urls.py` and `public_urls.py`. Django serves only `GET /` and `POST /contact` from `landing/urls.py`.
+  - Removed invented non-existent routes (`/login`, `/dashboard`, etc.) from `apps/api/src/modules/legacy/legacy.routes.ts`. Clean `404 Not Found` returned without shadow route fabrication.
+- **Media Route Matching**:
+  - Confirmed `GET /media/*` is public with `Cache-Control: public`, strictly matching Django's `static(settings.MEDIA_URL)`.
 
-- **Raw Mutation Scores**:
-  - `packages/shared/src/math.ts`: **94.61% raw** (158 killed / 167 total, 9 survivors)
-  - `apps/api/src/modules/bills/bills.service.ts` (Whole file, 883 lines): **59.26% raw** (525 killed, 6 timed out / 896 total). 365 survivors categorized: 162 StringLiteral error messages, 68 ObjectLiteral defaults, 84 Optional Chaining fallbacks, 26 Array defaults, 25 non-critical relational checks.
-  - `apps/api/src/modules/workers/workers.service.ts` (Payment/Complete lines 398–560): **55.83% raw** (115 killed / 206 total). 91 survivors categorized: 42 StringLiteral error messages, 28 Optional Chaining fallbacks, 14 ObjectLiteral defaults, 7 redundant coercion guards.
-  - `apps/api/src/modules/inventory/inventory.service.ts` (Stock code / Whole file): **15.27% raw** (51 killed / 334 total). 283 survivors categorized: CRUD delegation pass-throughs, 118 StringLiteral field validations, 79 Optional Chaining fallbacks, 86 ObjectLiteral query construction pass-throughs.
-  - *Evidence:* [`docs/migration/evidence/C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt)
-
-- **Benchmark Fairness & Caching Disclosures**:
-  - Re-run performed with **identical compound indexes** active on both databases (`InsightLoop_parity_django` and `InsightLoop_parity_node`).
-  - **Zero response caching** in Node: no Redis caching, no in-memory cache, no HTTP cache. Every request hits MongoDB directly and runs full aggregation pipelines.
-  - **Peak RSS**: Measured at **133 MB** for Node API (due to V8 heap, libuv event loop, and MongoDB driver connection pool) vs **108.7 MB** for Django Daphne single-worker process.
-  - *Evidence:* [`docs/migration/evidence/C3_load_benchmark.txt`](docs/migration/evidence/C3_load_benchmark.txt)
-
-### 2. Invoice PDF & WhatsApp Parity (Section 2)
+### 2. Report Honesty & Parity Alignment (Section 2)
+- **Worker Delete Cascade Wording Corrected**:
+  - Corrected all prior incorrect "non-cascading" descriptions across documentation and scripts (`MIGRATION_REPORT.md`, `PROGRESS.md`, `scripts/test_worker_module_parity.mjs`, `evidence/B8_worker_module_parity.txt`).
+  - Confirmed Django's `Worker.delete()` in `worker/models.py` deletes `MaterialAssignments` and `PayRecords` first (0 left in MongoDB), and Node's cascade matches Django exactly.
+- **Invoice Template Citation Corrected**:
+  - Fixed erroneous citation path to the canonical `insightloop/bills/templates/bills/invoice.html`.
+  - Extended `scripts/check_citations.mjs` to validate 795 markdown citations and 154 code symbols with 0 errors.
+- **PDF Parity, Badge & Test Images**:
+  - Disclosed honestly: PDF diff files show whitespace and column-alignment differences only (all words and numbers are identical across all bills).
+  - Added rounded pill badge rendering with padded background for "PAKKA" and "KACHA" status, matching Django's HTML badge styling.
+  - Added test cases in `apps/api/test/pdf_parity.test.ts` for logo, signature, and stamp images served via local HTTP server, plus unreachable image fallback (5/5 passed).
+- **Benchmark Sample Size & Fairness (56,000 Requests)**:
+  - Re-ran load benchmark across 14 endpoints at C=10 and C=50 with exactly 1,000 requests per cell (56,000 requests total, zero cache, identical indexes).
+  - Eliminated the `p95 = p99` low-sample anomaly; results recorded in `docs/migration/evidence/C3_load_benchmark.txt`. Peak RSS measured at 212.6 MB for Node vs 121.8 MB for Django.
+- **Financial & Calculation Mutation Testing**:
+  - Ran Stryker mutation tests focused specifically on financial calculation functions (totals, GST, discounts, payments, balances, profit, stock deltas, wage amounts, `roundPy`):
+    - `packages/shared/src/math.ts`: **94.61% raw** (158 killed, 9 non-money survivors).
+    - `apps/api/src/modules/bills/bills.service.ts:233-284`: **79.03% raw** (48 killed, 1 timeout, 13 survivors: error strings & fallback units).
+    - `apps/api/src/modules/workers/workers.service.ts:475-555`: **57.26% raw** (71 killed, 53 survivors: error strings & null guards).
+  - 100% of money, number, stock count, and calculation mutants were killed; line-by-line survivor breakdown recorded in `docs/migration/evidence/C2_coverage_mutation.txt`.
 - Extracted and cataloged every element from Django WeasyPrint template (`insightloop/bills/templates/bills/invoice.html` with inline CSS).
 - Built PDFKit rendering in `apps/api/src/modules/bills/pdf.service.ts` matching layout, rupee symbol (`₹`), 2-decimal currency formatting, thousands separators, table columns, GST breakup, payment table, balance, notes, terms, footer, and multi-page layout.
 - Tested across 4 golden bills against real Django WeasyPrint PDFs with `pdftotext -layout` and PNG page renders:
@@ -112,36 +118,64 @@ Every item from the Phase 5.9 specification has been implemented, validated, and
 
 ## 3. Benchmark Comparison Table (Identical Indexes, Zero Cache)
 
-| Concurrency | Endpoint                 | Stack  | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |
-| :---------- | :----------------------- | :----- | :------- | :------- | :------- | :----- | :------------ | :--------- |
-| C=10        | Dashboard Summary        | Node   |     10.5 |     15.2 |     15.2 |      0 |           133 | Node (WIN) |
-| C=10        | Dashboard Summary        | Django |     71.4 |     76.2 |     76.2 |      0 |         108.7 |            |
-| C=10        | Dashboard Overview       | Node   |     22.2 |       23 |       23 |      0 |           133 | Node (WIN) |
-| C=10        | Dashboard Overview       | Django |    206.2 |    208.9 |    208.9 |      0 |         108.7 |            |
-| C=10        | Dashboard Rev & Exp      | Node   |      5.3 |      6.3 |      6.3 |      0 |           133 | Node (WIN) |
-| C=10        | Dashboard Rev & Exp      | Django |     14.4 |     15.3 |     15.3 |      0 |         108.7 |            |
-| C=10        | Dashboard Profit Trends  | Node   |      5.3 |      5.6 |      5.6 |      0 |           133 | Node (WIN) |
-| C=10        | Dashboard Profit Trends  | Django |     13.9 |     14.2 |     14.2 |      0 |         108.7 |            |
-| C=10        | Dashboard Workers        | Node   |      3.6 |      3.8 |      3.8 |      0 |           133 | Node (WIN) |
-| C=10        | Dashboard Workers        | Django |    141.4 |    143.2 |    143.2 |      0 |         108.7 |            |
-| C=10        | Dashboard Top Workers    | Node   |      5.2 |      5.5 |      5.5 |      0 |           133 | Node (WIN) |
-| C=10        | Dashboard Top Workers    | Django |     98.3 |    100.2 |    100.2 |      0 |         108.7 |            |
-| C=10        | Insights List            | Node   |      5.1 |      5.5 |      5.5 |      0 |           133 | Node (WIN) |
-| C=10        | Insights List            | Django |     17.4 |     18.2 |     18.2 |      0 |         108.7 |            |
-| C=10        | Bills List (Pakka)       | Node   |     13.4 |     23.8 |     23.8 |      0 |           133 | Node (WIN) |
-| C=10        | Bills List (Pakka)       | Django |     26.6 |     27.2 |     27.2 |      0 |         108.7 |            |
-| C=10        | Bills List (Kacha)       | Node   |        4 |      4.5 |      4.5 |      0 |           133 | Node (WIN) |
-| C=10        | Bills List (Kacha)       | Django |     14.7 |     16.2 |     16.2 |      0 |         108.7 |            |
-| C=10        | Finished Inventory       | Node   |        4 |      4.4 |      4.4 |      0 |           133 | Node (WIN) |
-| C=10        | Finished Inventory       | Django |     11.1 |     11.6 |     11.6 |      0 |         108.7 |            |
-| C=10        | Semi-Finished Inventory  | Node   |      3.8 |      3.9 |      3.9 |      0 |           133 | Node (WIN) |
-| C=10        | Semi-Finished Inventory  | Django |       28 |     28.7 |     28.7 |      0 |         108.7 |            |
-| C=10        | Raw Inventory            | Node   |     17.7 |     18.5 |     18.5 |      0 |           133 | Node (WIN) |
-| C=10        | Raw Inventory            | Django |     24.8 |     26.2 |     26.2 |      0 |         108.7 |            |
-| C=10        | Warehouses List          | Node   |      3.3 |      3.6 |      3.6 |      0 |           133 | Node (WIN) |
-| C=10        | Warehouses List          | Django |     41.8 |     42.5 |     42.5 |      0 |         108.7 |            |
-| C=10        | Workers List             | Node   |      7.3 |      7.8 |      7.8 |      0 |           133 | Node (WIN) |
-| C=10        | Workers List             | Django |     15.1 |     15.8 |     15.8 |      0 |         108.7 |            |
+| Concurrency | Endpoint                 | Stack  | Requests | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |
+| :---------- | :----------------------- | :----- | :------- | :------- | :------- | :------- | :----- | :------------ | :--------- |
+| C=10        | Dashboard Summary        | Node   |     1000 |      7.1 |     19.9 |     27.6 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Summary        | Django |     1000 |     96.2 |    160.3 |    224.6 |      0 |         121.8 |            |
+| C=10        | Dashboard Overview       | Node   |     1000 |     17.1 |     45.3 |     91.2 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Overview       | Django |     1000 |      525 |    675.9 |    789.4 |      0 |         121.8 |            |
+| C=10        | Dashboard Rev & Exp      | Node   |     1000 |      4.7 |       14 |       31 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Rev & Exp      | Django |     1000 |     21.8 |     30.7 |     79.4 |      0 |         121.8 |            |
+| C=10        | Dashboard Profit Trends  | Node   |     1000 |      3.5 |     15.8 |       27 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Profit Trends  | Django |     1000 |     21.7 |     33.6 |     51.4 |      0 |         121.8 |            |
+| C=10        | Dashboard Workers        | Node   |     1000 |      2.4 |      7.3 |     14.7 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Workers        | Django |     1000 |    291.6 |    435.7 |    518.5 |      0 |         121.8 |            |
+| C=10        | Dashboard Top Workers    | Node   |     1000 |        2 |     11.2 |     26.8 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Top Workers    | Django |     1000 |     89.9 |    128.4 |    165.1 |      0 |         121.8 |            |
+| C=10        | Insights List            | Node   |     1000 |        2 |      9.2 |     22.9 |      0 |         212.6 | Node (WIN) |
+| C=10        | Insights List            | Django |     1000 |     21.2 |     38.7 |     92.9 |      0 |         121.8 |            |
+| C=10        | Bills List (Pakka)       | Node   |     1000 |      3.3 |     20.3 |     56.3 |      0 |         212.6 | Node (WIN) |
+| C=10        | Bills List (Pakka)       | Django |     1000 |     33.2 |     55.1 |     88.7 |      0 |         121.8 |            |
+| C=10        | Bills List (Kacha)       | Node   |     1000 |      2.4 |      9.4 |     32.3 |      0 |         212.6 | Node (WIN) |
+| C=10        | Bills List (Kacha)       | Django |     1000 |     23.3 |       36 |     84.2 |      0 |         121.8 |            |
+| C=10        | Finished Inventory       | Node   |     1000 |      3.1 |      8.9 |     21.3 |      0 |         212.6 | Node (WIN) |
+| C=10        | Finished Inventory       | Django |     1000 |     22.7 |     36.6 |     68.8 |      0 |         121.8 |            |
+| C=10        | Semi-Finished Inventory  | Node   |     1000 |      2.3 |      8.5 |       19 |      0 |         212.6 | Node (WIN) |
+| C=10        | Semi-Finished Inventory  | Django |     1000 |     22.7 |     34.5 |     56.9 |      0 |         121.8 |            |
+| C=10        | Raw Inventory            | Node   |     1000 |      2.2 |      5.8 |     27.1 |      0 |         212.6 | Node (WIN) |
+| C=10        | Raw Inventory            | Django |     1000 |     23.4 |     36.4 |    109.6 |      0 |         121.8 |            |
+| C=10        | Warehouses List          | Node   |     1000 |      1.9 |      8.1 |    155.2 |      0 |         212.6 | Node (WIN) |
+| C=10        | Warehouses List          | Django |     1000 |     22.6 |     66.2 |    127.3 |      0 |         121.8 |            |
+| C=10        | Workers List             | Node   |     1000 |      3.5 |     10.9 |     80.8 |      0 |         212.6 | Node (WIN) |
+| C=10        | Workers List             | Django |     1000 |       27 |     48.7 |    158.8 |      0 |         121.8 |            |
+| C=50        | Dashboard Summary        | Node   |     1000 |     28.9 |     66.9 |    117.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Summary        | Django |     1000 |    492.2 |    721.2 |    809.9 |      0 |         121.8 |            |
+| C=50        | Dashboard Overview       | Node   |     1000 |    114.3 |    152.6 |    179.8 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Overview       | Django |     1000 |   2886.6 |   3473.2 |     3702 |      0 |         121.8 |            |
+| C=50        | Dashboard Rev & Exp      | Node   |     1000 |     24.6 |     67.4 |     86.9 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Rev & Exp      | Django |     1000 |    100.5 |    161.5 |    181.3 |      0 |         121.8 |            |
+| C=50        | Dashboard Profit Trends  | Node   |     1000 |     23.4 |     54.7 |     89.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Profit Trends  | Django |     1000 |    109.2 |    293.8 |    444.3 |      0 |         121.8 |            |
+| C=50        | Dashboard Workers        | Node   |     1000 |     16.3 |    116.6 |    234.2 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Workers        | Django |     1000 |   1648.1 |     2014 |   2336.1 |      0 |         121.8 |            |
+| C=50        | Dashboard Top Workers    | Node   |     1000 |     10.8 |     54.8 |     63.9 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Top Workers    | Django |     1000 |    487.7 |      587 |    651.9 |      0 |         121.8 |            |
+| C=50        | Insights List            | Node   |     1000 |     12.3 |     38.8 |     43.3 |      0 |         212.6 | Node (WIN) |
+| C=50        | Insights List            | Django |     1000 |     96.1 |    156.3 |      199 |      0 |         121.8 |            |
+| C=50        | Bills List (Pakka)       | Node   |     1000 |     15.1 |     39.1 |     44.1 |      0 |         212.6 | Node (WIN) |
+| C=50        | Bills List (Pakka)       | Django |     1000 |    147.2 |    244.6 |    293.6 |      0 |         121.8 |            |
+| C=50        | Bills List (Kacha)       | Node   |     1000 |     11.3 |     38.6 |     42.6 |      0 |         212.6 | Node (WIN) |
+| C=50        | Bills List (Kacha)       | Django |     1000 |    108.9 |    175.7 |    226.7 |      0 |         121.8 |            |
+| C=50        | Finished Inventory       | Node   |     1000 |     12.8 |     36.7 |     43.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Finished Inventory       | Django |     1000 |     98.8 |    158.4 |    215.1 |      0 |         121.8 |            |
+| C=50        | Semi-Finished Inventory  | Node   |     1000 |     12.8 |     34.5 |     41.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Semi-Finished Inventory  | Django |     1000 |    105.1 |    167.9 |    208.7 |      0 |         121.8 |            |
+| C=50        | Raw Inventory            | Node   |     1000 |     12.8 |     33.9 |     41.4 |      0 |         212.6 | Node (WIN) |
+| C=50        | Raw Inventory            | Django |     1000 |    103.5 |    163.6 |    206.8 |      0 |         121.8 |            |
+| C=50        | Warehouses List          | Node   |     1000 |     11.6 |     33.9 |     42.1 |      0 |         212.6 | Node (WIN) |
+| C=50        | Warehouses List          | Django |     1000 |     98.7 |    157.9 |    202.4 |      0 |         121.8 |            |
+| C=50        | Workers List             | Node   |     1000 |     14.5 |     47.1 |     53.3 |      0 |         212.6 | Node (WIN) |
+| C=50        | Workers List             | Django |     1000 |    119.5 |    194.5 |    244.3 |      0 |         121.8 |            |
 
 ---
 

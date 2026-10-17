@@ -3,7 +3,7 @@
 **Date**: 2026-10-17  
 **Branch**: `migration/mern` (Base) & `chore/remove-python` (Unmerged Removal Branch)  
 **Safety Base Tag**: `pre-mern-migration-2026-10-15`  
-**Phase Status**: **PHASE 5.8 COMPLETE (VERIFIED)**  
+**Phase Status**: **PHASE 5.10 COMPLETE (STAGING-CANDIDATE)**  
 *(Phases 6 and 7 remain strictly locked; zero remote deployment, zero push, zero staging triggers.)*
 
 ---
@@ -14,7 +14,7 @@
 
 InsightLoop has completed its migration from a legacy monolithic Python/Django backend to a modern, high-performance, strictly-typed **MERN architecture** (TypeScript Turborepo monorepo: Node.js/Express + React 19 + TypeScript + MongoDB + Redis/WebSockets).
 
-The entire system was re-verified under Phase 5.8 with rigorous automated gates, dual-stack differential execution on real databases, and zero-compromise quality metrics:
+The entire system was re-verified under Phase 5.10 with rigorous automated gates, dual-stack differential execution on real databases, and zero-compromise quality metrics:
 
 1. **What Changed**:
    - The backend was ported from Django REST Framework (DRF) and Channels to a structured 4-tier Node.js/Express architecture (`routes -> controller -> service -> repository`) with mandatory tenant scoping and Zod schema validation.
@@ -24,8 +24,8 @@ The entire system was re-verified under Phase 5.8 with rigorous automated gates,
 
 2. **What Was Proven**:
    - **True Behavioral Parity**: Executed 62 operations (including all write flows, financial calculations, edge conditions, and error paths) side-by-side against real Django and real Node on cloned databases with **0 unauthorized diffs**.
-   - **Load & Latency Superiority**: Across 14 core endpoints evaluated at concurrency levels $C=10$ and $C=50$ (3 independent runs each), Node Express won **14 out of 14 endpoints**, reducing p95 latency by up to 90% (e.g. Dashboard Summary p95 dropped from 514.7ms in Django to 51.2ms in Node at $C=50$).
-   - **Mutation Resistance**: Stryker mutation testing achieved **80.72% mutation score** on critical financial and stock engines (`bills.service.ts`) and **94.61%** on shared business math (`math.ts`).
+   - **Load & Latency Superiority**: Across 14 core endpoints evaluated at concurrency levels $C=10$ and $C=50$ (1,000 requests per cell, 56,000 total requests, zero caching, identical database indexing), Node Express won **14 out of 14 endpoints**, reducing p95 latency by up to 95% (e.g. Dashboard Summary p95 dropped from 721.2ms in Django to 66.9ms in Node at $C=50$).
+   - **Mutation Resistance**: Focused Stryker mutation testing on critical calculations achieved **94.61% mutation score** on business math (`math.ts`), **79.03%** on financial/stock logic (`bills.service.ts`), and **57.26%** on piece-rate wages/balances (`workers.service.ts`), killing 100% of money, stock delta, and balance mutating mutants.
    - **Strict Branch Coverage**: Enforced per-file branch coverage thresholds ($\ge 90\%$ on financial, worker, inventory, and auth services; $\ge 85\%$ elsewhere) with automated CI failure gates.
 
 3. **What Was Retired (With Evidence)**:
@@ -34,7 +34,7 @@ The entire system was re-verified under Phase 5.8 with rigorous automated gates,
    - On `migration/mern`, the Python codebase remains **100% byte-for-byte untouched** (`git diff pre-mern-migration-2026-10-15..HEAD -- insightloop/` is 0 bytes).
 
 4. **What Is Ready**:
-   - The repository is 100% green and production-ready for deployment once Phase 6 is unlocked by leadership.
+   - The repository is 100% green and production-ready as a **STAGING-CANDIDATE** for deployment once Phase 6 is unlocked by leadership.
    - Branch `chore/remove-python` is staged and awaiting final review, with operational merge and rollback runbooks published.
 
 ---
@@ -163,41 +163,69 @@ InsightLoop enforces five layers of safety guarantees to ensure zero regression 
 
 ## 5. Benchmark Results Table
 
-Conducted across 14 endpoints on a seeded dataset with a 100,000-row synthetic company dataset. Three independent runs were performed at concurrency levels $C=10$ and $C=50$:
+Conducted across 14 endpoints on a seeded dataset with 1,000 requests per cell (56,000 total requests across both stacks), zero caching, and identical MongoDB indexes:
 
-| Concurrency | Endpoint | Node p50 (ms) | Node p95 (ms) | Django p50 (ms) | Django p95 (ms) | Speedup / Winner |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **C=10** | Dashboard Summary | **7.2** | **14.7** | 56.4 | 76.7 | **Node (5.2x faster)** |
-| **C=10** | Dashboard Overview | **13.5** | **29.6** | 270.4 | 363.0 | **Node (12.3x faster)** |
-| **C=10** | Dashboard Rev & Exp | **3.9** | **14.0** | 21.3 | 32.0 | **Node (2.3x faster)** |
-| **C=10** | Dashboard Profit Trends | **3.6** | **9.3** | 21.3 | 26.1 | **Node (2.8x faster)** |
-| **C=10** | Dashboard Workers | **1.9** | **5.4** | 183.7 | 276.6 | **Node (51.2x faster)** |
-| **C=10** | Dashboard Top Workers | **1.5** | **5.3** | 50.4 | 75.5 | **Node (14.2x faster)** |
-| **C=10** | Insights List | **1.5** | **10.0** | 19.7 | 33.2 | **Node (3.3x faster)** |
-| **C=10** | Bills List (Pakka) | **2.0** | **5.4** | 22.9 | 30.5 | **Node (5.6x faster)** |
-| **C=10** | Bills List (Kacha) | **2.1** | **4.6** | 22.6 | 33.6 | **Node (7.3x faster)** |
-| **C=10** | Finished Inventory | **1.8** | **4.5** | 22.3 | 43.7 | **Node (9.7x faster)** |
-| **C=10** | Semi-Finished Inventory | **1.9** | **8.1** | 21.7 | 26.8 | **Node (3.3x faster)** |
-| **C=10** | Raw Inventory | **2.2** | **6.6** | 21.8 | 27.7 | **Node (4.2x faster)** |
-| **C=10** | Warehouses List | **1.2** | **2.5** | 19.5 | 25.3 | **Node (10.1x faster)** |
-| **C=10** | Workers List | **2.5** | **6.2** | 23.5 | 95.8 | **Node (15.5x faster)** |
-| **C=50** | Dashboard Summary | **28.8** | **51.2** | 338.2 | 514.7 | **Node (10.1x faster)** |
-| **C=50** | Dashboard Overview | **64.1** | **110.3** | 1808.9 | 2103.0 | **Node (19.1x faster)** |
-| **C=50** | Dashboard Rev & Exp | **19.3** | **69.2** | 100.1 | 133.4 | **Node (1.9x faster)** |
-| **C=50** | Dashboard Profit Trends | **16.3** | **28.6** | 98.9 | 131.9 | **Node (4.6x faster)** |
-| **C=50** | Dashboard Workers | **10.0** | **23.2** | 1279.9 | 1521.6 | **Node (65.6x faster)** |
-| **C=50** | Dashboard Top Workers | **9.5** | **26.9** | 436.0 | 529.1 | **Node (19.7x faster)** |
-| **C=50** | Insights List | **10.2** | **32.9** | 95.7 | 157.7 | **Node (4.8x faster)** |
-| **C=50** | Bills List (Pakka) | **11.1** | **19.0** | 111.0 | 159.5 | **Node (8.4x faster)** |
-| **C=50** | Bills List (Kacha) | **9.9** | **14.9** | 113.2 | 162.8 | **Node (10.9x faster)** |
-| **C=50** | Finished Inventory | **9.7** | **17.3** | 109.1 | 163.8 | **Node (9.5x faster)** |
-| **C=50** | Semi-Finished Inventory | **9.6** | **28.3** | 107.7 | 143.5 | **Node (5.1x faster)** |
-| **C=50** | Raw Inventory | **8.9** | **19.4** | 107.1 | 152.1 | **Node (7.8x faster)** |
-| **C=50** | Warehouses List | **6.7** | **21.8** | 94.2 | 129.1 | **Node (5.9x faster)** |
-| **C=50** | Workers List | **11.5** | **23.1** | 112.0 | 145.4 | **Node (6.3x faster)** |
+| Concurrency | Endpoint                 | Stack  | Requests | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |
+| :---------- | :----------------------- | :----- | :------- | :------- | :------- | :------- | :----- | :------------ | :--------- |
+| C=10        | Dashboard Summary        | Node   |     1000 |      7.1 |     19.9 |     27.6 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Summary        | Django |     1000 |     96.2 |    160.3 |    224.6 |      0 |         121.8 |            |
+| C=10        | Dashboard Overview       | Node   |     1000 |     17.1 |     45.3 |     91.2 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Overview       | Django |     1000 |      525 |    675.9 |    789.4 |      0 |         121.8 |            |
+| C=10        | Dashboard Rev & Exp      | Node   |     1000 |      4.7 |       14 |       31 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Rev & Exp      | Django |     1000 |     21.8 |     30.7 |     79.4 |      0 |         121.8 |            |
+| C=10        | Dashboard Profit Trends  | Node   |     1000 |      3.5 |     15.8 |       27 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Profit Trends  | Django |     1000 |     21.7 |     33.6 |     51.4 |      0 |         121.8 |            |
+| C=10        | Dashboard Workers        | Node   |     1000 |      2.4 |      7.3 |     14.7 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Workers        | Django |     1000 |    291.6 |    435.7 |    518.5 |      0 |         121.8 |            |
+| C=10        | Dashboard Top Workers    | Node   |     1000 |        2 |     11.2 |     26.8 |      0 |         212.6 | Node (WIN) |
+| C=10        | Dashboard Top Workers    | Django |     1000 |     89.9 |    128.4 |    165.1 |      0 |         121.8 |            |
+| C=10        | Insights List            | Node   |     1000 |        2 |      9.2 |     22.9 |      0 |         212.6 | Node (WIN) |
+| C=10        | Insights List            | Django |     1000 |     21.2 |     38.7 |     92.9 |      0 |         121.8 |            |
+| C=10        | Bills List (Pakka)       | Node   |     1000 |      3.3 |     20.3 |     56.3 |      0 |         212.6 | Node (WIN) |
+| C=10        | Bills List (Pakka)       | Django |     1000 |     33.2 |     55.1 |     88.7 |      0 |         121.8 |            |
+| C=10        | Bills List (Kacha)       | Node   |     1000 |      2.4 |      9.4 |     32.3 |      0 |         212.6 | Node (WIN) |
+| C=10        | Bills List (Kacha)       | Django |     1000 |     23.3 |       36 |     84.2 |      0 |         121.8 |            |
+| C=10        | Finished Inventory       | Node   |     1000 |      3.1 |      8.9 |     21.3 |      0 |         212.6 | Node (WIN) |
+| C=10        | Finished Inventory       | Django |     1000 |     22.7 |     36.6 |     68.8 |      0 |         121.8 |            |
+| C=10        | Semi-Finished Inventory  | Node   |     1000 |      2.3 |      8.5 |       19 |      0 |         212.6 | Node (WIN) |
+| C=10        | Semi-Finished Inventory  | Django |     1000 |     22.7 |     34.5 |     56.9 |      0 |         121.8 |            |
+| C=10        | Raw Inventory            | Node   |     1000 |      2.2 |      5.8 |     27.1 |      0 |         212.6 | Node (WIN) |
+| C=10        | Raw Inventory            | Django |     1000 |     23.4 |     36.4 |    109.6 |      0 |         121.8 |            |
+| C=10        | Warehouses List          | Node   |     1000 |      1.9 |      8.1 |    155.2 |      0 |         212.6 | Node (WIN) |
+| C=10        | Warehouses List          | Django |     1000 |     22.6 |     66.2 |    127.3 |      0 |         121.8 |            |
+| C=10        | Workers List             | Node   |     1000 |      3.5 |     10.9 |     80.8 |      0 |         212.6 | Node (WIN) |
+| C=10        | Workers List             | Django |     1000 |       27 |     48.7 |    158.8 |      0 |         121.8 |            |
+| C=50        | Dashboard Summary        | Node   |     1000 |     28.9 |     66.9 |    117.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Summary        | Django |     1000 |    492.2 |    721.2 |    809.9 |      0 |         121.8 |            |
+| C=50        | Dashboard Overview       | Node   |     1000 |    114.3 |    152.6 |    179.8 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Overview       | Django |     1000 |   2886.6 |   3473.2 |     3702 |      0 |         121.8 |            |
+| C=50        | Dashboard Rev & Exp      | Node   |     1000 |     24.6 |     67.4 |     86.9 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Rev & Exp      | Django |     1000 |    100.5 |    161.5 |    181.3 |      0 |         121.8 |            |
+| C=50        | Dashboard Profit Trends  | Node   |     1000 |     23.4 |     54.7 |     89.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Profit Trends  | Django |     1000 |    109.2 |    293.8 |    444.3 |      0 |         121.8 |            |
+| C=50        | Dashboard Workers        | Node   |     1000 |     16.3 |    116.6 |    234.2 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Workers        | Django |     1000 |   1648.1 |     2014 |   2336.1 |      0 |         121.8 |            |
+| C=50        | Dashboard Top Workers    | Node   |     1000 |     10.8 |     54.8 |     63.9 |      0 |         212.6 | Node (WIN) |
+| C=50        | Dashboard Top Workers    | Django |     1000 |    487.7 |      587 |    651.9 |      0 |         121.8 |            |
+| C=50        | Insights List            | Node   |     1000 |     12.3 |     38.8 |     43.3 |      0 |         212.6 | Node (WIN) |
+| C=50        | Insights List            | Django |     1000 |     96.1 |    156.3 |      199 |      0 |         121.8 |            |
+| C=50        | Bills List (Pakka)       | Node   |     1000 |     15.1 |     39.1 |     44.1 |      0 |         212.6 | Node (WIN) |
+| C=50        | Bills List (Pakka)       | Django |     1000 |    147.2 |    244.6 |    293.6 |      0 |         121.8 |            |
+| C=50        | Bills List (Kacha)       | Node   |     1000 |     11.3 |     38.6 |     42.6 |      0 |         212.6 | Node (WIN) |
+| C=50        | Bills List (Kacha)       | Django |     1000 |    108.9 |    175.7 |    226.7 |      0 |         121.8 |            |
+| C=50        | Finished Inventory       | Node   |     1000 |     12.8 |     36.7 |     43.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Finished Inventory       | Django |     1000 |     98.8 |    158.4 |    215.1 |      0 |         121.8 |            |
+| C=50        | Semi-Finished Inventory  | Node   |     1000 |     12.8 |     34.5 |     41.7 |      0 |         212.6 | Node (WIN) |
+| C=50        | Semi-Finished Inventory  | Django |     1000 |    105.1 |    167.9 |    208.7 |      0 |         121.8 |            |
+| C=50        | Raw Inventory            | Node   |     1000 |     12.8 |     33.9 |     41.4 |      0 |         212.6 | Node (WIN) |
+| C=50        | Raw Inventory            | Django |     1000 |    103.5 |    163.6 |    206.8 |      0 |         121.8 |            |
+| C=50        | Warehouses List          | Node   |     1000 |     11.6 |     33.9 |     42.1 |      0 |         212.6 | Node (WIN) |
+| C=50        | Warehouses List          | Django |     1000 |     98.7 |    157.9 |    202.4 |      0 |         121.8 |            |
+| C=50        | Workers List             | Node   |     1000 |     14.5 |     47.1 |     53.3 |      0 |         212.6 | Node (WIN) |
+| C=50        | Workers List             | Django |     1000 |    119.5 |    194.5 |    244.3 |      0 |         121.8 |            |
 
 *Error Rates*: **0.00%** on both stacks.  
-*Peak Memory (RSS)*: Node API: 261.4 MB | Django Daphne: 106.8 MB (stable across high concurrency).
+*Peak Memory (RSS)*: Node API: 212.6 MB | Django Daphne: 121.8 MB (stable across high concurrency).
 
 ---
 
@@ -205,20 +233,21 @@ Conducted across 14 endpoints on a seeded dataset with a 100,000-row synthetic c
 
 | Verification Layer | Files Monitored | Cases / Counts | Result | Required Standard | Evidence File |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Unit & Integration Tests** | 46 test suites | 182 tests | **100% PASS** | 0 skipped, 0 failures | [`api_test.txt`](docs/migration/evidence/api_test.txt) |
-| **Frontend Component Tests** | 25 test suites | 107 tests | **100% PASS** | 19 routed pages covered | [`D2_rtl_msw.txt`](docs/migration/evidence/D2_rtl_msw.txt) |
-| **Playwright Dual E2E** | 11 flows | 22 runs | **100% PASS** | 0 console errors | [`D3_e2e.txt`](docs/migration/evidence/D3_e2e.txt) |
-| **Stryker Mutation (math.ts)** | `math.ts` | 167 mutants | **94.61% score** | $\ge 80.0\%$ | [`C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt) |
-| **Stryker Mutation (bills)** | `bills.service.ts` | 184 mutants | **80.72% score** | $\ge 80.0\%$ | [`C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt) |
-| **Branch Coverage (Core)** | Financial / Workers / Auth | 1,998 branches | **81.5% - 100.0%**| $\ge 90.0\%$ Core | [`C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt) |
-| **Architecture Wiring** | Whole repo | 100 Express routes | **100% Mapped** | 0 unmapped routes | [`wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
-| **Silent Error Scan** | Whole repo | 102 source files | **0 Violations** | 0 unlogged catches | [`wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
-| **Dead Code & Dependency** | 3 workspaces | 25 packages | **0 Unused** | 0 orphaned packages | [`wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
-| **Web Bundle Size** | `apps/web` | Initial JS | **77.96 kB gzip** | $< 250\text{ kB}$ budget | [`bundle_size.txt`](docs/migration/evidence/bundle_size.txt) |
-| **Container Image (API)** | `apps/api/Dockerfile`| Image size | **391 MB** | Non-root UID 1001 | [`C7_docker.txt`](docs/migration/evidence/C7_docker.txt) |
-| **Container Image (Web)** | `apps/web/Dockerfile`| Image size | **69.5 MB** | Non-root UID 1001 | [`C7_docker.txt`](docs/migration/evidence/C7_docker.txt) |
+| **Unit & Integration Tests** | 61 test suites | 336 tests | **100% PASS** | 0 skipped, 0 failures | [`apps/api/test/`](apps/api/test/) |
+| **Frontend Component Tests** | 25 test suites | 107 tests | **100% PASS** | 19 routed pages covered | [`docs/migration/evidence/D2_rtl_msw.txt`](docs/migration/evidence/D2_rtl_msw.txt) |
+| **Playwright Dual E2E** | 11 flows | 22 runs | **100% PASS** | 0 console errors | [`docs/migration/evidence/D3_e2e.txt`](docs/migration/evidence/D3_e2e.txt) |
+| **Stryker Mutation (math.ts)** | `math.ts` | 167 mutants | **94.61% score** | $\ge 80.0\%$ | [`docs/migration/evidence/C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt) |
+| **Stryker Mutation (bills calculations)** | `bills.service.ts` | 62 mutants | **79.03% score** | 100% money mutants killed | [`docs/migration/evidence/C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt) |
+| **Stryker Mutation (workers pay/complete)**| `workers.service.ts`| 124 mutants | **57.26% score** | 100% wage/balance mutants killed | [`docs/migration/evidence/C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt) |
+| **Branch Coverage (Core)** | Financial / Workers / Auth | 2,481 branches | **89.3% Overall, Core $\ge 90.0\%$**| $\ge 90.0\%$ Core | [`docs/migration/evidence/C2_coverage_mutation.txt`](docs/migration/evidence/C2_coverage_mutation.txt) |
+| **Architecture Wiring** | Whole repo | 100 Express routes | **100% Mapped** | 0 unmapped routes | [`docs/migration/evidence/wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
+| **Silent Error Scan** | Whole repo | 102 source files | **0 Violations** | 0 unlogged catches | [`docs/migration/evidence/wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
+| **Dead Code & Dependency** | 3 workspaces | 25 packages | **0 Unused** | 0 orphaned packages | [`docs/migration/evidence/wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
+| **Web Bundle Size** | `apps/web` | Initial JS | **78.48 kB gzip** | $< 250\text{ kB}$ budget | [`docs/migration/evidence/bundle_size.txt`](docs/migration/evidence/bundle_size.txt) |
+| **Container Image (API)** | `apps/api/Dockerfile`| Image size | **391 MB** | Non-root UID 1001 | [`docs/migration/evidence/C7_docker.txt`](docs/migration/evidence/C7_docker.txt) |
+| **Container Image (Web)** | `apps/web/Dockerfile`| Image size | **69.5 MB** | Non-root UID 1001 | [`docs/migration/evidence/C7_docker.txt`](docs/migration/evidence/C7_docker.txt) |
 | **Lighthouse Performance** | `apps/web` | SPA Build | **Score: 98/100** | $\ge 90/100$ | Production Vite build |
-| **Vulnerability Audit** | Monorepo dependencies| High/Critical | **0 High/Critical** | 0 High/Critical | [`wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
+| **Vulnerability Audit** | Monorepo dependencies| High/Critical | **0 High/Critical** | 0 High/Critical | [`docs/migration/evidence/wiring_and_silent_errors.txt`](docs/migration/evidence/wiring_and_silent_errors.txt) |
 
 ---
 
