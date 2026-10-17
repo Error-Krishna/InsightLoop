@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, migration/mern, chore/remove-python]
+    branches: [main]
   pull_request:
-    branches: [main, migration/mern, chore/remove-python]
+    branches: [main]
 
 jobs:
   validate:
