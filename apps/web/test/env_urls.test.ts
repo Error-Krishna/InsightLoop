@@ -74,4 +74,56 @@ describe('Web Environment Variable & URL Construction Safety', () => {
     expect(wsContent).toContain('import.meta.env?.VITE_WS_BASE_URL');
     expect(wsContent).not.toContain('VITE_API_URL');
   });
+
+  it('verifies all documentation files document VITE_API_BASE_URL ending with /api/v1 and VITE_WS_BASE_URL with no subpath', () => {
+    const rootDir = path.resolve(__dirname, '../../..');
+    const docsDir = path.resolve(rootDir, 'docs');
+
+    function getMdFiles(dir: string): string[] {
+      const mdFiles: string[] = [];
+      if (!fs.existsSync(dir)) return mdFiles;
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory() && !['node_modules', '.git', 'dist', 'build', '.venv'].includes(e.name)) {
+          mdFiles.push(...getMdFiles(full));
+        } else if (e.name.endsWith('.md')) {
+          mdFiles.push(full);
+        }
+      }
+      return mdFiles;
+    }
+
+    const allDocs = [...getMdFiles(docsDir), ...getMdFiles(rootDir).filter((f) => path.dirname(f) === rootDir)];
+    const docErrors: string[] = [];
+
+    for (const doc of allDocs) {
+      const rel = path.relative(rootDir, doc);
+      const content = fs.readFileSync(doc, 'utf-8');
+      const lines = content.split('\n');
+      lines.forEach((line, idx) => {
+        if (line.includes('VITE_API_BASE_URL')) {
+          const match = line.match(/https?:\/\/[^\s`'"|)]+/);
+          if (match) {
+            const url = match[0];
+            const hasApiV1 = url.endsWith('/api/v1') || url.endsWith('/api/v1/');
+            if (!hasApiV1) {
+              docErrors.push(`${rel}:${idx + 1}: VITE_API_BASE_URL must end with /api/v1 (found: ${url})`);
+            }
+          }
+        }
+        if (line.includes('VITE_WS_BASE_URL')) {
+          const match = line.match(/wss?:\/\/[^\s`'"|)]+/);
+          if (match) {
+            const url = match[0];
+            const urlObj = new URL(url.replace(/^ws/, 'http'));
+            if (urlObj.pathname && urlObj.pathname !== '/') {
+              docErrors.push(`${rel}:${idx + 1}: VITE_WS_BASE_URL must have no subpath (found: ${url})`);
+            }
+          }
+        }
+      });
+    }
+
+    expect(docErrors).toEqual([]);
+  });
 });

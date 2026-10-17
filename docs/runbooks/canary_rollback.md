@@ -44,6 +44,7 @@ A rollback to Django must be initiated immediately if any of the following occur
 Execute the traffic switch at the Cloudflare / Load Balancer level:
 - In Cloudflare Dashboard / API: Set `ROUTE_WEIGHT_NODE=0`, `ROUTE_WEIGHT_DJANGO=100`.
 - Or update DNS CNAME to point directly to the Django Render service.
+- Or if the Vercel frontend connects directly: update `VITE_API_BASE_URL` in the Vercel dashboard to `https://<django-render-url>/api/v1` (MUST end in `/api/v1`) and trigger a redeploy.
 
 ### Step 2: Flush Web Browser Sessions
 If JWT signing secrets differ between deployments, clear local tokens via client redirect:

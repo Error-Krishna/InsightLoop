@@ -104,6 +104,6 @@ services:
   # ----------------------------------------------------------------------------
   # Frontend Web Deployment Note:
   # The InsightLoop React SPA is deployed on Vercel.
-  # Configuration details (VITE_API_BASE_URL, VITE_WS_BASE_URL, VITE_GOOGLE_CLIENT_ID)
+  # Configuration details (VITE_API_BASE_URL ending in /api/v1, VITE_WS_BASE_URL, VITE_GOOGLE_CLIENT_ID)
   # are defined in vercel.json and documented in docs/runbooks/staging.md.
   # ----------------------------------------------------------------------------

@@ -33,7 +33,7 @@ This document details the top technical, data-integrity, and operational risks a
      }
      ```
   2. ESLint / AST rule or automated integration test suite that executes every endpoint taking an `:id` parameter using Company B's token against Company A's resource, asserting HTTP 404 or 403.
-- **Canary / Rollback**: If leakage is detected during preview or canary testing, immediate env flip (`VITE_API_BASE_URL` back to Django) eliminates exposure within minutes.
+- **Canary / Rollback**: If leakage is detected during preview or canary testing, immediate env flip (`VITE_API_BASE_URL` back to Django ending in `/api/v1`) eliminates exposure within minutes.
 
 ### 2.2 RSK-02: Password Hash Verification & Dual-Stack Auth
 - **Risk**: If Node's crypto implementation produces a different digest than Django's `make_password`, existing users will receive `401 Invalid email or password` upon attempting to log in.

@@ -11,7 +11,10 @@ let replSet: MongoMemoryReplSet | null = null;
 
 export async function setupTestDb(): Promise<void> {
   if (!replSet) {
-    replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+    replSet = await MongoMemoryReplSet.create({
+      replSet: { count: 1 },
+      instanceOpts: [{ launchTimeout: 30000 }],
+    });
     const uri = replSet.getUri();
     await connectMongo(uri, 'InsightLoop_test');
   }

@@ -1,16 +1,81 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 5.11 (Production Config Parity: UTC Timezone Baseline & Midnight/Month-End Boundaries, Nodemailer STARTTLS & Graceful SMTP Delivery, Environment Variable Mapping & Production Render Boot Verification, Vercel Frontend Config & Web URL Safety)
-- **Status**: PHASE 5.11 COMPLETE (STAGING-CANDIDATE)
-- **Phase Locks**: Phases 6, 7, 8 Strictly Locked (Never Initiated; no remote push, no staging/production deploy)
-- **Removal Branch Mandate**: `chore/remove-python` remains separate and UNMERGED. `migration/mern` retains Django for 14-day canary rollback window.
-- **Last Updated**: 2026-10-17 08:35 UTC
-- **Next Action**: Staging deployment dry-run and click-through review on staging candidate branch `migration/mern`.
+- **Current Phase**: Phase 6 (Deploy Prep + Smoke Test)
+- **Status**: PHASE 6 DEPLOY-PREP COMPLETE
+- **Deployment Readiness**: Main branch verified deploy-ready. Production boot verified with ONLY Render variables. Deploy checklist runbook and zero-dependency smoke test ready for user-initiated cutover.
+- **Phase Locks**: No remote push, no autonomous deploy executed (user executes deployment via Render Blueprint and Vercel dashboard).
+- **Removal Branch Mandate**: `chore/remove-python` remains separate and UNMERGED. `main` retains Django for 14-day canary rollback window.
+- **Last Updated**: 2026-10-17 15:05 UTC
+- **Next Action**: User applies Render Blueprint from `main` and deploys Vercel frontend, then runs `node scripts/smoke_test.mjs <render-url> <vercel-url>`.
 
 ---
 
-## 2. Phase 5.11 Implementation & Production Config Parity Summary
+## 2. Phase 6 Deploy Prep & Production Smoke Test Summary
+
+Phase 6 deployment preparation and verification have been completed on `main` without pushing, deploying, or modifying live databases:
+
+### 1. Main Branch Deploy-Readiness Verification
+- **Frozen-lockfile installation**: `pnpm install --frozen-lockfile` completed in 1.2s.
+- **Full Monorepo Build**: `pnpm build` completed with zero errors across `@insightloop/shared`, `@insightloop/api`, and `@insightloop/web`.
+- **TypeScript Typecheck**: `pnpm typecheck` passed with 0 errors across all workspaces.
+- **ESLint**: `pnpm lint` passed with 0 errors.
+- **Frontend Web Tests**: `pnpm --filter @insightloop/web test` passed (26/26 test suites, 110/110 tests passed).
+- **Backend API Tests**: `pnpm --filter @insightloop/api test` passed (62/62 test suites, 353/353 tests passed).
+
+### 2. Python Artifacts Audit on `main`
+- **Django Codebase**: Python files remain present under `insightloop/` and `scripts/*.py` on `main`. This is intentional and compliant with the project canary mandate: `main` merged `migration/mern` (which preserves Django for the 14-day canary rollback window), while the Python-free codebase is maintained in branch `chore/remove-python`.
+- **Python Dependencies**: `requirements.txt` and `requirements-lock.txt` remain at root to support the standby Django service during canary soak.
+- **Dockerfiles**: `apps/web/Dockerfile` and `apps/api/Dockerfile` are pure Node.js 22 LTS container specifications.
+- **CI Workflows**: `.github/workflows/ci.yml` retains dual-stack parity steps (`setup-python`, Daphne server) to guarantee parity on `main` during canary soak.
+
+### 3. Render Blueprint Audit (`render-blueprint.yaml`)
+- **Build Command**: `pnpm install --frozen-lockfile && pnpm --filter @insightloop/shared build && pnpm --filter @insightloop/api build` verified from clean clone.
+- **Start Command**: `node apps/api/dist/server.js` verified.
+- **Health Check Path**: `healthCheckPath: /health` serves HTTP 200 with `{"status":"ok","service":"InsightLoop Node API"}`.
+- **Environment Parity**: All 45 configuration keys in `apps/api/src/config/env.ts` verified in 1:1 parity with `render-blueprint.yaml` and `.env.example`.
+
+### 4. Render Production Boot Verification
+- **Insecure / Missing Secret Rejection**: Spawning the production API without `JWT_SECRET` immediately exits with code `1` and outputs `ZodError: JWT_SECRET is required in production.`
+- **Minimal Variable Production Boot**: Spawned `node apps/api/dist/server.js` with `NODE_ENV=production` and ONLY the variables user sets on Render (`MONGODB_URI`, `MONGODB_DB_NAME`, `JWT_SECRET`, `CORS_ORIGIN`, `FRONTEND_ORIGIN`, `GOOGLE_CLIENT_ID`, `METRICS_TOKEN`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`) against local MongoDB database `InsightLoop_phase6_boot_demo`.
+- **Verified Endpoints**:
+  - `GET /health` returned `200 OK` (`{"status":"ok","service":"InsightLoop Node API"}`).
+  - `GET /` returned `302 Found` with `Location: https://insightloop.vercel.app` (mirroring Django `root_redirect`).
+  - Request with `Origin: https://insightloop.vercel.app` returned CORS header `Access-Control-Allow-Origin: https://insightloop.vercel.app`.
+  - Unauthenticated `GET /metrics` was refused with `401 Unauthorized`.
+  - `GET /metrics` with `x-metrics-token` returned `200 OK`.
+  - User signup (`POST /api/v1/auth/signup`) returned `201 Created` with JWT tokens and company record.
+  - User login (`POST /api/v1/auth/login`) returned `200 OK` with valid access token.
+  - Graceful shutdown (`SIGTERM`) drained connections and closed MongoDB/Redis pools cleanly.
+
+### 5. Deployment Runbook (`docs/runbooks/deploy_checklist.md`) & Documentation Invariants
+Created plain-language deployment guide for user cutover:
+- Step-by-step instructions for Render Blueprint deployment from `main`.
+- Master table of all environment variables to configure in Render Dashboard.
+- Single-command generation for `JWT_SECRET` and `METRICS_TOKEN`: `openssl rand -hex 32`.
+- Step-by-step Gmail App Password creation guide.
+- **`VITE_API_BASE_URL` Invariant**: Documented exact format `https://<render-url>/api/v1` (MUST end in `/api/v1` as Axios client in `apps/web/src/lib/api.ts` appends endpoint routes). `VITE_WS_BASE_URL` stays `wss://<render-url>` with no path. Automated check added to `scripts/check_web_env_vars.mjs` and `apps/web/test/env_urls.test.ts` failing if any doc shows `VITE_API_BASE_URL` without `/api/v1`.
+- **Vercel Monorepo Build Configuration**: Configured `vercel.json` with Root Directory `./`, `installCommand: "pnpm install --frozen-lockfile"`, `buildCommand: "pnpm --filter @insightloop/shared build && pnpm --filter @insightloop/web build"`, `outputDirectory: "apps/web/dist"`, and SPA rewrites. Removed obsolete `@secret` references from `vercel.json`. Verified clean build produces `apps/web/dist/index.html` with Vite correctly inlining `VITE_*` variables.
+- Google Cloud Console Authorized JavaScript Origins setup guide to prevent OAuth mismatches.
+- Instant rollback instructions for Render and Vercel.
+
+### 6. Automated Production Smoke Test (`scripts/smoke_test.mjs`)
+Created zero-external-dependency automated smoke test runner:
+- Built with native Node.js 22 LTS features (`node:crypto`, `fetch`, `FormData`, `Blob`, `WebSocket`).
+- **Bill Payment & Balance Assertions**: Reads real fields `amount_received` and `balance_due` from bill response. Asserts `paidAmount === 150`, `balanceDue === 150`, and `grandTotal === 300` matching sent values, eliminating any "Paid: undefined" output.
+- **Executed 16 verification checks against the production-booted server: 16/16 PASSED (0 failures)**:
+  - Step 1: `GET /health` (200), `GET /` (302 redirect to Vercel).
+  - Step 2: CORS preflight with `Origin` and `Access-Control-Request-*` headers (204).
+  - Step 3: Throwaway user signup (201), login (200), token refresh (200).
+  - Step 4: Create worker (201), create inventory item (201), create bill with payment asserting paid=150 and balance=150 (201), fetch bill PDF and verify `%PDF` magic bytes (200, 33KB), fetch dashboard overview and verify active workers and bills count (200).
+  - Step 5: Multipart CSV upload (200, 2 records), verify dashboard revenue updated to ₹750 (200), connect to WebSocket gateway (`/ws/dashboard/:companyId/`) with JWT and receive live initial state frame.
+  - Step 6: `POST /contact` returns `{"status":"ok"}` with background SMTP error logged gracefully.
+  - Step 7: Teardown and delete all created entities (Bill 204, Inventory 204, Worker 204).
+- **Down-Server Handling**: Verified execution against inactive port (`http://127.0.0.1:59999`) outputs clear failure message and exits with code `1`.
+
+---
+
+## 3. Phase 5.11 Implementation & Production Config Parity Summary
 
 All Phase 5.11 items have been implemented, verified with tests, and validated with committed disk evidence:
 
@@ -71,7 +136,7 @@ All Phase 5.11 items have been implemented, verified with tests, and validated w
 
 ---
 
-## 3. Phase 5.10 Implementation & Parity Summary
+## 4. Phase 5.10 Implementation & Parity Summary
 
 ### 1. Behavior Gaps Resolved (Section 1)
 - **Root URL (`GET /`) Parity**:
@@ -175,7 +240,7 @@ All Phase 5.11 items have been implemented, verified with tests, and validated w
 
 ---
 
-## 4. Benchmark Comparison Table (Identical Indexes, Zero Cache)
+## 5. Benchmark Comparison Table (Identical Indexes, Zero Cache)
 
 | Concurrency | Endpoint                 | Stack  | Requests | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |
 | :---------- | :----------------------- | :----- | :------- | :------- | :------- | :------- | :----- | :------------ | :--------- |
@@ -238,14 +303,14 @@ All Phase 5.11 items have been implemented, verified with tests, and validated w
 
 ---
 
-## 5. Known Gaps & Operational Items
+## 6. Known Gaps & Operational Items
 
-The codebase on `migration/mern` represents a production-ready **STAGING-CANDIDATE**. The following items remain deferred or require dashboard credential injection during staging/production cutover:
+The codebase on `main` is deploy-ready and verified. The following operational items require dashboard credential injection during staging/production cutover:
 
 | Gap / Operational Item | Current State | Target Phase | Deferred Rationale |
 |---|---|---|---|
-| **Phase 6 Deployment** | Staging and Production deployment blocked | Phase 6 | Strictly locked by autonomous rules pending user authorization. |
-| **Canary Soak Period** | Django preserved in `insightloop/` on `migration/mern` | Phase 6/7 | Required 14-day dual-stack canary window before final decommissioning. |
+| **Phase 6 Deployment** | Deploy prep & smoke test complete; ready for user cutover | Phase 6 | User applies Render Blueprint and Vercel project with production secrets. |
+| **Canary Soak Period** | Django preserved in `insightloop/` on `main` | Phase 6/7 | Required 14-day dual-stack canary window before final decommissioning. |
 | **`chore/remove-python` Merge** | Kept separate and unmerged | Phase 7.5 | Strictly forbidden to merge until 14 days of flawless canary operation have completed without rollbacks. |
 | **Legacy HTML Traffic Monitoring** | Diagnostic shadow headers logging at `warn` level | Phase 7 | Monitor real user traffic on legacy routes for 30 days before deleting deprecated views. |
 | **WhatsApp Cloud API Credentials** | Fallback to OpenWA or placeholder detection active | Production Cutover | Production Meta System User Access Token and Phone Number ID to be set in Render dashboard when live. |
@@ -255,6 +320,6 @@ The codebase on `migration/mern` represents a production-ready **STAGING-CANDIDA
 
 ---
 
-## 6. Byte-Safety Baseline Verification
+## 7. Byte-Safety Baseline Verification
 - Baseline tag: `pre-mern-migration-2026-10-15`
 - `git diff pre-mern-migration-2026-10-15..HEAD -- insightloop/`: **0 bytes (Exact match, zero alterations)**

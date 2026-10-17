@@ -63,6 +63,59 @@ for (const file of files) {
   });
 }
 
+// 3. Scan all markdown files in docs/ and root to verify VITE_API_BASE_URL always ends in /api/v1
+function getMarkdownFiles(dir) {
+  const mdFiles = [];
+  if (!fs.existsSync(dir)) return mdFiles;
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory() && !['node_modules', '.git', 'dist', 'build', '.venv'].includes(entry.name)) {
+      mdFiles.push(...getMarkdownFiles(fullPath));
+    } else if (entry.name.endsWith('.md')) {
+      mdFiles.push(fullPath);
+    }
+  }
+  return mdFiles;
+}
+
+const docsDir = path.resolve(ROOT, 'docs');
+const allDocs = [...getMarkdownFiles(docsDir), ...getMarkdownFiles(ROOT).filter((f) => path.dirname(f) === ROOT)];
+
+for (const docFile of allDocs) {
+  const relDoc = path.relative(ROOT, docFile);
+  const docContent = fs.readFileSync(docFile, 'utf-8');
+  const lines = docContent.split('\n');
+
+  lines.forEach((line, idx) => {
+    if (line.includes('VITE_API_BASE_URL')) {
+      const match = line.match(/https?:\/\/[^\s`'"|)]+/);
+      if (match) {
+        const url = match[0];
+        const hasApiV1 = url.endsWith('/api/v1') || url.endsWith('/api/v1/');
+        if (!hasApiV1) {
+          errors.push(
+            `${relDoc}:${idx + 1}: VITE_API_BASE_URL must end with '/api/v1' (found '${url}'). Web client appends endpoints directly to base URL.`
+          );
+        }
+      }
+    }
+
+    if (line.includes('VITE_WS_BASE_URL')) {
+      const match = line.match(/wss?:\/\/[^\s`'"|)]+/);
+      if (match) {
+        const url = match[0];
+        const urlObj = new URL(url.replace(/^ws/, 'http'));
+        if (urlObj.pathname && urlObj.pathname !== '/') {
+          errors.push(
+            `${relDoc}:${idx + 1}: VITE_WS_BASE_URL must have no subpath (found '${url}'). WebSocket client builds endpoint paths dynamically.`
+          );
+        }
+      }
+    }
+  });
+}
+
 if (errors.length > 0) {
   console.error('[WEB-ENV-CHECK] ✗ Failed with errors:');
   for (const err of errors) {
@@ -71,5 +124,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`[WEB-ENV-CHECK] ✓ SUCCESS: All ${files.length} source files under apps/web/src build URLs only from declared environment variables!`);
+console.log(`[WEB-ENV-CHECK] ✓ SUCCESS: All ${files.length} source files under apps/web/src and all ${allDocs.length} documentation files satisfy environment variable invariants!`);
 process.exit(0);
