@@ -32,7 +32,7 @@ export async function sendMailSmtp(options: {
       pass: options.pass,
     } : undefined,
     tls: {
-      rejectUnauthorized: process.env.NODE_ENV === 'production',
+      rejectUnauthorized: env.NODE_ENV === 'production',
     },
   });
 
@@ -54,15 +54,13 @@ export class ContactService {
       created_at: new Date(),
     });
 
-    const emailHost = process.env.EMAIL_HOST || env.EMAIL_HOST;
-    const emailPort = parseInt(process.env.EMAIL_PORT || String(env.EMAIL_PORT), 10);
-    const emailUseTls = process.env.EMAIL_USE_TLS !== undefined
-      ? process.env.EMAIL_USE_TLS === 'true'
-      : env.EMAIL_USE_TLS;
-    const emailUser = process.env.EMAIL_HOST_USER || env.EMAIL_HOST_USER;
-    const emailPass = process.env.EMAIL_HOST_PASSWORD || env.EMAIL_HOST_PASSWORD;
-    const defaultFrom = process.env.DEFAULT_FROM_EMAIL || env.DEFAULT_FROM_EMAIL || 'noreply@insightloop.io';
-    const adminEmail = process.env.ADMIN_EMAIL || env.ADMIN_EMAIL || defaultFrom;
+    const emailHost = env.EMAIL_HOST;
+    const emailPort = env.EMAIL_PORT;
+    const emailUseTls = env.EMAIL_USE_TLS;
+    const emailUser = env.EMAIL_HOST_USER;
+    const emailPass = env.EMAIL_HOST_PASSWORD;
+    const defaultFrom = env.DEFAULT_FROM_EMAIL || 'noreply@insightloop.io';
+    const adminEmail = env.ADMIN_EMAIL || defaultFrom;
 
     if (emailHost) {
       try {

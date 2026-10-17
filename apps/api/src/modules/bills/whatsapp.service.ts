@@ -23,7 +23,7 @@ export class OpenWANotConfigured extends ValidationError {
   constructor(message?: string) {
     super(
       message ||
-        `OpenWA is not configured (this is the TEMPORARY WhatsApp bridge used until real Meta credentials are available). Set OPENWA_API_KEY in your environment, and make sure your OpenWA server is running at OPENWA_BASE_URL (currently ${process.env.OPENWA_BASE_URL || env.OPENWA_BASE_URL || 'http://localhost:2785'}).`
+        `OpenWA is not configured (this is the TEMPORARY WhatsApp bridge used until real Meta credentials are available). Set OPENWA_API_KEY in your environment, and make sure your OpenWA server is running at OPENWA_BASE_URL (currently ${env.OPENWA_BASE_URL || 'http://localhost:2785'}).`
     );
   }
 }
@@ -62,11 +62,11 @@ export class WhatsAppService {
     const phone = normalizePhoneNumber(rawPhone);
     const pdfBytes = await BillPdfService.renderBillPdf(bill, company);
 
-    const provider = process.env.WHATSAPP_PROVIDER || env.WHATSAPP_PROVIDER || 'meta';
+    const provider = env.WHATSAPP_PROVIDER;
 
     if (provider === 'openwa') {
-      const apiKey = process.env.OPENWA_API_KEY || env.OPENWA_API_KEY;
-      const baseUrl = process.env.OPENWA_BASE_URL || env.OPENWA_BASE_URL || 'http://localhost:2785';
+      const apiKey = env.OPENWA_API_KEY;
+      const baseUrl = env.OPENWA_BASE_URL || 'http://localhost:2785';
       if (!apiKey || !baseUrl) {
         throw new OpenWANotConfigured();
       }
@@ -111,8 +111,8 @@ export class WhatsAppService {
     }
 
     // Default: Meta Cloud API
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || env.WHATSAPP_PHONE_NUMBER_ID || '';
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN || env.WHATSAPP_ACCESS_TOKEN || '';
+    const phoneNumberId = env.WHATSAPP_PHONE_NUMBER_ID || '';
+    const accessToken = env.WHATSAPP_ACCESS_TOKEN || '';
     const isConfigured =
       !WHATSAPP_PLACEHOLDERS.has(phoneNumberId.trim()) &&
       !WHATSAPP_PLACEHOLDERS.has(accessToken.trim());
@@ -122,13 +122,10 @@ export class WhatsAppService {
     }
 
     try {
-      const apiVersion = process.env.WHATSAPP_API_VERSION || env.WHATSAPP_API_VERSION || 'v21.0';
-      const templateName = process.env.WHATSAPP_BILL_TEMPLATE_NAME || env.WHATSAPP_BILL_TEMPLATE_NAME || 'bill_share';
-      const templateLanguage = process.env.WHATSAPP_BILL_TEMPLATE_LANGUAGE || env.WHATSAPP_BILL_TEMPLATE_LANGUAGE || 'en_US';
-      const hasCompanyVar =
-        process.env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR !== undefined
-          ? process.env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR === 'true'
-          : env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR;
+      const apiVersion = env.WHATSAPP_API_VERSION;
+      const templateName = env.WHATSAPP_BILL_TEMPLATE_NAME;
+      const templateLanguage = env.WHATSAPP_BILL_TEMPLATE_LANGUAGE;
+      const hasCompanyVar = env.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR;
 
       const bodyParameters: { type: 'text'; text: string }[] = [
         { type: 'text', text: bill.invoice_number || 'invoice' },

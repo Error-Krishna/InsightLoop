@@ -23,6 +23,11 @@ export function getTestDbUri(): string | null {
 
 export async function teardownTestDb(): Promise<void> {
   await clearDatabase();
+  await closeMongo();
+  if (replSet) {
+    await replSet.stop();
+    replSet = null;
+  }
 }
 
 process.on('exit', () => {

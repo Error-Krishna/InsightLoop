@@ -40,9 +40,9 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) { callback(null, true); return; }
-      const rawCors = process.env.CORS_ORIGIN || process.env.DJANGO_CORS_ALLOWED_ORIGINS || env.CORS_ORIGIN;
+      const rawCors = env.CORS_ORIGIN;
       const corsList = rawCors.split(',').map((s) => s.trim()).filter(Boolean);
-      const frontendOrigin = process.env.FRONTEND_ORIGIN || env.FRONTEND_ORIGIN;
+      const frontendOrigin = env.FRONTEND_ORIGIN;
       if (frontendOrigin && typeof frontendOrigin === 'string' && frontendOrigin.trim()) {
         const trimmed = frontendOrigin.trim();
         if (!corsList.includes(trimmed)) {
@@ -71,7 +71,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Root endpoint: mirrors Django root_redirect (redirects to FRONTEND_ORIGIN, or returns JSON)
 app.get('/', (_req: Request, res: Response) => {
-  const origin = env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGIN;
+  const origin = env.FRONTEND_ORIGIN;
   if (origin && typeof origin === 'string' && origin.trim()) {
     res.redirect(origin.trim());
     return;
@@ -141,7 +141,7 @@ app.get(
 // Static asset serving (optional single-container deployment)
 const staticDir = path.resolve(process.cwd(), 'apps/web/dist');
 // eslint-disable-next-line security/detect-non-literal-fs-filename -- reason: staticDir is resolved from process.cwd() repo root
-if (process.env.SERVE_STATIC === 'true' && fs.existsSync(staticDir)) {
+if (env.SERVE_STATIC === 'true' && fs.existsSync(staticDir)) {
   app.use(express.static(staticDir));
   app.get('*', (req: Request, res: Response, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/ws') || req.path.startsWith('/health') || req.path.startsWith('/metrics')) {

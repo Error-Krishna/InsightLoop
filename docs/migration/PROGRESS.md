@@ -56,6 +56,19 @@ All Phase 5.11 items have been implemented, verified with tests, and validated w
 - Completely purged obsolete `VITE_API_URL` from the repository.
 - Created `apps/web/test/env_urls.test.ts` and `scripts/check_web_env_vars.mjs` verifying all 37 source files under `apps/web/src` build URLs only from declared environment variables with 0 violations.
 
+### 5. Final Configuration Adjustments (Boolean Parser Parity & WhatsApp Auto-Resolution)
+- **Django `env_bool` Boolean Parser Parity**:
+  - Replaced all `z.coerce.boolean()` instances (`EMAIL_USE_TLS`, `WHATSAPP_ENABLED`, `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR`, `REHASH_PASSWORDS_ON_LOGIN`) in `apps/api/src/config/env.ts` with `parseEnvBool` and `envBoolSchema`.
+  - Parser strictly replicates Django's `env_bool`: values matching `{"1", "true", "yes", "on"}` (case-insensitive, trimmed) evaluate to `true`, while everything else (including `"false"`, `"0"`, `"no"`, `""`) evaluates to `false`.
+  - Replaced direct `process.env` workarounds in `contact.service.ts`, `whatsapp.service.ts`, and `storage.service.ts` to consume parsed `env` values directly.
+  - Implemented dynamic `env` Proxy in test/dev modes delegating to validated configuration while providing high-performance cached access in production.
+  - Added comprehensive tests in `apps/api/test/env_and_jwt_derivation.test.ts` covering `"false"`, `"0"`, `"no"`, `""`, `"TRUE"`, `"On"`, `"1"`, `"yes"`.
+- **Render Blueprint & WhatsApp Provider Auto-Resolution**:
+  - In `render-blueprint.yaml`, removed hardcoded `WHATSAPP_ENABLED` and `WHATSAPP_PROVIDER` values and marked them `sync: false`.
+  - `apps/api/src/config/env.ts` automatically resolves `WHATSAPP_PROVIDER` (`'openwa'` vs `'meta'`) and `WHATSAPP_ENABLED` (`false` vs `true`) based on presence of real Meta credentials, matching Django's rule in `insightloop/settings.py`.
+  - Added test cases in `apps/api/test/env_and_jwt_derivation.test.ts` verifying unset/placeholder credentials yield `'openwa'` and `false`, while valid Meta credentials yield `'meta'` and `true`.
+  - Updated `docs/runbooks/env_mapping.md` with auto-resolution and boolean parsing guarantees.
+
 ---
 
 ## 3. Phase 5.10 Implementation & Parity Summary

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import { validateEnv } from '../src/config/env.js';
+import { validateEnv, parseEnvBool } from '../src/config/env.js';
 import { generateTokens, verifyAccessToken, deriveSigningKey } from '../src/utils/jwt.js';
 
 const pythonBin = fs.existsSync('.venv/bin/python') ? '.venv/bin/python' : '../../.venv/bin/python';
@@ -232,6 +232,103 @@ print(decoded["email"] + "::" + decoded["company_id"])
       }).trim();
 
       expect(result).toBe('nodetestlong@example.com::test-comp-node-long');
+    });
+  });
+
+  describe('Django env_bool Parity & Boolean Parser', () => {
+    it('parses truthy values ("1", "true", "yes", "on", "TRUE", "On") as true', () => {
+      expect(parseEnvBool('1')).toBe(true);
+      expect(parseEnvBool('true')).toBe(true);
+      expect(parseEnvBool('yes')).toBe(true);
+      expect(parseEnvBool('on')).toBe(true);
+      expect(parseEnvBool('TRUE')).toBe(true);
+      expect(parseEnvBool('On')).toBe(true);
+      expect(parseEnvBool('  true  ')).toBe(true);
+      expect(parseEnvBool('  YES  ')).toBe(true);
+      expect(parseEnvBool(true)).toBe(true);
+    });
+
+    it('parses falsy values ("false", "0", "no", "", "random") as false', () => {
+      expect(parseEnvBool('false')).toBe(false);
+      expect(parseEnvBool('0')).toBe(false);
+      expect(parseEnvBool('no')).toBe(false);
+      expect(parseEnvBool('')).toBe(false);
+      expect(parseEnvBool('   ')).toBe(false);
+      expect(parseEnvBool('FALSE')).toBe(false);
+      expect(parseEnvBool('off')).toBe(false);
+      expect(parseEnvBool('random')).toBe(false);
+      expect(parseEnvBool(false)).toBe(false);
+    });
+
+    it('respects default value when input is null or undefined', () => {
+      expect(parseEnvBool(undefined, true)).toBe(true);
+      expect(parseEnvBool(undefined, false)).toBe(false);
+      expect(parseEnvBool(null, true)).toBe(true);
+      expect(parseEnvBool(null, false)).toBe(false);
+    });
+
+    it('validates schema boolean fields with Django env_bool rules', () => {
+      const parsedTrue = validateEnv({
+        EMAIL_USE_TLS: 'TRUE',
+        WHATSAPP_ENABLED: 'On',
+        WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR: '1',
+        REHASH_PASSWORDS_ON_LOGIN: 'yes',
+      });
+      expect(parsedTrue.EMAIL_USE_TLS).toBe(true);
+      expect(parsedTrue.WHATSAPP_ENABLED).toBe(true);
+      expect(parsedTrue.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR).toBe(true);
+      expect(parsedTrue.REHASH_PASSWORDS_ON_LOGIN).toBe(true);
+
+      const parsedFalse = validateEnv({
+        EMAIL_USE_TLS: 'false',
+        WHATSAPP_ENABLED: '0',
+        WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR: 'no',
+        REHASH_PASSWORDS_ON_LOGIN: '',
+      });
+      expect(parsedFalse.EMAIL_USE_TLS).toBe(false);
+      expect(parsedFalse.WHATSAPP_ENABLED).toBe(false);
+      expect(parsedFalse.WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR).toBe(false);
+      expect(parsedFalse.REHASH_PASSWORDS_ON_LOGIN).toBe(false);
+    });
+  });
+
+  describe('WhatsApp Provider & Enabled Automatic Resolution Parity', () => {
+    it('resolves WHATSAPP_PROVIDER to openwa and WHATSAPP_ENABLED to false when Meta credentials are unset', () => {
+      const parsed = validateEnv({
+        WHATSAPP_PHONE_NUMBER_ID: '',
+        WHATSAPP_ACCESS_TOKEN: '',
+      });
+      expect(parsed.WHATSAPP_PROVIDER).toBe('openwa');
+      expect(parsed.WHATSAPP_ENABLED).toBe(false);
+    });
+
+    it('resolves WHATSAPP_PROVIDER to openwa and WHATSAPP_ENABLED to false when Meta credentials are placeholders', () => {
+      const parsed = validateEnv({
+        WHATSAPP_PHONE_NUMBER_ID: 'REPLACE_WITH_PHONE_NUMBER_ID',
+        WHATSAPP_ACCESS_TOKEN: 'REPLACE_WITH_ACCESS_TOKEN',
+      });
+      expect(parsed.WHATSAPP_PROVIDER).toBe('openwa');
+      expect(parsed.WHATSAPP_ENABLED).toBe(false);
+    });
+
+    it('resolves WHATSAPP_PROVIDER to meta and WHATSAPP_ENABLED to true when Meta credentials are set', () => {
+      const parsed = validateEnv({
+        WHATSAPP_PHONE_NUMBER_ID: '123456789012345',
+        WHATSAPP_ACCESS_TOKEN: 'EAAB_real_meta_production_access_token_12345',
+      });
+      expect(parsed.WHATSAPP_PROVIDER).toBe('meta');
+      expect(parsed.WHATSAPP_ENABLED).toBe(true);
+    });
+
+    it('preserves explicitly configured WHATSAPP_PROVIDER and WHATSAPP_ENABLED override', () => {
+      const parsed = validateEnv({
+        WHATSAPP_PROVIDER: 'openwa',
+        WHATSAPP_PHONE_NUMBER_ID: '123456789012345',
+        WHATSAPP_ACCESS_TOKEN: 'EAAB_real_meta_production_access_token_12345',
+        WHATSAPP_ENABLED: 'false',
+      });
+      expect(parsed.WHATSAPP_PROVIDER).toBe('openwa');
+      expect(parsed.WHATSAPP_ENABLED).toBe(false);
     });
   });
 });

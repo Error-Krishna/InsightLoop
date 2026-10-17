@@ -145,7 +145,7 @@ export class S3StorageDriver implements StorageDriver {
   constructor() {
     this.fallbackDriver = new GridFSStorageDriver();
     // In production, configured via S3_BUCKET_NAME and AWS credentials
-    this.isConfigured = Boolean(process.env.S3_BUCKET_NAME && process.env.AWS_REGION);
+    this.isConfigured = Boolean(env.S3_BUCKET_NAME && env.AWS_REGION);
   }
 
   async save(filePath: string, buffer: Buffer, mimeType?: string): Promise<string> {
@@ -179,7 +179,7 @@ export class StorageService {
 
   public static getDriver(): StorageDriver {
     if (!this.instance) {
-      const driverType = process.env.STORAGE_DRIVER || env.STORAGE_DRIVER || 'gridfs';
+      const driverType = env.STORAGE_DRIVER;
       if (driverType === 's3') {
         this.instance = new S3StorageDriver();
       } else {

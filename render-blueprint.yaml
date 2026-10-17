@@ -39,9 +39,9 @@ services:
       - key: MAX_FILE_SIZE_MB
         value: 10
       - key: WHATSAPP_ENABLED
-        value: false
+        sync: false
       - key: WHATSAPP_PROVIDER
-        value: meta
+        sync: false
       - key: REHASH_PASSWORDS_ON_LOGIN
         value: false
       - key: GOOGLE_CLIENT_ID

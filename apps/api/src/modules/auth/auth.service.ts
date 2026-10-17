@@ -147,7 +147,7 @@ export class AuthService {
     }
 
     const token = encodeURIComponent(rawToken);
-    const tokeninfoBase = process.env.GOOGLE_TOKENINFO_URL || 'https://oauth2.googleapis.com/tokeninfo';
+    const tokeninfoBase = env.GOOGLE_TOKENINFO_URL || 'https://oauth2.googleapis.com/tokeninfo';
     const tokeninfoUrl = `${tokeninfoBase}?id_token=${token}`;
 
     let response: Response;

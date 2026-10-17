@@ -12,7 +12,7 @@ export function requireMetricsAuth(req: Request, res: Response, next: NextFuncti
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined;
   const providedToken = headerToken || bearerToken;
 
-  const expectedToken = env.METRICS_TOKEN || process.env.METRICS_TOKEN;
+  const expectedToken = env.METRICS_TOKEN;
 
   if (!expectedToken || !providedToken || providedToken !== expectedToken) {
     res.status(401).json({

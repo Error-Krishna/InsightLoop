@@ -23,8 +23,9 @@ This runbook documents every configuration variable referenced in the legacy Dja
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | `WHATSAPP_BUSINESS_ACCOUNT_ID` | `"REPLACE_WITH_BUSINESS_ACCOUNT_ID"` | `""` | Optional | Meta WABA ID. |
 | `WHATSAPP_BILL_TEMPLATE_NAME` | `WHATSAPP_BILL_TEMPLATE_NAME` | `bill_share` | `bill_share` | Optional | Pre-approved template name. |
 | `WHATSAPP_BILL_TEMPLATE_LANGUAGE` | `WHATSAPP_BILL_TEMPLATE_LANGUAGE` | `en_US` | `en_US` | Optional | Template locale code. |
-| `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` | `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` | `false` | `false` | Optional | Boolean flag indicating whether template body expects company name variable. |
-| `WHATSAPP_PROVIDER` | `WHATSAPP_PROVIDER` | `"openwa"` if placeholder, else `"meta"` | `"openwa"` if placeholder, else `"meta"` | Optional | Provider selector (`meta` vs `openwa`). Node mirrors Django's automatic fallback when credentials are placeholders. |
+| `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` | `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR` | `false` | `false` | Optional | Boolean flag indicating whether template body expects company name variable. Evaluated via Django `env_bool` rule (`"1"`, `"true"`, `"yes"`, `"on"` are true; everything else false). |
+| `WHATSAPP_ENABLED` | `WHATSAPP_ENABLED` | `false` (auto-computed from credentials) | `false` (auto-computed from credentials) | Optional | Provider enable flag (`sync: false` in blueprint). If omitted or empty, auto-resolves to `true` iff real Meta credentials exist, matching Django's rule in `settings.py`. Parsed with Django's `env_bool` rule. |
+| `WHATSAPP_PROVIDER` | `WHATSAPP_PROVIDER` | `"openwa"` if placeholder, else `"meta"` | `"openwa"` if placeholder, else `"meta"` | Optional | Provider selector (`meta` vs `openwa`, `sync: false` in blueprint). If omitted or empty, auto-resolves to `"meta"` if real Meta credentials exist, else `"openwa"`. |
 | `OPENWA_BASE_URL` | `OPENWA_BASE_URL` | `http://localhost:2785` | `http://localhost:2785` | Optional | Base URL for self-hosted OpenWA WhatsApp bridge. |
 | `OPENWA_API_KEY` | `OPENWA_API_KEY` | `""` | `""` | Optional | OpenWA authentication key. |
 | `EMAIL_HOST` | `EMAIL_HOST` | `smtp.gmail.com` | `smtp.gmail.com` | Optional | SMTP host for contact messages. |
@@ -83,3 +84,6 @@ To prevent operational accidents during migration, Node's environment parser (`a
 - If `S3_BUCKET_NAME` is unset, Node reads `AWS_STORAGE_BUCKET_NAME`.
 - If `AWS_REGION` is unset, Node reads `AWS_S3_REGION_NAME`.
 - `FRONTEND_ORIGIN` is dynamically injected into CORS allowed origins.
+- `WHATSAPP_ENABLED` and `WHATSAPP_PROVIDER` (`sync: false` in `render-blueprint.yaml`): automatically resolved following Django's rule in `settings.py`. If real Meta credentials (`WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_ACCESS_TOKEN`) are configured, `WHATSAPP_PROVIDER` defaults to `'meta'` and `WHATSAPP_ENABLED` defaults to `true`. Otherwise, `WHATSAPP_PROVIDER` defaults to `'openwa'` and `WHATSAPP_ENABLED` defaults to `false`.
+- **Boolean Parsing Parity (`env_bool`)**: All boolean environment variables (`EMAIL_USE_TLS`, `WHATSAPP_ENABLED`, `WHATSAPP_BILL_TEMPLATE_HAS_COMPANY_VAR`, `REHASH_PASSWORDS_ON_LOGIN`) are evaluated using Django's exact `env_bool` implementation: only values in `{"1", "true", "yes", "on"}` (case-insensitive, trimmed) evaluate to `true`. All other values (including `"false"`, `"0"`, `"no"`, `""`) evaluate to `false`. Default values apply only when the variable is unset (`undefined` or `null`).
+
