@@ -229,7 +229,11 @@ export class DashboardService {
     return series;
   }
 
-  static async getRevExpData(scope: TenantScope, months = 6) {
+  static async getRevExpData(
+    scope: TenantScope,
+    months = 6,
+    preloadedBillSeries?: Record<string, { revenue: number; profit: number }>
+  ) {
     const { startDt, endDt } = this.buildDateRange(months);
 
     const pipeline = [
@@ -253,7 +257,7 @@ export class DashboardService {
 
     const [bizResults, billSeries] = await Promise.all([
       DashboardRepository.aggregateBusinessData(scope, pipeline),
-      this.getBillMonthlySeries(scope, startDt, endDt),
+      preloadedBillSeries ? Promise.resolve(preloadedBillSeries) : this.getBillMonthlySeries(scope, startDt, endDt),
     ]);
 
     const combined: Record<string, [number, number]> = {};
@@ -291,7 +295,12 @@ export class DashboardService {
     return { labels, revenue, expenses };
   }
 
-  static async getProfitTrends(scope: TenantScope, months = 6, interval = 'monthly') {
+  static async getProfitTrends(
+    scope: TenantScope,
+    months = 6,
+    interval = 'monthly',
+    preloadedBillSeries?: Record<string, { revenue: number; profit: number }>
+  ) {
     const { startDt, endDt } = this.buildDateRange(months);
 
     let groupId: Record<string, unknown>;
@@ -345,7 +354,7 @@ export class DashboardService {
     const results = await DashboardRepository.aggregateBusinessData(scope, pipeline);
 
     if (interval === 'monthly') {
-      const billSeries = await this.getBillMonthlySeries(scope, startDt, endDt);
+      const billSeries = preloadedBillSeries ?? (await this.getBillMonthlySeries(scope, startDt, endDt));
       const combined: Record<string, number> = {};
 
       for (const r of results) {
@@ -502,13 +511,20 @@ export class DashboardService {
   }
 
   static async getDashboardData(scope: TenantScope) {
-    const [summary, revExp, profitTrends, workers, topWorkers, billsCount] = await Promise.all([
+    const { startDt, endDt } = this.buildDateRange(6);
+    const billSeriesPromise = this.getBillMonthlySeries(scope, startDt, endDt);
+
+    const [summary, billSeries, workers, topWorkers, billsCount] = await Promise.all([
       this.getSummaryData(scope),
-      this.getRevExpData(scope, 6),
-      this.getProfitTrends(scope, 6, 'monthly'),
+      billSeriesPromise,
       this.getWorkerPayments(scope),
       this.getTopWorkers(scope),
       DashboardRepository.countBills(scope),
+    ]);
+
+    const [revExp, profitTrends] = await Promise.all([
+      this.getRevExpData(scope, 6, billSeries),
+      this.getProfitTrends(scope, 6, 'monthly', billSeries),
     ]);
 
     return {
@@ -571,14 +587,35 @@ export class DashboardService {
         ]));
       }
     } else if (reportType === 'worker_management') {
-      const workers = await DashboardRepository.findAllWorkers(scope);
+      const [workers, allAssignments, allPayRecords] = await Promise.all([
+        DashboardRepository.findAllWorkers(scope),
+        DashboardRepository.findAllAssignments(scope),
+        DashboardRepository.findAllPayRecords(scope),
+      ]);
+
+      const assignmentsByWorker = new Map<string, Document[]>();
+      for (const a of allAssignments) {
+        const wid = a.worker ? String(a.worker) : (a.worker_id ? String(a.worker_id) : null);
+        if (wid) {
+          if (!assignmentsByWorker.has(wid)) assignmentsByWorker.set(wid, []);
+          assignmentsByWorker.get(wid)!.push(a);
+        }
+      }
+
+      const payRecordsByWorker = new Map<string, Document[]>();
+      for (const p of allPayRecords) {
+        const wid = p.worker ? String(p.worker) : (p.worker_id ? String(p.worker_id) : null);
+        if (wid) {
+          if (!payRecordsByWorker.has(wid)) payRecordsByWorker.set(wid, []);
+          payRecordsByWorker.get(wid)!.push(p);
+        }
+      }
+
       lines.push(toCsvRow(['Worker Name', 'Contact', 'Status', 'Total Materials Assigned', 'Total Value', 'Total Units Produced', 'Total Pay Due']));
       for (const w of workers) {
-        const wid = w._id as ObjectId;
-        const [materials, payRecords] = await Promise.all([
-          DashboardRepository.findAssignmentsForWorker(scope, wid),
-          DashboardRepository.findPayRecordsForWorker(scope, wid),
-        ]);
+        const widStr = w._id !== undefined && w._id !== null ? String(w._id) : '';
+        const materials = assignmentsByWorker.get(widStr) ?? [];
+        const payRecords = payRecordsByWorker.get(widStr) ?? [];
         const totalMaterials = materials.reduce((sum, m) => sum + (Number(m.quantity) || 0), 0);
         const totalValue = materials.reduce((sum, m) => sum + (Number(m.quantity) || 0) * (Number(m.price_per_unit) || 0), 0);
         const totalUnits = payRecords.reduce((sum, p) => sum + (Number(p.units_produced) || 0), 0);

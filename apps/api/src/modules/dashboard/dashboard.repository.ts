@@ -55,8 +55,13 @@ export class DashboardRepository {
   }
 
   static async findAssignmentsForWorker(scope: TenantScope, workerId: ObjectId): Promise<Document[]> {
-    const col = getCollection('assignments');
+    const col = getCollection('material_assignments');
     return col.find({ company_id: scope.companyId, worker: workerId }).toArray();
+  }
+
+  static async findAllAssignments(scope: TenantScope): Promise<Document[]> {
+    const col = getCollection('material_assignments');
+    return col.find({ company_id: scope.companyId }).toArray();
   }
 
   static async findPayRecordsForWorker(scope: TenantScope, workerId: ObjectId): Promise<Document[]> {
