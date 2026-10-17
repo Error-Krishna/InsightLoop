@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { validateEnv, parseEnvBool } from '../src/config/env.js';
 import { generateTokens, verifyAccessToken, deriveSigningKey } from '../src/utils/jwt.js';
+import jwt from 'jsonwebtoken';
 
 const pythonBin = fs.existsSync('.venv/bin/python') ? '.venv/bin/python' : '../../.venv/bin/python';
 const hasPython = fs.existsSync(pythonBin);
