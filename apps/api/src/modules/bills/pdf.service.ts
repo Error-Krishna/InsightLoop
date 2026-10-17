@@ -79,7 +79,7 @@ async function fetchImageBuffer(urlOrPath?: string): Promise<Buffer | null> {
         return Buffer.from(arrayBuf);
       }
     } catch {
-      // SILENT-FALLBACK-REASON: Unreachable image URL does not fail the PDF (matches Django bills/pdf.py)
+      // SILENT-FALLBACK-REASON: Unreachable image URL does not fail the PDF
     }
   }
   return null;
@@ -102,7 +102,7 @@ export class BillPdfService {
           autoFirstPage: true,
         });
 
-        // Register DejaVu Sans for Unicode rupee and exact Django WeasyPrint font parity
+        // Register DejaVu Sans for Unicode rupee and exact font layout parity
         const fontRegular = resolveFont('DejaVuSans.ttf');
         const fontBold = resolveFont('DejaVuSans-Bold.ttf');
         const fontOblique = resolveFont('DejaVuSans-Oblique.ttf');
@@ -132,7 +132,7 @@ export class BillPdfService {
         const rightEdge = 549.93;
         const contentWidth = rightEdge - leftMargin; // 504.58
 
-        // Exact column boundaries matching Django invoice.html CSS:
+        // Exact column boundaries matching invoice CSS layout:
         // col1 (#): 34px -> x: 45.35 .. 79.35
         // col2 (ITEM): remaining -> x: 79.35 .. 275.93
         // col3 (QTY): 60px -> x: 275.93 .. 335.93

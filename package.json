@@ -15,6 +15,7 @@
     "test:chaos": "node scripts/test_chaos_resilience.mjs",
     "check:citations": "node scripts/check_citations.mjs",
     "check:shape": "node scripts/check_doc_shape.mjs",
+    "check:no-python": "node scripts/check_no_python.mjs",
     "typecheck": "turbo run typecheck",
     "prepare": "husky"
   },

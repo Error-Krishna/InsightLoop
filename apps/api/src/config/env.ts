@@ -99,7 +99,7 @@ export function validateEnv(raw: NodeJS.ProcessEnv = process.env) {
     ...raw,
   };
 
-  // WhatsApp provider and enabled status parity with Django
+  // WhatsApp provider and enabled status configuration
   const phoneId = (raw.WHATSAPP_PHONE_NUMBER_ID || '').trim();
   const token = (raw.WHATSAPP_ACCESS_TOKEN || '').trim();
   const isMetaConfigured = !WHATSAPP_PLACEHOLDER_VALUES.has(phoneId) && !WHATSAPP_PLACEHOLDER_VALUES.has(token);

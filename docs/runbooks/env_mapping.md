@@ -65,6 +65,6 @@ These variables **must** be set in the Render Dashboard (Environment tab) for th
 
 ## 3. Strict Parity Guarantees
 
-- **No Fallback Aliases**: Legacy Django environment variables (`DJANGO_SECRET_KEY`, `DJANGO_CORS_ALLOWED_ORIGINS`, `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_REGION_NAME`) are not read. Production Render environments must declare canonical names (`JWT_SECRET`, `CORS_ORIGIN`, `S3_BUCKET_NAME`, `AWS_REGION`).
+- **No Fallback Aliases**: Legacy environment variable aliases are not read. Production Render environments must declare canonical names (`JWT_SECRET`, `CORS_ORIGIN`, `S3_BUCKET_NAME`, `AWS_REGION`).
 - **Boolean Parsing (`parseEnvBool`)**: Boolean variables evaluate to `true` strictly for values in `{"1", "true", "yes", "on"}` (case-insensitive, trimmed). All other values evaluate to `false`.
-- **Password Hashes**: Existing user passwords stored in Django's PBKDF2 format (`pbkdf2_sha256$...`) continue verifying with byte-for-byte mathematical parity in Node native `crypto.pbkdf2Sync`.
+- **Password Hashes**: Existing user passwords stored in PBKDF2 format (`pbkdf2_sha256$...`) continue verifying with byte-for-byte mathematical parity in Node native `crypto.pbkdf2Sync`.

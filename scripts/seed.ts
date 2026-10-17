@@ -25,7 +25,7 @@ function daysFuture(n: number): Date {
   return new Date(ANCHOR_NOW.getTime() + n * 86400000);
 }
 
-function djangoIso(d: Date): string {
+function toNaiveIso(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   const year = d.getUTCFullYear();
   const month = pad(d.getUTCMonth() + 1);
@@ -283,7 +283,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
     batches: [
       {
         quantity: 10,
-        date: djangoIso(daysAgo(5)),
+        date: toNaiveIso(daysAgo(5)),
         notes: 'First chunk',
       },
     ],
@@ -332,7 +332,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
     discount: 500.0,
     grand_total: 9500.0,
     invoice_number: 'INV-2026-00001',
-    payments: [{ amount: 5000.0, date: djangoIso(daysAgo(2)), notes: 'Advance' }],
+    payments: [{ amount: 5000.0, date: toNaiveIso(daysAgo(2)), notes: 'Advance' }],
     profit_confirmed: false,
     created_at: daysAgo(2),
     updated_at: daysAgo(2),
@@ -366,7 +366,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
     discount: 0.0,
     grand_total: 35400.0,
     invoice_number: 'INV-2026-00002',
-    payments: [{ amount: 35400.0, date: djangoIso(daysAgo(1)), notes: 'Full payment' }],
+    payments: [{ amount: 35400.0, date: toNaiveIso(daysAgo(1)), notes: 'Full payment' }],
     profit_confirmed: true,
     profit_suggested_amount: 15000.0,
     profit_confirmed_amount: 15000.0,

@@ -131,7 +131,7 @@ export class InsightsService {
         created_at: undefined,
       });
 
-      // Preserving Django characterization: created_at is null in the immediate POST /analyze/ response
+      // Characterization: created_at is null in the immediate POST /analyze/ response
       createdInsights.push({
         id: created._id.toString(),
         title: created.title,

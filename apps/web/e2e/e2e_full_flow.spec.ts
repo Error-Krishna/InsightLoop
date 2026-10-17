@@ -13,10 +13,6 @@ test.beforeAll(() => {
     ...process.env,
     MONGODB_URI: 'mongodb://localhost:27017/InsightLoop_test',
     MONGODB_DB_NAME: 'InsightLoop_test',
-    DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
-    REDIS_URL: '',
-    DJANGO_DEBUG: 'true',
-    PYTHONPATH: path.resolve(ROOT, 'insightloop'),
   };
   execSync('pnpm tsx scripts/seed.ts', { cwd: ROOT, env, encoding: 'utf-8' });
 });

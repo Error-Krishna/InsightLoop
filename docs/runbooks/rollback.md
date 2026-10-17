@@ -7,7 +7,7 @@ InsightLoop runs as:
 - **Frontend SPA**: React 19 application hosted on **Vercel** (`https://insightloop.vercel.app`).
 - **Database**: MongoDB Atlas cluster (`InsightLoop`).
 
-All rollbacks are atomic, single-click operations within the Render and Vercel hosting dashboards, with zero Python or Django dependencies.
+All rollbacks are atomic, single-click operations within the Render and Vercel hosting dashboards, with zero external legacy dependencies.
 
 ---
 

@@ -54,13 +54,16 @@ jobs:
       - name: Citation & Symbol Verification
         run: node scripts/check_citations.mjs
 
+      - name: Verify Python & Django Permanent Decommissioning
+        run: node scripts/check_no_python.mjs
+
       - name: Unit & Math Tests & Coverage
         run: |
           pnpm test
           pnpm --filter @insightloop/api run test:coverage
           node scripts/check_branch_coverage.mjs
 
-      - name: Python-Free Offline Safety Nets (Schema, Snapshots, Negative Fixtures)
+      - name: Offline Safety Nets (Schema, Snapshots, Negative Fixtures)
         run: |
           pnpm --filter @insightloop/api test test/schema_parity.test.ts
           pnpm --filter @insightloop/api test test/negative_fixtures.test.ts

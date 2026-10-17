@@ -1,7 +1,7 @@
 /**
  * Language-Agnostic HTTP Contract Test Runner & Golden Master Recorder
  *
- * Runs characterization tests against Django (mode: record) or Node API (mode: assert).
+ * Runs characterization tests against Node API (mode: assert) or records golden fixtures.
  * Strict isolation: operates exclusively against local test database.
  */
 
@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 
-const BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
+const BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:4000';
 const MODE = process.argv.includes('--assert') ? 'assert' : 'record';
 const FIXTURES_DIR = path.resolve(ROOT, 'apps/api/test/contracts/fixtures/endpoints');
 
@@ -25,13 +25,9 @@ function seedTestDatabase() {
     ...process.env,
     MONGODB_URI: 'mongodb://localhost:27017/InsightLoop_test',
     MONGODB_DB_NAME: 'InsightLoop_test',
-    DJANGO_SECRET_KEY: 'test-secret-key-must-be-long-enough-32-chars',
-    REDIS_URL: '',
-    DJANGO_DEBUG: 'true',
-    PYTHONPATH: path.resolve(ROOT, 'insightloop'),
   };
   const stdout = execSync(
-    '.venv/bin/python scripts/seed_test_db.py',
+    'npx tsx -e "import(\'./scripts/seed.ts\').then(m => m.seed())"',
     { cwd: ROOT, env, encoding: 'utf-8' }
   );
   console.log(stdout.trim());
@@ -45,7 +41,7 @@ function normalizeValue(val) {
     if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(val)) {
       return '<JWT_TOKEN>';
     }
-    // Strict ISO-8601 timestamp: enforces Django naive ISO format without trailing Z
+    // Strict ISO-8601 timestamp: enforces naive ISO format without trailing Z
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(val)) {
       return '<ISO_TIMESTAMP>';
     }

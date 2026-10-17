@@ -378,7 +378,7 @@ export class WorkersService {
           batchDate = new Date(Date.UTC(y, m - 1, d));
         }
       } catch {
-        // SILENT-FALLBACK-REASON: Django strptime fallback to datetime.now() on invalid batch date format
+        // SILENT-FALLBACK-REASON: Fallback to datetime.now() on invalid batch date format
         batchDate = new Date();
       }
     }

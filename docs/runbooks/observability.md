@@ -123,17 +123,17 @@ To prevent unauthorized public exposure of internal runtime state (memory usage,
 
 ---
 
-## 4. Django vs Node Observability Delta
+## 4. Production Observability Architecture Summary
 
-| Feature | Legacy Django Architecture | Modern MERN Node Architecture |
-| :--- | :--- | :--- |
-| **Liveness Check** | Root `/health/` had no standardized unauthenticated bypass in simplejwt settings. | Unauthenticated root `/health` and `/api/v1/health/live` always accessible without token. |
-| **Readiness Probe** | Did not perform active database ping on probes. | Explicit `db.command({ ping: 1 })` with automated 503 HTTP status on database drop. |
-| **Diagnostics Security** | No native Prometheus metrics; debug toolbar insecure if left enabled. | Secret token protection (`METRICS_TOKEN`) on `/health/detailed` and `/metrics` (401 without token). |
-| **Event Loop Lag** | Not measurable (synchronous WSGI/ASGI thread pool model). | Non-blocking `setImmediate` high-resolution event loop lag monitoring. |
-| **Connection Pooling** | MongoEngine relied on static PyMongo pools with opaque runtime status. | Direct MongoDB driver client pool options inspection (`maxPoolSize`, `minPoolSize`). |
-| **Prometheus Exposition** | Required external `django-prometheus` dependency and middleware. | Native Prometheus format endpoint (`/metrics`) built directly into core service. |
-| **Degraded State Handling** | Unhandled DB disconnect caused 500 Server Error crashes on views. | Graceful 503 Service Unavailable with structured JSON detailing failed component. |
+| Feature | Modern MERN Node Architecture |
+| :--- | :--- |
+| **Liveness Check** | Unauthenticated root `/health` and `/api/v1/health/live` always accessible without token. |
+| **Readiness Probe** | Explicit `db.command({ ping: 1 })` with automated 503 HTTP status on database drop. |
+| **Diagnostics Security** | Secret token protection (`METRICS_TOKEN`) on `/health/detailed` and `/metrics` (401 without token). |
+| **Event Loop Lag** | Non-blocking `setImmediate` high-resolution event loop lag monitoring. |
+| **Connection Pooling** | Direct MongoDB driver client pool options inspection (`maxPoolSize`, `minPoolSize`). |
+| **Prometheus Exposition** | Native Prometheus format endpoint (`/metrics`) built directly into core service. |
+| **Degraded State Handling** | Graceful 503 Service Unavailable with structured JSON detailing failed component. |
 
 ---
 

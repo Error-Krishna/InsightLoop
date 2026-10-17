@@ -67,7 +67,7 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
           const payload = verifyAccessToken(token);
           email = payload.email;
         } catch {
-          // Django closes 4001 for all token errors (expired or invalid)
+          // Closes 4001 for all token errors (expired or invalid)
           ws.close(4001, 'Invalid or expired token');
           return;
         }
@@ -112,7 +112,7 @@ export function setupWebSocketGateway(server: Server): WebSocketServer {
           logger.error({ err }, 'Failed to send initial dashboard snapshot');
         }
 
-        // Live update listener (sending data directly matching Django)
+        // Live update listener
         const onUpdate = (event: { companyId: string; data?: unknown }) => {
           if (event.companyId === companyId && ws.readyState === WebSocket.OPEN) {
             if (event.data) {
