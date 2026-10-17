@@ -1,8 +1,0 @@
-$ playwright test
-[WebServer] $ vite preview --port 5173 --host 127.0.0.1
-
-Running 1 test using 1 worker
-
-  ✓  1 [chromium] › e2e/e2e_full_flow.spec.ts:25:3 › End-to-End Enterprise Flow: Auth, Bills, Payments, Workers & Metrics › executes complete SaaS workflow across dual-stack API target (2.3s)
-
-  1 passed (5.3s)

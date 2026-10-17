@@ -149,7 +149,7 @@ All checks should print `PASS` and exit with code `0`.
 4. Click the three dots menu on that deploy and select **Rollback to this deploy**.
 5. Render will immediately bring up the previous container revision.
 
-*(Canary Rollback Window: If you need to revert to the Django service during the 14-day canary window, refer to `docs/runbooks/canary_rollback.md` to point DNS or `VITE_API_BASE_URL` (ending in `/api/v1`) to the standby Django service).*
+*(Emergency Rollback: In case of deployment regression, refer to `docs/runbooks/rollback.md` to instantly redeploy the previous Render deployment or Vercel deployment).*
 
 ### Rollback on Vercel (Frontend)
 1. Go to Vercel Dashboard -> Select `Insightloop` project.
