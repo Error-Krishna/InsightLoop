@@ -27,16 +27,24 @@ export interface CompanyPdfContext {
   branch_name?: string;
 }
 
+const fontPathCache = new Map<string, string | null>();
+
 function resolveFont(fontFile: string): string | null {
+  if (fontPathCache.has(fontFile)) {
+    return fontPathCache.get(fontFile)!;
+  }
   const candidates = [
     path.resolve(__dirname, '../../assets/fonts', fontFile),
     path.resolve(process.cwd(), 'apps/api/src/assets/fonts', fontFile),
     path.resolve(process.cwd(), 'src/assets/fonts', fontFile),
-    path.resolve('/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/matplotlib/mpl-data/fonts/ttf', fontFile),
   ];
   for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
+    if (fs.existsSync(c)) {
+      fontPathCache.set(fontFile, c);
+      return c;
+    }
   }
+  fontPathCache.set(fontFile, null);
   return null;
 }
 

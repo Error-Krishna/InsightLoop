@@ -174,13 +174,13 @@ if (process.env.NODE_ENV === 'production' && !process.env.VITEST) {
 export const env = new Proxy({} as ReturnType<typeof validateEnv>, {
   get(_target, prop: string | symbol) {
     const target = cachedProdEnv ?? validateEnv(process.env);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- proxy dynamic property access
     return Reflect.get(target, prop);
   },
   set(_target, prop: string | symbol, value: unknown) {
     if (typeof prop === 'string') {
       if (value === undefined || value === null) {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- dynamic env property deletion
         delete process.env[prop];
       } else {
         process.env[prop] = typeof value === 'string' ? value : String(value);
@@ -193,7 +193,7 @@ export const env = new Proxy({} as ReturnType<typeof validateEnv>, {
   },
   deleteProperty(_target, prop: string | symbol) {
     if (typeof prop === 'string') {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- dynamic env property deletion
       delete process.env[prop];
     }
     if (cachedProdEnv && typeof prop === 'string') {
@@ -219,7 +219,7 @@ export const env = new Proxy({} as ReturnType<typeof validateEnv>, {
       configurable: true,
       enumerable: true,
       writable: true,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- descriptor dynamic property value assignment
       value: Reflect.get(target, prop),
     };
   },

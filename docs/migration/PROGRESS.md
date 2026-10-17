@@ -1,13 +1,17 @@
 # InsightLoop Migration Progress
 
 ## 1. Status Header
-- **Current Phase**: Phase 6 (Deploy Prep + Smoke Test)
-- **Status**: PHASE 6 DEPLOY-PREP COMPLETE
-- **Deployment Readiness**: Main branch verified deploy-ready. Production boot verified with ONLY Render variables. Deploy checklist runbook and zero-dependency smoke test ready for user-initiated cutover.
-- **Phase Locks**: No remote push, no autonomous deploy executed (user executes deployment via Render Blueprint and Vercel dashboard).
-- **Removal Branch Mandate**: `chore/remove-python` remains separate and UNMERGED. `main` retains Django for 14-day canary rollback window.
-- **Last Updated**: 2026-10-17 15:05 UTC
-- **Next Action**: User applies Render Blueprint from `main` and deploys Vercel frontend, then runs `node scripts/smoke_test.mjs <render-url> <vercel-url>`.
+- **Current Phase**: Phase 7 (Latency Diagnostic, Performance Optimization & Python Removal Gate)
+- **Status**: PHASE 7 PERFORMANCE FIXES & PYTHON REMOVAL PREPARED
+- **Deployment & Perf Status**:
+  - Live Render latency benchmarked across 10 runs (cold start 52.2s, warm median /health 292ms, auth 1.6s, overview 1.97s, bills 757ms, pdf 1.25s).
+  - Performance fixes committed on `perf/live-latency` (additive indexes, font resolution caching, N+1 query elimination, gzip compression, request timing middleware).
+  - Python removal prepared and verified on `chore/remove-python` from a clean clone with Python disabled: frozen-lockfile build, typecheck, lint, 356 API tests, 111 web tests, 16/16 production boot smoke test, and container builds of `insightloop-api` and `insightloop-web`.
+- **Phase Locks**: No remote push, no autonomous deploy executed, no branches merged. User will review PR and merge on GitHub.
+- **Branches**: `main` (deploy-ready baseline), `perf/live-latency` (performance fixes from main), `chore/remove-python` (recreated with perf fixes + Python code purged).
+- **Safety Tag**: `pre-mern-migration-2026-10-15` (commit `9410c2a33f6fef2ceed8a07843cfb52f7a04be71`) verified intact.
+- **Last Updated**: 2026-10-18 00:10 UTC
+- **Next Action**: User reviews PRs on GitHub, merges `perf/live-latency` and `chore/remove-python`, and considers recommended Render/Atlas infrastructure adjustments.
 
 ---
 
@@ -322,4 +326,91 @@ The codebase on `main` is deploy-ready and verified. The following operational i
 
 ## 7. Byte-Safety Baseline Verification
 - Baseline tag: `pre-mern-migration-2026-10-15`
-- `git diff pre-mern-migration-2026-10-15..HEAD -- insightloop/`: **0 bytes (Exact match, zero alterations)**
+- `git diff pre-mern-migration-2026-10-15..HEAD -- insightloop/`: **0 bytes (Exact match, zero alterations on main)**
+
+---
+
+## 8. Phase 7: Live Latency Diagnostic, Root Cause Analysis, Performance Fixes & Python Removal Gate
+
+### 1. Live Benchmark Measurements (`docs/migration/evidence/perf_live.txt`)
+- **Target**: `https://insightloop.onrender.com` (Render Free tier: 0.1 CPU, 512 MB RAM, Oregon).
+- **Cold Start (20m 24s idle)**: Initial request to `GET /health` took **52,185.98 ms** (52.2s spin-up time).
+- **Warm Latency (10 runs per endpoint, min / median / max in ms)**:
+  - `GET /health`: 255.95 ms / 292.51 ms / 531.45 ms
+  - `POST /api/v1/auth/signup`: 1,534.71 ms / 1,676.71 ms / 2,031.45 ms
+  - `POST /api/v1/auth/login`: 1,493.48 ms / 1,590.52 ms / 1,742.76 ms
+  - `GET /api/v1/dashboard/overview`: 721.11 ms / 1,970.65 ms / 3,896.79 ms
+  - `GET /api/v1/bills`: 711.41 ms / 757.03 ms / 1,660.47 ms
+  - `GET /api/v1/workers`: 705.93 ms / 727.40 ms / 826.48 ms
+  - `GET /api/v1/inventory/finished`: 727.51 ms / 792.84 ms / 1,084.17 ms
+  - `GET /api/v1/insights`: 483.97 ms / 506.79 ms / 612.83 ms
+  - `GET /api/v1/bills/:id/pdf`: 1,105.85 ms / 1,256.31 ms / 1,948.66 ms
+- **PBKDF2 Password Hashing**:
+  - Hash format: Django PBKDF2 SHA-256 (`pbkdf2_sha256$600000$<salt>$<hash>`).
+  - Iteration count: 600,000 iterations.
+  - Cost: On a 0.1 CPU core Render instance, PBKDF2 takes ~1,590 ms of synchronous CPU time per login/signup attempt, blocking the Node event loop.
+- **Atlas Cluster RTT**:
+  - Baseline health ping round trip from client: ~292 ms.
+  - Single-query endpoint latency: ~506 ms (Oregon to Atlas query round trip is ~100-200 ms if Atlas is outside Oregon).
+
+### 2. Root Cause Analysis in Code
+1. **N+1 / Sequential Queries**:
+   - `apps/api/src/modules/dashboard/dashboard.service.ts`: `getBillMonthlySeries` was executed twice sequentially for the same 6-month period during `getDashboardData`.
+   - `apps/api/src/modules/dashboard/dashboard.service.ts`: `generateExportFile('worker_management')` executed $2N$ queries looping over workers, and repository queried incorrect collection name (`assignments` vs `material_assignments`).
+2. **Missing / Misaligned Indexes (`apps/api/src/db/mongo.ts`)**:
+   - `bills`: index was `{ company_id: 1, type: 1, date: -1 }` (wrong field name `type` instead of `bill_type`, and sort `date` instead of `created_at`).
+   - `inventory_items`: missing compound sort index for pagination: `{ company_id: 1, type: 1, updated_at: -1, _id: -1 }`.
+   - `warehouses`: completely unindexed. Added `{ company_id: 1, name: 1 }`.
+   - `workers`: missing `{ company_id: 1, created_at: -1 }`.
+   - `insights`: zero indexes existed. Added `{ company_id: 1, created_at: -1 }`.
+   - `pay_records`: added `{ company_id: 1, date: -1 }`.
+3. **Repeated Per-Request Overhead**:
+   - `apps/api/src/modules/bills/pdf.service.ts`: Font resolution executed `fs.existsSync` 12 times per PDF and searched legacy macOS Python paths. Cached in-memory font path resolution and removed Python paths.
+   - Production environment caching verified: `env.ts` caches validated config when `NODE_ENV=production`, avoiding Zod parsing on property access.
+4. **Dashboard WebSocket Overhead**:
+   - `apps/api/src/ws/gateway.ts`: Every new WebSocket connection executed the full 6-job dashboard aggregation suite immediately upon connection.
+5. **Missing HTTP Compression**:
+   - Responses served uncompressed JSON. Added `compression` middleware, reducing payload transfer sizes by 70-85%.
+6. **Frontend Web Load Request Volume**:
+   - Dashboard page fired 6 parallel HTTP requests (`summary`, `rev-exp`, `profit-trends`, `workers`, `top-workers`, `bills`) plus 1 WebSocket connection.
+   - Bill list page fired 4 HTTP requests (3 warehouse summary endpoints + bills list).
+7. **Cold Start Enforced by Infrastructure**:
+   - Render Free plan spins down instances after 15 minutes of inactivity. Cold start recovery takes ~52s.
+
+### 3. Performance Fixes Committed to `perf/live-latency`
+- `8715d61` `perf(api): add request timing middleware and startup mongo latency measurement`
+- `4fd1bf3` `perf(api): add additive indexes, font cache, and eliminate N+1 queries`
+- `20fbc92` `perf(api): add gzip compression middleware with response body parity verification`
+- `e41c1d0` `perf(evidence): record live benchmark evidence and measurement scripts`
+- Local before/after benchmarks:
+  - Local Bills list: 4.88 ms -> 2.18 ms (-55.3%)
+  - Local Dashboard overview: 14.52 ms -> 6.81 ms (-53.1%)
+  - Local Bill PDF generation: 41.52 ms -> 22.31 ms (-46.3%)
+  - Uncompressed JSON payload: 2,492 bytes -> Gzipped: 412 bytes (-83.5%)
+
+### 4. Section 4: Python Removal Preparation (`chore/remove-python`)
+- **Branch Synchronization**: `chore/remove-python` recreated from `main` + `perf/live-latency` fixes.
+- **Python Assets Purged**:
+  - Deleted entire `insightloop/` Django codebase (140+ files, templates, migrations).
+  - Deleted `requirements.txt` and `requirements-lock.txt`.
+  - Deleted Python scripts in `scripts/` (`seed_test_db.py`, `export_django_model_schema.py`, etc.).
+  - Purged Python setup and run steps from `.github/workflows/ci.yml`.
+  - Confirmed 0 `.py` files, 0 `requirements*.txt`, 0 Django Dockerfiles/Procfiles, and 0 `setup-python` CI steps.
+- **Clean Clone Verification Gate (Python Disabled)**:
+  - Cloned clean repo into `/tmp/insightloop-clean-gate` with Python executable stubs returning exit code 127.
+  - `pnpm install --frozen-lockfile`: PASS (4.2s)
+  - `pnpm build`: PASS (5.7s)
+  - `pnpm typecheck`: PASS (0 errors, 2.7s)
+  - `pnpm lint`: PASS (0 errors)
+  - Backend API tests: PASS (64/64 files, 356/356 tests passed, 100%)
+  - Frontend Web tests: PASS (26/26 files, 111/111 tests passed, 100%)
+  - Production Boot Smoke Test (`scripts/smoke_test.mjs` against local production boot): PASS (16/16 steps, 0 errors)
+  - Docker Container Builds:
+    - API: `insightloop-api:python-free-gate` (PASS, exit code 0)
+    - Web: `insightloop-web:python-free-gate` (PASS, exit code 0)
+- **Documentation & Operational Runbooks**:
+  - Created `docs/runbooks/how_it_runs_now.md` documenting Render API, Vercel frontend, Atlas database, environment variables, and rollback procedures.
+  - Verified baseline tag `pre-mern-migration-2026-10-15` (`9410c2a33f6fef2ceed8a07843cfb52f7a04be71`) exists and documented exact commands to restore Django code.
+  - Categorized audit of all remaining keyword references recorded in `docs/migration/evidence/python_free_gate.txt`.
+- **Status**: STOPPED without pushing to remote or merging branches. Ready for user pull request and GitHub merge.
+

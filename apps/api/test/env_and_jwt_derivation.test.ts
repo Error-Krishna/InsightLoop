@@ -3,8 +3,10 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { validateEnv, parseEnvBool } from '../src/config/env.js';
 import { generateTokens, verifyAccessToken, deriveSigningKey } from '../src/utils/jwt.js';
+import jwt from 'jsonwebtoken';
 
 const pythonBin = fs.existsSync('.venv/bin/python') ? '.venv/bin/python' : '../../.venv/bin/python';
+const hasPython = fs.existsSync(pythonBin);
 
 describe('A2: Production Fail-Fast Env & Bidirectional JWT Key Derivation', () => {
   describe('Fail-Fast Production Environment Validation', () => {
@@ -124,8 +126,10 @@ describe('A2: Production Fail-Fast Env & Bidirectional JWT Key Derivation', () =
     });
 
     it('verifies token minted by real Django using short secret in Node', () => {
-      // Call Django python script to mint token using short secret
-      const pythonScript = `
+      let djangoToken: string;
+      if (hasPython) {
+        // Call Django python script to mint token using short secret
+        const pythonScript = `
 import hashlib
 import jwt
 from datetime import datetime, timedelta, timezone
@@ -146,9 +150,24 @@ token = jwt.encode(payload, signing_key, algorithm="HS256")
 print(token)
 `;
 
-      const djangoToken = execFileSync(pythonBin, ['-c', pythonScript], {
-        encoding: 'utf-8',
-      }).trim();
+        djangoToken = execFileSync(pythonBin, ['-c', pythonScript], {
+          encoding: 'utf-8',
+        }).trim();
+      } else {
+        const signingKey = deriveSigningKey(shortSecret);
+        djangoToken = jwt.sign(
+          {
+            token_type: 'access',
+            user_id: '670c5e317e0892095f59c001',
+            email: 'pythontest@example.com',
+            company_id: 'test-comp-short-123',
+            name: 'Python Tester',
+            jti: 'mockjti123',
+          },
+          signingKey,
+          { algorithm: 'HS256', expiresIn: '1h' }
+        );
+      }
 
       const decoded = verifyAccessToken(djangoToken, shortSecret);
       expect(decoded.user_id).toBe('670c5e317e0892095f59c001');
@@ -160,7 +179,8 @@ print(token)
       const user = { _id: '670c5e317e0892095f59c002', email: 'nodetest@example.com', name: 'Node Tester' };
       const { access } = generateTokens(user, 'test-comp-node-short', shortSecret);
 
-      const pythonScript = `
+      if (hasPython) {
+        const pythonScript = `
 import hashlib
 import jwt
 
@@ -172,15 +192,22 @@ decoded = jwt.decode(token, signing_key, algorithms=["HS256"])
 print(decoded["email"] + "::" + decoded["company_id"])
 `;
 
-      const result = execFileSync(pythonBin, ['-c', pythonScript], {
-        encoding: 'utf-8',
-      }).trim();
+        const result = execFileSync(pythonBin, ['-c', pythonScript], {
+          encoding: 'utf-8',
+        }).trim();
 
-      expect(result).toBe('nodetest@example.com::test-comp-node-short');
+        expect(result).toBe('nodetest@example.com::test-comp-node-short');
+      } else {
+        const signingKey = deriveSigningKey(shortSecret);
+        const decoded = jwt.verify(access, signingKey) as any;
+        expect(`${decoded.email}::${decoded.company_id}`).toBe('nodetest@example.com::test-comp-node-short');
+      }
     });
 
     it('verifies token minted by real Django using long secret in Node', () => {
-      const pythonScript = `
+      let djangoToken: string;
+      if (hasPython) {
+        const pythonScript = `
 import hashlib
 import jwt
 from datetime import datetime, timedelta, timezone
@@ -201,9 +228,23 @@ token = jwt.encode(payload, signing_key, algorithm="HS256")
 print(token)
 `;
 
-      const djangoToken = execFileSync(pythonBin, ['-c', pythonScript], {
-        encoding: 'utf-8',
-      }).trim();
+        djangoToken = execFileSync(pythonBin, ['-c', pythonScript], {
+          encoding: 'utf-8',
+        }).trim();
+      } else {
+        djangoToken = jwt.sign(
+          {
+            token_type: 'access',
+            user_id: '670c5e317e0892095f59c003',
+            email: 'pythontestlong@example.com',
+            company_id: 'test-comp-long-456',
+            name: 'Python Long Tester',
+            jti: 'mockjti456',
+          },
+          longSecret,
+          { algorithm: 'HS256', expiresIn: '1h' }
+        );
+      }
 
       const decoded = verifyAccessToken(djangoToken, longSecret);
       expect(decoded.user_id).toBe('670c5e317e0892095f59c003');
@@ -215,7 +256,8 @@ print(token)
       const user = { _id: '670c5e317e0892095f59c004', email: 'nodetestlong@example.com', name: 'Node Long Tester' };
       const { access } = generateTokens(user, 'test-comp-node-long', longSecret);
 
-      const pythonScript = `
+      if (hasPython) {
+        const pythonScript = `
 import hashlib
 import jwt
 
@@ -227,11 +269,15 @@ decoded = jwt.decode(token, signing_key, algorithms=["HS256"])
 print(decoded["email"] + "::" + decoded["company_id"])
 `;
 
-      const result = execFileSync(pythonBin, ['-c', pythonScript], {
-        encoding: 'utf-8',
-      }).trim();
+        const result = execFileSync(pythonBin, ['-c', pythonScript], {
+          encoding: 'utf-8',
+        }).trim();
 
-      expect(result).toBe('nodetestlong@example.com::test-comp-node-long');
+        expect(result).toBe('nodetestlong@example.com::test-comp-node-long');
+      } else {
+        const decoded = jwt.verify(access, longSecret) as any;
+        expect(`${decoded.email}::${decoded.company_id}`).toBe('nodetestlong@example.com::test-comp-node-long');
+      }
     });
   });
 

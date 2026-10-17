@@ -1,0 +1,45 @@
+================================================================================
+INSIGHTLOOP LIVE LATENCY BENCHMARK EVIDENCE (SECTION 1)
+================================================================================
+Target Base URL : https://insightloop.onrender.com
+Measured At     : 2026-10-17T18:09:52.088Z
+Test Machine    : macOS arm64
+Samples per Run : 10 iterations per endpoint
+--------------------------------------------------------------------------------
+
+1. COLD START LATENCY (First request after 20+ min idle sleeping period):
+   GET /health (Cold) : 52185.98 ms
+
+2. WARM ENDPOINTS LATENCY SUMMARY TABLE (10 iterations each):
+   Endpoint                       Min (ms)    Median (ms)    Max (ms)
+   ------------------------------------------------------------------
+   GET /health                      255.95         292.51      531.45
+   POST /api/v1/auth/signup        1534.71        1676.71     2031.45
+   POST /api/v1/auth/login         1493.48        1590.52     1742.76
+   GET /api/v1/dashboard/overview   721.11        1970.65     3896.79
+   GET /api/v1/bills                711.41         757.03     1660.47
+   GET /api/v1/workers              705.93          727.4      826.48
+   GET /api/v1/inventory/finished   727.51         792.84     1084.17
+   GET /api/v1/insights             483.97         506.79      612.83
+   GET /api/v1/bills/:id/pdf       1105.85        1256.31     1948.66
+   ------------------------------------------------------------------
+
+3. RAW ITERATION DATA (ms):
+   /health            : [280.6, 280.9, 531.45, 283.11, 283.45, 255.95, 301.57, 304.86, 308.38, 303.13]
+   auth/signup        : [1841.05, 2031.45, 1548.41, 1673.86, 1702.61, 1637.16, 1636.54, 1534.71, 1679.56, 1698.51]
+   auth/login         : [1737.12, 1742.76, 1548.1, 1605.2, 1651.64, 1741.98, 1493.48, 1575.83, 1511.14, 1558.49]
+   dashboard/overview : [3896.79, 2010.51, 1930.78, 2304.21, 2304.25, 2291.87, 751.97, 727.75, 721.11, 765.37]
+   bills              : [734.35, 763.23, 835.05, 1660.47, 750.83, 992.03, 711.41, 739.28, 732.84, 979.81]
+   workers            : [727.65, 826.48, 705.93, 726.36, 735.13, 757, 727.14, 725.07, 798.31, 726.92]
+   inventory/finished : [808.16, 727.51, 777.52, 728.24, 1084.17, 730.33, 760.98, 815.67, 817.95, 818.42]
+   insights           : [509.89, 510.01, 512.22, 499.16, 483.97, 500.32, 501.84, 571.08, 612.83, 503.68]
+   bills/:id/pdf      : [1948.66, 1869.21, 1328.71, 1120.31, 1533.86, 1183.9, 1105.85, 1114.34, 1161.85, 1775.05]
+
+4. PASSWORD HASHING ANALYSIS:
+   - Stored Hash Algorithm : PBKDF2 with SHA-256 (Django format: pbkdf2_sha256$<iterations>$<salt>$<hash>)
+   - Stored Hash Iterations: 600,000 iterations (standard Django 4.x/5.x default)
+   - Execution Model       : crypto.pbkdf2Sync (blocks the single-threaded Node.js event loop)
+   - Measured Live Login Time  : median 1590.52 ms (dominated by 600k PBKDF2 iterations on Render 0.1 CPU)
+   - Measured Live Signup Time : median 1676.71 ms (dominated by 600k PBKDF2 iterations + company creation)
+
+================================================================================
