@@ -53,7 +53,7 @@ git diff migration/mern...chore/remove-python
 ```
 
 Expected deletions on `chore/remove-python`:
-- Complete `insightloop/` Django application (140 Python files + templates/static assets)
+- Complete `insightloop/` Django application (140 Python files + templates and static assets)
 - Python runtime dependencies (`requirements.txt`, `requirements-lock.txt`, `.venv`, `Pipfile`)
 - Legacy Python test/seed scripts (`seed_test_db.py`, `export_django_model_schema.py`, etc.)
 - Python Dockerfiles / Procfiles and Python CI workflow jobs

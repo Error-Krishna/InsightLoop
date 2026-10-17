@@ -60,7 +60,7 @@
     {
       "pattern": "^(.*\\.)?(created_at|updated_at|timestamp|joining_date|assignment_date|shipment_confirmed_at|profit_confirmed_at|completed_at|(payments|transportation_costs|misc_costs|ready_to_deliver|batches)\\[\\d+\\]\\.date)$",
       "rule": "REPLACE_TIMESTAMP_NOW",
-      "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z?$",
+      "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$",
       "replacement": "<TIMESTAMP_NOW>",
       "justification": "Timestamp recorded at the instant of write execution. Both stacks emit naive ISO 8601 (formatDjangoIso) but exact wall-clock second/microsecond differs between sequential HTTP calls."
     },

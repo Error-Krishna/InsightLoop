@@ -59,6 +59,8 @@ export function getEnvSchema(isProduction: boolean) {
     EMAIL_PORT: z.coerce.number().default(1025),
     DEFAULT_FROM_EMAIL: z.string().default('noreply@insightloop.io'),
     ADMIN_EMAIL: z.string().default('admin@insightloop.io'),
+    FRONTEND_ORIGIN: z.string().optional().default(''),
+    METRICS_TOKEN: z.string().optional().default(''),
   });
 }
 
@@ -83,6 +85,9 @@ export function validateEnv(raw: NodeJS.ProcessEnv = process.env) {
     }
     if (!parsed.GOOGLE_CLIENT_ID) {
       throw new Error('CRITICAL CONFIGURATION ERROR: GOOGLE_CLIENT_ID is required in production.');
+    }
+    if (!parsed.METRICS_TOKEN) {
+      throw new Error('CRITICAL CONFIGURATION ERROR: METRICS_TOKEN is required in production.');
     }
   }
 

@@ -20,7 +20,7 @@ The migration of the InsightLoop SaaS backend and web application from Python/Dj
    - 20 GET, 5 PUT, 39 POST, 3 DELETE, 1 DB_QUERY, 3 WS checks across 11 functional domains with 0 unauthorized differences.
    - Evidence: [`docs/migration/evidence/parity_django_vs_node.txt`](evidence/parity_django_vs_node.txt).
 3. **Invoice PDF & WhatsApp Parity**:
-   - Character-level layout and styling parity verified across 4 bills (pakka standard, kacha no-logo, pakka multipage 28 items, kacha multipage 25 items) against real WeasyPrint output with 0 character diffs (`test/pdf_parity.test.ts`). WhatsApp mock delivery tested in `test/whatsapp_mock.test.ts`.
+   - Layout and text parity verified across 4 bills (pakka standard, kacha no-logo, pakka multipage 28 items, kacha multipage 25 items) against real WeasyPrint output; diff files show whitespace and column-alignment differences only (all words and numbers identical). Offline test in `test/pdf_parity.test.ts`. WhatsApp mock delivery tested in `test/whatsapp_mock.test.ts`.
    - Evidence: [`docs/migration/evidence/pdf_parity/`](evidence/pdf_parity/).
 4. **Fair Multi-Run Load Benchmark (Identical Indexes, 0 Cache)**:
    - Benchmark executed across 14 list, dashboard, and insights endpoints with identical compound indexes and 0 response caching.
@@ -49,7 +49,7 @@ The migration of the InsightLoop SaaS backend and web application from Python/Dj
 | :--- | :--- | :--- | :--- | :--- |
 | **Python Byte Safety** | 0 diffs in `insightloop/` on `migration/mern` | 0 bytes / 0 lines modified | **PASS** | `git diff pre-mern-migration-2026-10-15..HEAD -- insightloop/` |
 | **Dual-Stack Parity** | 71 checks across 11 functional domains | 71 passing, 0 diffs | **PASS** | [`evidence/parity_django_vs_node.txt`](evidence/parity_django_vs_node.txt) |
-| **PDF Text Parity** | 4 bills (WeasyPrint vs PDFKit) | 0 character diffs | **PASS** | [`evidence/pdf_parity/`](evidence/pdf_parity/) |
+| **PDF Text Parity** | 4 bills (WeasyPrint vs PDFKit) | Whitespace/column diffs only (identical words/numbers) | **PASS** | [`evidence/pdf_parity/`](evidence/pdf_parity/) |
 | **Per-File Branch Coverage** | $\ge 90\%$ critical services/repos, $\ge 85\%$ others | Monitored 89.3%, all targets met | **PASS** | [`evidence/C2_coverage_mutation.txt`](evidence/C2_coverage_mutation.txt) |
 | **Playwright E2E Suite** | 11 browser enterprise flows | 11/11 passed in 17.0s | **PASS** | `pnpm --filter @insightloop/web test:e2e` |
 | **Feature Ledger** | 176 cataloged assets, exact test citations | 0 errors, MISSING: None | **PASS** | [`python-feature-ledger.md`](python-feature-ledger.md) |

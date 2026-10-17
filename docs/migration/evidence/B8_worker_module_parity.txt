@@ -35,10 +35,10 @@ Node mark-paid status:   200
 --- Test Case 6: Delete Worker Cascades to Assignments and Payments in both stacks (direct DB collection check) ---
 Django Worker 6ad1fa24e7caf2bd1e427119 before delete in DB: assignments=1, pay_records=1
 Django Worker DELETE Status: 204
-Django Worker 6ad1fa24e7caf2bd1e427119 after delete in DB: orphaned assignments=0, pay_records=0
+Django Worker 6ad1fa24e7caf2bd1e427119 after delete in DB: remaining assignments=0, pay_records=0
 Node Worker 6ad1fa24b8006e1ba29abd21 before delete in DB: assignments=1, pay_records=1
 Node Worker DELETE Status: 204
-Node Worker 6ad1fa24b8006e1ba29abd21 after delete in DB: orphaned assignments=0, pay_records=0
+Node Worker 6ad1fa24b8006e1ba29abd21 after delete in DB: remaining assignments=0, pay_records=0
 Confirmed: Worker delete cleanly cascades to assignments and pay_records in BOTH stacks at the collection level.
 ✅ [PASS] Delete Worker Cascades to Assignments and Payments in both stacks (direct DB collection check)
 

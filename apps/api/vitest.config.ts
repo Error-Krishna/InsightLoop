@@ -7,6 +7,11 @@ export default defineConfig({
     fileParallelism: false,
     testTimeout: 30000,
     hookTimeout: 30000,
+    exclude: [
+      '**/node_modules/**',
+      '**/.stryker-tmp/**',
+      '**/dist/**',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'json', 'html'],

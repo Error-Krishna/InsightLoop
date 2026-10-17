@@ -101,7 +101,7 @@ Every registered route in the legacy Django backend and new Node.js backend is c
 | `POST` | `/api/v1/workers/` | `/api/v1/workers` | Bearer JWT | **PORTED** | Creates worker profile. |
 | `GET` | `/api/v1/workers/:id/` | `/api/v1/workers/:worker_id` | Bearer JWT | **PORTED** | Single worker detail with performance metrics. |
 | `PUT` | `/api/v1/workers/:id/` | `/api/v1/workers/:worker_id` | Bearer JWT | **PORTED** | Updates worker information. |
-| `DELETE`| `/api/v1/workers/:id/` | `/api/v1/workers/:worker_id` | Bearer JWT | **PORTED** | Non-cascading worker deletion (matches Django models). |
+| `DELETE`| `/api/v1/workers/:id/` | `/api/v1/workers/:worker_id` | Bearer JWT | **PORTED** | Cascading worker deletion (deletes worker, assignments, and pay records matching Django Worker.delete()). |
 | `GET` | `/api/v1/workers/:id/materials/` | `/api/v1/workers/:worker_id/materials` | Bearer JWT | **PORTED** | Lists material assignments for worker. |
 | `POST` | `/api/v1/workers/:id/materials/` | `/api/v1/workers/:worker_id/materials` | Bearer JWT | **PORTED** | Assigns production materials to worker. |
 | `GET` | `/api/v1/workers/:id/payments/` | `/api/v1/workers/:worker_id/payments` | Bearer JWT | **PORTED** | Lists pay records for worker. |

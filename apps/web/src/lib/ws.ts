@@ -1,6 +1,6 @@
 export function buildWsUrl(path: string): string {
   const proto = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = typeof window !== 'undefined' ? window.location.host : 'localhost:4000';
+  const host = typeof window !== 'undefined' && window.location.host ? window.location.host : 'localhost:4000';
   const base = import.meta.env?.VITE_WS_BASE_URL ?? `${proto}//${host}`;
   return `${base}${path}`;
 }

@@ -1,13 +1,21 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { clearSession, getAccessToken, getRefreshToken, setSession, getCurrentUser } from "./auth";
 
+const rawBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const defaultBaseUrl =
+  rawBase.startsWith("http://") || rawBase.startsWith("https://")
+    ? rawBase
+    : typeof window !== "undefined" && window.location?.origin && window.location.origin !== "null"
+    ? rawBase
+    : `http://localhost:5173${rawBase}`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
+  baseURL: defaultBaseUrl,
 });
 
 // Dedicated axios instance for refresh calls (bypasses interceptors to avoid infinite loops)
 const refreshAxios = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
+  baseURL: defaultBaseUrl,
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {

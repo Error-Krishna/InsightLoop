@@ -1,7 +1,7 @@
 =======================================================
 INSIGHTLOOP DUAL-STACK TRUE PARITY AUDIT EVIDENCE (PHASE 5.9)
 =======================================================
-Date: 2026-10-16T22:25:07.601Z
+Date: 2026-10-17T06:42:49.314Z
 Database A (Django): InsightLoop_django_test
 Database B (Node):   InsightLoop_node_test
 Seeded Dataset: Realistic fixture dataset + 100,000-row synthetic company (Company C)
@@ -90,7 +90,7 @@ Total Differences: 0
 [PASS] [dashboard] GET    /api/v1/dashboard/overview/                      | Django: 200 | Node: 200 | Diffs: 0
 [PASS] [insights ] POST   /api/v1/insights/analyze/                        | Django: 200 | Node: 200 | Diffs: 0
 [PASS] [insights ] GET    /api/v1/insights/                                | Django: 200 | Node: 200 | Diffs: 0
-[PASS] [insights ] GET    /api/v1/insights/:id/export/ (content-disposition: attachment; filename="insight_6ad2a435ed77c0cf69259a9b.csv") | Django: 200 | Node: 200 | Diffs: 0
+[PASS] [insights ] GET    /api/v1/insights/:id/export/ (content-disposition: attachment; filename="insight_6ad317c56b53124f38e4bfd0.csv") | Django: 200 | Node: 200 | Diffs: 0
 [PASS] [ai       ] POST   /api/v1/ai/command/                              | Django: 200 | Node: 200 | Diffs: 0
 [PASS] [ai       ] POST   /api/v1/ai/command/                              | Django: 200 | Node: 200 | Diffs: 0
 [PASS] [ai       ] POST   /api/v1/ai/command/                              | Django: 200 | Node: 200 | Diffs: 0

@@ -619,7 +619,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
         BillsService.updateBill(scope, billForNullItem.id, {
           products: [{ name: 'Item P', quantity: 3, rate: 50, inventory_item_id: fakeItemId }],
         })
-      ).rejects.toThrow('Insufficient stock: Item: requested 3 pcs, only 0 pcs in stock');
+      ).rejects.toThrow('Insufficient stock: Item: requested 3.0 pcs, only 0.0 pcs in stock');
 
       condSpy.mockRestore();
       findItemSpy.mockRestore();
@@ -977,7 +977,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
         BillsService.createBill(scope, 'kacha', {
           products: [{ name: 'Ghost Item', quantity: 2, rate: 10, inventory_item_id: fakeObjId }],
         })
-      ).rejects.toThrow('Insufficient stock: undefined: requested 2 pcs, only 0 pcs in stock');
+      ).rejects.toThrow('Insufficient stock: undefined: requested 2.0 pcs, only 0.0 pcs in stock');
 
       findItemSpy2.mockRestore();
       condSpy.mockRestore();

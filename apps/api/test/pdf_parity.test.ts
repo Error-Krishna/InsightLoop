@@ -179,4 +179,132 @@ describe('PDF Parity with Django WeasyPrint Fixtures', () => {
     expect(extractedText).toContain('Precision Machine Part #28');
     expect(extractedText).toContain('Grand Total');
   });
+
+  describe('Image handling (logo, stamp, signature, and unreachable URLs)', () => {
+    let server: import('node:http').Server;
+    let serverUrl: string;
+    const tinyPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    );
+
+    beforeAll(async () => {
+      const http = await import('node:http');
+      server = http.createServer((req, res) => {
+        if (req.url?.endsWith('.png')) {
+          res.writeHead(200, { 'Content-Type': 'image/png' });
+          res.end(tinyPng);
+        } else {
+          res.writeHead(404);
+          res.end('Not Found');
+        }
+      });
+      await new Promise<void>((resolve) => {
+        server.listen(0, '127.0.0.1', () => resolve());
+      });
+      const addr = server.address() as import('node:net').AddressInfo;
+      serverUrl = `http://127.0.0.1:${addr.port}`;
+    });
+
+    afterAll(async () => {
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+      });
+    });
+
+    it('renders invoice with valid logo, stamp, and signature images from HTTP server', async () => {
+      const bill = {
+        bill_type: 'pakka',
+        invoice_number: 'INV-2026-IMG01',
+        created_at: new Date(2026, 9, 18),
+        buyer: {
+          name: 'Precision Instruments Ltd',
+          address: '42 Tech Park, Whitefield, Bengaluru',
+        },
+        products: [
+          { name: 'Digital Caliper 150mm', quantity: 2, unit: 'pcs', rate: 1200, total: 2400 },
+        ],
+        subtotal: 2400,
+        discount: 0,
+        gst_percentage: 18,
+        gst_amount: 432,
+        grand_total: 2832,
+      } as unknown as BillDoc;
+
+      const companyWithImages: CompanyPdfContext = {
+        ...company,
+        logo_url: `${serverUrl}/logo.png`,
+        stamp_url: `${serverUrl}/stamp.png`,
+        signature_url: `${serverUrl}/signature.png`,
+      };
+
+      const pdfBuffer = await BillPdfService.renderBillPdf(bill, companyWithImages);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(10000);
+
+      const tmpPdf = path.join(EVIDENCE_DIR, 'tmp_test_images.pdf');
+      fs.writeFileSync(tmpPdf, pdfBuffer);
+
+      let extractedText = '';
+      try {
+        extractedText = execFileSync('pdftotext', ['-layout', tmpPdf, '-']).toString('utf8');
+      } finally {
+        if (fs.existsSync(tmpPdf)) fs.unlinkSync(tmpPdf);
+      }
+
+      expect(extractedText).toContain('TAX INVOICE');
+      expect(extractedText).toContain('PAKKA');
+      expect(extractedText).toContain('Digital Caliper 150mm');
+      expect(extractedText).toContain('₹2832.00');
+      expect(extractedText).toContain('Authorized Signatory');
+    });
+
+    it('renders cleanly without error when logo, stamp, and signature URLs are unreachable', async () => {
+      const bill = {
+        bill_type: 'pakka',
+        invoice_number: 'INV-2026-UNREACH01',
+        created_at: new Date(2026, 9, 18),
+        buyer: {
+          name: 'Reliable Motors',
+          address: 'Station Road, Hubballi',
+        },
+        products: [
+          { name: 'Spark Plug Set', quantity: 4, unit: 'sets', rate: 450, total: 1800 },
+        ],
+        subtotal: 1800,
+        discount: 0,
+        gst_percentage: 18,
+        gst_amount: 324,
+        grand_total: 2124,
+      } as unknown as BillDoc;
+
+      const unreachablePort = 59123; // Unused port, immediately connection-refused
+      const companyWithUnreachable: CompanyPdfContext = {
+        ...company,
+        logo_url: `http://127.0.0.1:${unreachablePort}/dead_logo.png`,
+        stamp_url: `http://127.0.0.1:${unreachablePort}/dead_stamp.png`,
+        signature_url: `http://127.0.0.1:${unreachablePort}/dead_signature.png`,
+      };
+
+      const pdfBuffer = await BillPdfService.renderBillPdf(bill, companyWithUnreachable);
+      expect(pdfBuffer).toBeInstanceOf(Buffer);
+      expect(pdfBuffer.length).toBeGreaterThan(10000);
+
+      const tmpPdf = path.join(EVIDENCE_DIR, 'tmp_test_unreachable.pdf');
+      fs.writeFileSync(tmpPdf, pdfBuffer);
+
+      let extractedText = '';
+      try {
+        extractedText = execFileSync('pdftotext', ['-layout', tmpPdf, '-']).toString('utf8');
+      } finally {
+        if (fs.existsSync(tmpPdf)) fs.unlinkSync(tmpPdf);
+      }
+
+      expect(extractedText).toContain('TAX INVOICE');
+      expect(extractedText).toContain('PAKKA');
+      expect(extractedText).toContain('Spark Plug Set');
+      expect(extractedText).toContain('₹2124.00');
+      expect(extractedText).toContain('Authorized Signatory');
+    });
+  });
 });

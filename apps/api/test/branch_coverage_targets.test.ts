@@ -566,22 +566,24 @@ describe('Branch Coverage Target Exhaustion Suite', () => {
       await expect(UploadService.csvUpload(scope, Buffer.from('a,b'), 'test.xlsx')).rejects.toThrow('Please upload a valid CSV file.');
 
       // Empty buffer
-      await expect(UploadService.csvUpload(scope, Buffer.alloc(0), 'empty.csv')).rejects.toThrow('CSV file is empty.');
+      await expect(UploadService.csvUpload(scope, Buffer.alloc(0), 'empty.csv')).rejects.toThrow('Missing required columns.');
 
       // BOM empty
-      await expect(UploadService.csvUpload(scope, Buffer.from('\uFEFF   '), 'bom_empty.csv')).rejects.toThrow('CSV file is empty.');
+      await expect(UploadService.csvUpload(scope, Buffer.from('\uFEFF   '), 'bom_empty.csv')).rejects.toThrow('Missing required columns.');
 
-      // Header-only csv
+      // Header-only csv (accepted with 0 rows matching Django)
       const headerOnly = Buffer.from('date,product,quantity,production_cost,selling_price,region,customer_type\n');
-      await expect(UploadService.csvUpload(scope, headerOnly, 'header.csv')).rejects.toThrow('CSV file contains no data rows.');
+      const headerRes = await UploadService.csvUpload(scope, headerOnly, 'header.csv');
+      expect(headerRes.created).toBe(0);
 
       // Missing columns
       const missingCols = Buffer.from('date,product\n2026-10-15,Bolt\n');
       await expect(UploadService.csvUpload(scope, missingCols, 'missing.csv')).rejects.toThrow(/Missing required columns/);
 
-      // Negative values
+      // Signed values (accepted matching Django)
       const negVal = Buffer.from('date,product,quantity,production_cost,selling_price,region,customer_type\n2026-10-15,Bolt,-10,5,10,North,Retail\n');
-      await expect(UploadService.csvUpload(scope, negVal, 'neg.csv')).rejects.toThrow(/cannot be negative/);
+      const negRes = await UploadService.csvUpload(scope, negVal, 'neg.csv');
+      expect(negRes.created).toBe(1);
 
       // Formula injection
       const formulaInjection = Buffer.from('date,product,quantity,production_cost,selling_price,region,customer_type\n2026-10-15,Bolt,=10+5,5,10,North,Retail\n');

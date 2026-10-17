@@ -83,6 +83,19 @@ describe('A2: Production Fail-Fast Env & Bidirectional JWT Key Derivation', () =
       ).toThrow(/GOOGLE_CLIENT_ID is required/);
     });
 
+    it('refuses to boot in production if METRICS_TOKEN is missing', () => {
+      expect(() =>
+        validateEnv({
+          NODE_ENV: 'production',
+          MONGODB_URI: 'mongodb+srv://prod.mongo.internal/insightloop_prod',
+          MONGODB_DB_NAME: 'insightloop_prod',
+          JWT_SECRET: 'super-secure-production-random-secret-key-99',
+          CORS_ORIGIN: 'https://app.insightloop.io',
+          GOOGLE_CLIENT_ID: 'prod-client-id.apps.googleusercontent.com',
+        })
+      ).toThrow(/METRICS_TOKEN is required/);
+    });
+
     it('passes in production when all production variables are securely set', () => {
       const parsed = validateEnv({
         NODE_ENV: 'production',
@@ -91,6 +104,7 @@ describe('A2: Production Fail-Fast Env & Bidirectional JWT Key Derivation', () =
         JWT_SECRET: 'super-secure-production-random-secret-key-99',
         CORS_ORIGIN: 'https://app.insightloop.io',
         GOOGLE_CLIENT_ID: 'prod-client-id.apps.googleusercontent.com',
+        METRICS_TOKEN: 'prod-metrics-token-secret-32-chars',
       });
       expect(parsed.NODE_ENV).toBe('production');
       expect(parsed.MONGODB_DB_NAME).toBe('insightloop_prod');

@@ -244,5 +244,17 @@ describe('Mathematical Compatibility Engine', () => {
     // Standard cases with negative numbers
     expect(calcPercentageChange(-50, -100)).toBe(50.0);
     expect(calcPercentageChange(-150, -100)).toBe(-50.0);
+
+    // 8. Non-finite values and boundary mutants
+    expect(Number.isNaN(roundPy(NaN))).toBe(true);
+    expect(Number.isNaN(roundPy(NaN, 2))).toBe(true);
+    expect(roundPy(Infinity)).toBe(Infinity);
+    expect(roundPy(Infinity, 2)).toBe(Infinity);
+    expect(roundPy(-Infinity)).toBe(-Infinity);
+    expect(roundPy(-Infinity, 2)).toBe(-Infinity);
+
+    // FloatToExactDecimal exponent boundaries
+    // exponent = 0 when rawExponent = 1075 (2^52 = 4503599627370496)
+    expect(roundPy(4503599627370496.0, 0)).toBe(4503599627370496.0);
   });
 });

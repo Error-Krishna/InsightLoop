@@ -51,9 +51,39 @@ function formatInvoiceDate(d: string | Date | undefined): string {
   return `${day} ${month} ${year}`;
 }
 
+async function fetchImageBuffer(urlOrPath?: string): Promise<Buffer | null> {
+  if (!urlOrPath) return null;
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- reason: verify existence of local image path before falling back to remote URL fetch
+    if (fs.existsSync(urlOrPath)) {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- reason: read local image path buffer when verified safe
+      return fs.readFileSync(urlOrPath);
+    }
+  } catch {
+    // SILENT-FALLBACK-REASON: Not a readable local file path, continue to HTTP fetch check
+  }
+  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+    try {
+      const res = await fetch(urlOrPath, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        const arrayBuf = await res.arrayBuffer();
+        return Buffer.from(arrayBuf);
+      }
+    } catch {
+      // SILENT-FALLBACK-REASON: Unreachable image URL does not fail the PDF (matches Django bills/pdf.py)
+    }
+  }
+  return null;
+}
+
 export class BillPdfService {
   static async renderBillPdf(bill: BillDoc, companyInput?: CompanyPdfContext | null): Promise<Buffer> {
     const company = companyInput ?? {};
+    const [logoBuf, stampBuf, signatureBuf] = await Promise.all([
+      fetchImageBuffer(company.logo_url),
+      fetchImageBuffer(company.stamp_url),
+      fetchImageBuffer(company.signature_url),
+    ]);
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -118,12 +148,10 @@ export class BillPdfService {
         // ==========================================
         let curY = 51.02;
 
-        if (company.logo_url) {
+        if (logoBuf) {
           try {
-            if (fs.existsSync(company.logo_url)) {
-              doc.image(company.logo_url, leftMargin, curY, { fit: [160, 56] });
-              curY += 60;
-            }
+            doc.image(logoBuf, leftMargin, curY, { fit: [160, 56] });
+            curY += 60;
           } catch {
             // SILENT-FALLBACK-REASON: Unreachable or invalid image URL does not fail the PDF
           }
@@ -156,8 +184,18 @@ export class BillPdfService {
         doc.font(boldFont).fontSize(16.5).fillColor('#0f172a').text(titleText, 350, 51.02, { align: 'right', width: rightEdge - 350 });
 
         const badgeText = isPakka ? 'PAKKA' : 'KACHA';
+        const badgeBg = isPakka ? '#dcfce7' : '#fef3c7';
         const badgeColor = isPakka ? '#15803d' : '#b45309';
-        doc.font(boldFont).fontSize(7).fillColor(badgeColor).text(badgeText, 350, addressY, { align: 'right', width: rightEdge - 350 });
+        doc.font(boldFont).fontSize(7);
+        const textWidth = doc.widthOfString(badgeText);
+        const badgePaddingX = 8;
+        const badgeW = textWidth + (badgePaddingX * 2);
+        const badgeH = 12;
+        const badgeX = rightEdge - badgeW;
+        const badgeY = addressY - 1;
+
+        doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 6).fill(badgeBg);
+        doc.font(boldFont).fontSize(7).fillColor(badgeColor).text(badgeText, badgeX, badgeY + 2.5, { align: 'center', width: badgeW });
 
         const headerBottom = Math.max(curY + 8, 115);
         doc.moveTo(leftMargin, headerBottom).lineTo(rightEdge, headerBottom).strokeColor('#1d4ed8').lineWidth(2).stroke();
@@ -322,23 +360,19 @@ export class BillPdfService {
         const sigY = footerY + 36;
 
         // Stamp and Signature Images
-        if (company.stamp_url) {
+        if (stampBuf) {
           try {
-            if (fs.existsSync(company.stamp_url)) {
-              doc.save();
-              doc.opacity(0.85);
-              doc.image(company.stamp_url, sigX + 20, sigY - 45, { fit: [90, 50] });
-              doc.restore();
-            }
+            doc.save();
+            doc.opacity(0.85);
+            doc.image(stampBuf, sigX + 20, sigY - 45, { fit: [90, 50] });
+            doc.restore();
           } catch {
             // SILENT-FALLBACK-REASON: Invalid or unreadable stamp image file does not fail PDF generation
           }
         }
-        if (company.signature_url) {
+        if (signatureBuf) {
           try {
-            if (fs.existsSync(company.signature_url)) {
-              doc.image(company.signature_url, sigX + 15, sigY - 35, { fit: [110, 40] });
-            }
+            doc.image(signatureBuf, sigX + 15, sigY - 35, { fit: [110, 40] });
           } catch {
             // SILENT-FALLBACK-REASON: Invalid or unreadable signature image file does not fail PDF generation
           }

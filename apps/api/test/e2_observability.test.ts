@@ -1,20 +1,39 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
+import { env } from '../src/config/env.js';
 import { connectMongo, closeMongo } from '../src/db/mongo.js';
 import { HealthRepository } from '../src/modules/health/health.repository.js';
 
 describe('E2: Observability & Metrics Endpoints Suite', () => {
+  const metricsToken = 'test-metrics-token-e2-observability';
+  const originalToken = env.METRICS_TOKEN;
+
   beforeAll(async () => {
+    env.METRICS_TOKEN = metricsToken;
+    process.env.METRICS_TOKEN = metricsToken;
     await connectMongo();
   });
 
   afterAll(async () => {
+    env.METRICS_TOKEN = originalToken;
+    if (originalToken !== undefined) {
+      process.env.METRICS_TOKEN = originalToken;
+    } else {
+      delete process.env.METRICS_TOKEN;
+    }
     await closeMongo();
   });
 
-  it('GET /health/detailed returns 200 with complete system diagnostics in healthy state', async () => {
+  it('GET /health/detailed returns 401 without metrics token', async () => {
     const res = await request(app).get('/health/detailed');
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /health/detailed returns 200 with complete system diagnostics in healthy state', async () => {
+    const res = await request(app)
+      .get('/health/detailed')
+      .set('x-metrics-token', metricsToken);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -43,14 +62,18 @@ describe('E2: Observability & Metrics Endpoints Suite', () => {
   });
 
   it('GET /api/v1/health/detailed matches the root endpoint contract', async () => {
-    const res = await request(app).get('/api/v1/health/detailed');
+    const res = await request(app)
+      .get('/api/v1/health/detailed')
+      .set('x-metrics-token', metricsToken);
     expect(res.status).toBe(200);
     expect(res.body.ready).toBe(true);
     expect(res.body.status).toBe('healthy');
   });
 
   it('GET /metrics returns 200 in standard Prometheus text format', async () => {
-    const res = await request(app).get('/metrics');
+    const res = await request(app)
+      .get('/metrics')
+      .set('x-metrics-token', metricsToken);
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/plain');
@@ -71,7 +94,9 @@ describe('E2: Observability & Metrics Endpoints Suite', () => {
       pool: { maxPoolSize: 100, minPoolSize: 0 },
     });
 
-    const res = await request(app).get('/health/detailed');
+    const res = await request(app)
+      .get('/health/detailed')
+      .set('x-metrics-token', metricsToken);
 
     expect(res.status).toBe(503);
     expect(res.body).toMatchObject({

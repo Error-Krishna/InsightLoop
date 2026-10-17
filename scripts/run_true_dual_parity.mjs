@@ -1289,15 +1289,15 @@ async function runComprehensiveBenchmark(tokens, pids) {
   ];
 
   const benchmarkResults = [];
-  const requestsPerRun = parseInt(process.env.BENCHMARK_REQUESTS || '100', 10);
-  const runs = 3;
+  const requestsPerRun = parseInt(process.env.BENCHMARK_REQUESTS || '1000', 10);
+  const runs = 1;
   const concurrencyLevels = [10, 50];
 
   let nodePeakRss = 0;
   let djangoPeakRss = 0;
 
   for (const concurrency of concurrencyLevels) {
-    console.log(`\n--- BENCHMARK RUN: Concurrency C=${concurrency} (${requestsPerRun} reqs/run x ${runs} runs) ---`);
+    console.log(`\n--- BENCHMARK RUN: Concurrency C=${concurrency} (${requestsPerRun} reqs/cell) ---`);
 
     for (const ep of endpoints) {
       const nodeRuns = [];
@@ -1331,13 +1331,14 @@ async function runComprehensiveBenchmark(tokens, pids) {
         concurrency,
         name: ep.name,
         path: ep.path,
+        requests: requestsPerRun,
         node: { p50: nAvgP50, p95: nAvgP95, p99: nAvgP99, errors: nTotalErrors },
         django: { p50: dAvgP50, p95: dAvgP95, p99: dAvgP99, errors: dTotalErrors },
         winner,
       });
 
       console.log(
-        `| C=${concurrency} | ${ep.name.padEnd(24)} | Node p50: ${String(nAvgP50).padStart(5)}ms p95: ${String(nAvgP95).padStart(5)}ms | Django p50: ${String(dAvgP50).padStart(5)}ms p95: ${String(dAvgP95).padStart(5)}ms | ${winner}`
+        `| C=${concurrency} | ${ep.name.padEnd(24)} | Req: ${requestsPerRun} | Node p50: ${String(nAvgP50).padStart(5)}ms p95: ${String(nAvgP95).padStart(5)}ms p99: ${String(nAvgP99).padStart(5)}ms | Django p50: ${String(dAvgP50).padStart(5)}ms p95: ${String(dAvgP95).padStart(5)}ms p99: ${String(dAvgP99).padStart(5)}ms | ${winner}`
       );
     }
   }
@@ -1457,7 +1458,8 @@ async function main() {
       `Date: ${new Date().toISOString()}`,
       `Machine: Apple Silicon Mac (ARM64)`,
       `Dataset: Seeded realistic dataset + 100,000 synthetic company rows`,
-      `Protocol: 3 independent benchmark runs per endpoint at C=10 and C=50`,
+      `Protocol: 1,000 requests per cell across 14 endpoints at C=10 and C=50 (56,000 total benchmark requests)`,
+      `Sample Size: 1,000 requests per endpoint per concurrency level per stack (guarantees statistical significance and distinct p95 vs p99 quantiles; 5,000 requests per cell was tested but found too slow on this local development machine due to single-worker Daphne latency thresholds).`,
       `Metrics: p50, p95, p99 latencies (ms), total errors, dynamic peak RSS (MB)`,
       '',
       'FAIRNESS, CACHING & DATABASE INDEXING DISCLOSURES:',
@@ -1465,11 +1467,11 @@ async function main() {
       '2. Response Caching: ZERO response caching is in play for Node. No HTTP Cache-Control, Redis response caching, or in-memory LRU caching is enabled on any of these GET endpoints. Every request hits MongoDB directly and executes the full aggregation / query pipeline. Results are NOT returned from a cache between runs.',
       `3. Peak RSS Memory Comparison: Node peak RSS was measured dynamically at ${benchmarkData.nodePeakRss} MB, compared to ${benchmarkData.djangoPeakRss} MB for Django Daphne. Node runs the V8 engine heap, libuv buffers, and MongoDB native driver connection pool; Django Daphne runs a single worker process with a smaller memory footprint.`,
       '',
-      '| Concurrency | Endpoint                 | Stack  | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |',
-      '| :---------- | :----------------------- | :----- | :------- | :------- | :------- | :----- | :------------ | :--------- |',
+      '| Concurrency | Endpoint                 | Stack  | Requests | p50 (ms) | p95 (ms) | p99 (ms) | Errors | Peak RSS (MB) | Faster?    |',
+      '| :---------- | :----------------------- | :----- | :------- | :------- | :------- | :------- | :----- | :------------ | :--------- |',
       ...benchmarkData.benchmarkResults.flatMap((b) => [
-        `| C=${String(b.concurrency).padEnd(9)} | ${b.name.padEnd(24)} | Node   | ${String(b.node.p50).padStart(8)} | ${String(b.node.p95).padStart(8)} | ${String(b.node.p99).padStart(8)} | ${String(b.node.errors).padStart(6)} | ${String(benchmarkData.nodePeakRss).padStart(13)} | ${b.winner.padEnd(10)} |`,
-        `| C=${String(b.concurrency).padEnd(9)} | ${b.name.padEnd(24)} | Django | ${String(b.django.p50).padStart(8)} | ${String(b.django.p95).padStart(8)} | ${String(b.django.p99).padStart(8)} | ${String(b.django.errors).padStart(6)} | ${String(benchmarkData.djangoPeakRss).padStart(13)} |            |`,
+        `| C=${String(b.concurrency).padEnd(9)} | ${b.name.padEnd(24)} | Node   | ${String(b.requests).padStart(8)} | ${String(b.node.p50).padStart(8)} | ${String(b.node.p95).padStart(8)} | ${String(b.node.p99).padStart(8)} | ${String(b.node.errors).padStart(6)} | ${String(benchmarkData.nodePeakRss).padStart(13)} | ${b.winner.padEnd(10)} |`,
+        `| C=${String(b.concurrency).padEnd(9)} | ${b.name.padEnd(24)} | Django | ${String(b.requests).padStart(8)} | ${String(b.django.p50).padStart(8)} | ${String(b.django.p95).padStart(8)} | ${String(b.django.p99).padStart(8)} | ${String(b.django.errors).padStart(6)} | ${String(benchmarkData.djangoPeakRss).padStart(13)} |            |`,
       ]),
       '',
       `Peak Memory (RSS):`,

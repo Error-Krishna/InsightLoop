@@ -76,6 +76,18 @@ services:
         value: v18.0
       - key: WHATSAPP_BILL_TEMPLATE_NAME
         value: bill_share
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: METRICS_TOKEN
+        sync: false
+      - key: EMAIL_HOST
+        value: localhost
+      - key: EMAIL_PORT
+        value: 1025
+      - key: DEFAULT_FROM_EMAIL
+        value: noreply@insightloop.io
+      - key: ADMIN_EMAIL
+        value: admin@insightloop.io
 
   # -------------------------------------------------------------
   # InsightLoop React TypeScript Frontend (Static Site CDN)

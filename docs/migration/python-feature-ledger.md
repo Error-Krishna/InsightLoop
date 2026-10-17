@@ -74,7 +74,7 @@
 | insightloop/insightloop/auth_utils.py | PORTED | apps/api/src/middleware/auth.ts | apps/api/test/auth_deep.test.ts#handles duplicate registration rejection | None |
 | insightloop/insightloop/jwt_middleware.py | PORTED | apps/api/src/middleware/auth.ts | apps/api/test/auth_deep.test.ts#handles duplicate registration rejection | None |
 | insightloop/insightloop/middleware.py | PORTED | apps/api/src/middleware/auth.ts | apps/api/test/auth_deep.test.ts#handles duplicate registration rejection | None |
-| insightloop/insightloop/public_urls.py | PORTED | apps/api/src/app.ts | apps/api/test/legacy_routes.test.ts#logs warn with route, method, and user-agent on legacy route hit and returns 404 with shadow route header | None |
+| insightloop/insightloop/public_urls.py | PORTED | apps/api/src/app.ts | apps/api/test/legacy_routes.test.ts#serves GET / matching Django root_redirect (200 JSON when FRONTEND_ORIGIN unset) | None |
 | insightloop/insightloop/settings.py | PORTED | apps/api/src/config/env.ts | apps/api/test/startup_invariants.test.ts#passes cleanly when all startup invariants are satisfied | None |
 | insightloop/insightloop/tests.py | SUPERSEDED | apps/api/test/smoke.test.ts | Vitest suite in apps/api/test/smoke.test.ts | None |
 | insightloop/insightloop/urls.py | PORTED | apps/api/src/app.ts | apps/api/test/smoke.test.ts#imports shared package and executes successfully | None |
@@ -113,8 +113,8 @@
 | insightloop/landing/social_models.py | PORTED | apps/api/src/modules/auth/auth.repository.ts | apps/api/test/auth_deep.test.ts#handles Google login for new user and generates valid JWT tokens | None |
 | insightloop/landing/social_storage.py | PORTED | apps/api/src/modules/auth/auth.service.ts | apps/api/test/auth_deep.test.ts#handles Google login for new user and generates valid JWT tokens | None |
 | insightloop/landing/tests.py | SUPERSEDED | apps/api/test/auth_deep.test.ts | Automated test suite in apps/api/test/auth_deep.test.ts | None |
-| insightloop/landing/urls.py | PORTED | apps/api/src/modules/contact/contact.routes.ts | apps/api/test/legacy_routes.test.ts#logs warn with route, method, and user-agent on legacy route hit and returns 404 with shadow route header | None |
-| insightloop/landing/views.py | PORTED | apps/api/src/modules/contact/contact.controller.ts | apps/api/test/legacy_routes.test.ts#handles post requests on legacy endpoints with shadow response and logging | None |
+| insightloop/landing/urls.py | PORTED | apps/api/src/modules/contact/contact.routes.ts | apps/api/test/legacy_routes.test.ts#serves GET / matching Django root_redirect (200 JSON when FRONTEND_ORIGIN unset) | None |
+| insightloop/landing/views.py | PORTED | apps/api/src/modules/contact/contact.controller.ts | apps/api/test/modules_remaining.test.ts#submits contact feedback and rejects disallowed HTTP methods | None |
 | insightloop/manage.py | SUPERSEDED | package.json | Replaced by npm/pnpm workspace CLI commands | None |
 | insightloop/misc/__init__.py | PORTED | apps/api/src/modules/profile/profile.routes.ts | apps/api/test/profile.test.ts#fetches profile, updates profile attributes, and updates settings | None |
 | insightloop/misc/admin.py | DEAD-CODE | N/A (Admin) | Django admin unused in MERN single-page architecture | None |

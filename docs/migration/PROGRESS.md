@@ -46,14 +46,14 @@ Every item from the Phase 5.9 specification has been implemented, validated, and
   - *Evidence:* [`docs/migration/evidence/C3_load_benchmark.txt`](docs/migration/evidence/C3_load_benchmark.txt)
 
 ### 2. Invoice PDF & WhatsApp Parity (Section 2)
-- Extracted and cataloged every element from Django WeasyPrint template (`bills/templates/bills/invoice_pdf.html` and `static/css/invoice.css`).
+- Extracted and cataloged every element from Django WeasyPrint template (`insightloop/bills/templates/bills/invoice.html` with inline CSS).
 - Built PDFKit rendering in `apps/api/src/modules/bills/pdf.service.ts` matching layout, rupee symbol (`₹`), 2-decimal currency formatting, thousands separators, table columns, GST breakup, payment table, balance, notes, terms, footer, and multi-page layout.
 - Tested across 4 golden bills against real Django WeasyPrint PDFs with `pdftotext -layout` and PNG page renders:
   - Bill 1: Pakka Standard (with logo, signature, GST, bank details)
   - Bill 2: Kacha (no logo, no GST)
   - Bill 3: Pakka Multipage (28 items forcing page break)
   - Bill 4: Kacha Multipage (25 items forcing page break)
-- **Result: 0 text character diffs across all 4 bills**.
+- **Result: Saved diff files show whitespace and column-alignment differences only (all words and numbers are identical across all 4 bills)**.
 - Added automated offline regression test `apps/api/test/pdf_parity.test.ts`.
 - WhatsApp service verified against `whatsapp.py` and `whatsapp_openwa.py` with mock server tests in `apps/api/test/whatsapp_mock.test.ts`.
 - *Evidence:* [`docs/migration/evidence/pdf_parity/`](docs/migration/evidence/pdf_parity/), [`apps/api/test/pdf_parity.test.ts`](apps/api/test/pdf_parity.test.ts)
@@ -66,7 +66,7 @@ Every item from the Phase 5.9 specification has been implemented, validated, and
   - CSV Uploads: valid CSV, empty file (400 missing columns list), header-only (200 with 0 created), BOM encoding, CRLF newlines, invalid number, negative numbers, oversize rejection; live dashboard numbers verified; CSV export download names and content verified.
   - Insights: generate, list, detail, export. Profile: PUT updates. AI Assistant: command routing for export, navigate, revenue, profit, worker performance, unknown intents.
   - Contact: CSRF/auth resolution, submission validation, message persistence, and SMTP notification to local SMTP sink verified on both stacks.
-  - Worker Delete Cascade Audit: verified in MongoDB queries that deleting a worker does NOT cascade delete `material_assignments` or `pay_records` on either stack (orphaned documents preserved identically), and dashboard top-workers gracefully labels orphaned records as `"Deleted Worker"`.
+  - Worker Delete Cascade Audit: verified in MongoDB queries that deleting a worker via the API cleanly cascades to delete `material_assignments` and `pay_records` on both stacks (0 remaining documents matching Django `Worker.delete()`); additionally verified that if an orphaned reference exists directly in MongoDB, dashboard top-workers gracefully labels it as `"Deleted Worker"`.
   - WebSocket: real frame capture and assertion matching Django Daphne for dashboard updates and AI replies, plus close code `4001` for missing/expired tokens.
 - **Totals by Method**: GET: 20 | PUT: 5 | POST: 39 | DELETE: 3 | DB_QUERY: 1 | WS: 3
 - **Totals by Area**: profile: 4, inventory: 13, bills: 12, workers: 7, dashboard: 3, auth: 11, upload: 6, insights: 3, ai: 6, contact: 3, websocket: 3.

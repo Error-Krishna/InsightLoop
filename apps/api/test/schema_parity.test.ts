@@ -23,13 +23,17 @@ describe('Schema Freeze & Parity Audit (Python-Free Safety Net 1)', () => {
     expect(actualSha).toBe(expectedSha);
     schema = JSON.parse(schemaContent.toString('utf8'));
 
-    // Connect to test database to inspect documents written by Node
+    // Connect to isolated test database to inspect documents against schema freeze
     client = new MongoClient('mongodb://localhost:27017');
     await client.connect();
-    db = client.db('InsightLoop_test');
+    db = client.db('InsightLoop_schema_parity_test');
+    await db.dropDatabase();
   });
 
   afterAll(async () => {
+    if (db) {
+      await db.dropDatabase();
+    }
     if (client) {
       await client.close();
     }
@@ -91,8 +95,9 @@ describe('Schema Freeze & Parity Audit (Python-Free Safety Net 1)', () => {
         name: 'Sample Parity Item',
         sku: `SKU-${Date.now().toString().slice(-5)}`,
         type: 'finished',
+        unit: 'pcs',
         quantity: 10,
-        unit_price: 100.0,
+        selling_price: 100.0,
         cost_price: 50.0,
         reorder_level: 5,
         created_at: new Date(),

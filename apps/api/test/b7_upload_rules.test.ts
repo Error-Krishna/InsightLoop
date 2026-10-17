@@ -44,45 +44,45 @@ describe('B7: CSV Upload Rules Suite', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  // (c) Header-only file: 400 "CSV file contains no data rows."
-  it('(c) rejects header-only file with 400 "CSV file contains no data rows."', async () => {
+  // (c) Header-only file: returns created: 0 matching Django
+  it('(c) accepts header-only file and returns created: 0, matching Django', async () => {
     const headerOnly = validHeaders + '\n';
-    await expect(
-      UploadService.csvUpload(scope, Buffer.from(headerOnly, 'utf-8'), 'header_only.csv')
-    ).rejects.toThrow(/CSV file contains no data rows/i);
+    const result = await UploadService.csvUpload(scope, Buffer.from(headerOnly, 'utf-8'), 'header_only.csv');
+    expect(result.created).toBe(0);
+    expect(result.warnings).toHaveLength(0);
   });
 
-  // (d) Empty file: 400 "CSV file is empty."
-  it('(d) rejects empty file with 400 "CSV file is empty."', async () => {
+  // (d) Empty file: 400 "Missing required columns." matching Django
+  it('(d) rejects empty file with 400 "Missing required columns.", matching Django', async () => {
     await expect(
       UploadService.csvUpload(scope, Buffer.from(''), 'empty.csv')
-    ).rejects.toThrow(/CSV file is empty/i);
+    ).rejects.toThrow(/Missing required columns/i);
 
     await expect(
       UploadService.csvUpload(scope, Buffer.from('   \n  \t  '), 'whitespace.csv')
-    ).rejects.toThrow(/CSV file is empty/i);
+    ).rejects.toThrow(/Missing required columns/i);
   });
 
-  // (e) Negative numbers in numeric columns: 400 with row and column named
-  it('(e) rejects negative numbers in numeric columns with 400 naming row and column', async () => {
+  // (e) Signed numbers in numeric columns: accepted matching Django
+  it('(e) accepts signed numbers in numeric columns, matching Django', async () => {
     const negQtyCsv = [
       validHeaders,
       '2026-03-01,Valid Item,Goods,10,50,100,East,Retail',
-      '2026-03-02,Bad Item,Goods,-15,50,100,East,Retail',
+      '2026-03-02,Signed Item,Goods,-15,50,100,East,Retail',
     ].join('\n');
 
-    await expect(
-      UploadService.csvUpload(scope, Buffer.from(negQtyCsv, 'utf-8'), 'neg_qty.csv')
-    ).rejects.toThrow(/Row 2.*quantity.*negative/i);
+    const resQty = await UploadService.csvUpload(scope, Buffer.from(negQtyCsv, 'utf-8'), 'neg_qty.csv');
+    expect(resQty.created).toBe(2);
+    expect(resQty.warnings).toHaveLength(0);
 
     const negCostCsv = [
       validHeaders,
-      '2026-03-01,Bad Cost Item,Goods,10,-50,100,East,Retail',
+      '2026-03-01,Signed Cost Item,Goods,10,-50,100,East,Retail',
     ].join('\n');
 
-    await expect(
-      UploadService.csvUpload(scope, Buffer.from(negCostCsv, 'utf-8'), 'neg_cost.csv')
-    ).rejects.toThrow(/Row 1.*production_cost.*negative/i);
+    const resCost = await UploadService.csvUpload(scope, Buffer.from(negCostCsv, 'utf-8'), 'neg_cost.csv');
+    expect(resCost.created).toBe(1);
+    expect(resCost.warnings).toHaveLength(0);
   });
 
   // (f) Partial success: if row 3 of 5 is invalid, insert 4 and report errors in warnings

@@ -291,5 +291,34 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
     currentItem = await getCollection('inventory_items').findOne({ _id: itemId });
     expect(currentItem!.quantity).toBe(0);
   });
+
+  it('ignores products with 0 or negative quantity or invalid id in stock delta calculation', async () => {
+    const item = await InventoryRepository.insertItem(scope, {
+      name: 'Zero Qty Item',
+      unit: 'pcs',
+      type: 'finished',
+      selling_price: 100,
+      cost_price: 60,
+      quantity: 5,
+      reorder_level: 1,
+      warehouse_id: warehouseId,
+      sku: 'SKU-ZERO-' + Date.now(),
+      created_at: new Date(),
+    });
+
+    const bill = await BillsService.createBill(scope, 'kacha', {
+      products: [
+        { name: item.name, quantity: 0, rate: 100, inventory_item_id: item._id.toString() },
+        { name: item.name, quantity: -2, rate: 100, inventory_item_id: item._id.toString() },
+        { name: 'Invalid ID Item', quantity: 1, rate: 100, inventory_item_id: 'not-an-object-id' },
+        { name: 'Null ID Item', quantity: 1, rate: 100, inventory_item_id: null },
+      ],
+      buyer_name: 'Zero Buyer',
+    });
+    expect(bill).toBeDefined();
+
+    const current = await getCollection('inventory_items').findOne({ _id: item._id });
+    expect(current!.quantity).toBe(5);
+  });
 });
 

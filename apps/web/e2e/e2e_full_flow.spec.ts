@@ -18,7 +18,7 @@ test.beforeAll(() => {
     DJANGO_DEBUG: 'true',
     PYTHONPATH: path.resolve(ROOT, 'insightloop'),
   };
-  execSync('.venv/bin/python scripts/seed_test_db.py', { cwd: ROOT, env, encoding: 'utf-8' });
+  execSync('pnpm tsx scripts/seed.ts', { cwd: ROOT, env, encoding: 'utf-8' });
 });
 
 async function ensureLoggedIn(page: Page, baseURL?: string) {

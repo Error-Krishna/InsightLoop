@@ -26,14 +26,21 @@ function findMarkdownFiles(dir) {
   return results;
 }
 
-const mdFiles = findMarkdownFiles(targetDir);
-console.log(`Scanning ${mdFiles.length} markdown file(s) under ${path.relative(REPO_ROOT, targetDir)}...`);
+function getAllMarkdownFiles() {
+  const docs = findMarkdownFiles(targetDir);
+  const rootFiles = ['PROGRESS.md', 'MIGRATION_REPORT.md', 'README.md']
+    .map((f) => path.resolve(REPO_ROOT, f))
+    .filter((f) => fs.existsSync(f));
+  return Array.from(new Set([...docs, ...rootFiles]));
+}
 
-// Regex to capture file paths matching (apps|packages|scripts|insightloop|docs)/[^\s)`"'<>]+
+const mdFiles = getAllMarkdownFiles();
+console.log(`Scanning ${mdFiles.length} markdown file(s) across docs and root reports...`);
+
+// Regex to capture file paths matching (apps|packages|scripts|insightloop|docs|bills|dashboard|insights|worker|upload|landing|misc|templates|static)/[^\s)`"'<>]+
 // or relative markdown links [text](path)
-const pathRegex = /(?:`|\]\(|["'\s(])((?:apps|packages|scripts|insightloop|docs)\/[a-zA-Z0-9_.\-\/&]+)/g;
+const pathRegex = /(?:`|\]\(|["'\s(])((?:apps|packages|scripts|insightloop|docs|bills|dashboard|insights|worker|upload|landing|misc|templates|static)\/[a-zA-Z0-9_.\-\/&]+)/g;
 const relativeLinkRegex = /\]\(((?:\.|\.\.)\/[a-zA-Z0-9_.\-\/#&]+)\)/g;
-
 
 let totalChecked = 0;
 let errors = [];
@@ -56,7 +63,21 @@ for (const filePath of mdFiles) {
     
     // Only check if candidate looks like a specific file or directory
     totalChecked++;
-    const fullCandidate = path.resolve(REPO_ROOT, candidate);
+    let fullCandidate = path.resolve(REPO_ROOT, candidate);
+    if (!fs.existsSync(fullCandidate)) {
+      const candidates = [
+        path.resolve(REPO_ROOT, 'insightloop', candidate),
+        path.resolve(REPO_ROOT, 'apps/api/test/contracts/fixtures/endpoints', candidate),
+        path.resolve(REPO_ROOT, 'fixtures/django_snapshots', path.basename(candidate)),
+      ];
+      for (const c of candidates) {
+        if (fs.existsSync(c)) {
+          fullCandidate = c;
+          break;
+        }
+      }
+    }
+
     if (!fs.existsSync(fullCandidate)) {
       errors.push({
         sourceFile: fileRel,

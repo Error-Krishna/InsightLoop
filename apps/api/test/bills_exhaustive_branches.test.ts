@@ -81,7 +81,7 @@ describe('Bills & Workers Exhaustive Branch Sweep', () => {
           { name: 'Phantom Item', quantity: 1, rate: 200, inventory_item_id: nonExistentOid },
         ],
       })
-    ).rejects.toThrow('Insufficient stock: Item: requested 1 pcs, only 0 pcs in stock');
+    ).rejects.toThrow('Insufficient stock: Item: requested 1.0 pcs, only 0.0 pcs in stock');
 
     // 6. Convert to pakka WITHOUT passing products (uses existing products and existing discount)
     const pakkaDefaultProds = await BillsService.convertToPakka(scope, b1.id, {
@@ -217,11 +217,11 @@ describe('Bills & Workers Exhaustive Branch Sweep', () => {
     const mixedPreview = await BillsService.getProfitPreview(scope, mixedBill.id);
     const unkLine = mixedPreview.lines.find((l) => l.name === 'Unknown Item');
     expect(unkLine?.cost_known).toBe(false);
-    expect(unkLine?.unit_cost).toBe(0);
+    expect(unkLine?.unit_cost).toBeNull();
     expect(unkLine?.line_cost).toBe(0);
     const invLine = mixedPreview.lines.find((l) => l.name === 'Invalid ID Item');
     expect(invLine?.cost_known).toBe(false);
-    expect(invLine?.unit_cost).toBe(0);
+    expect(invLine?.unit_cost).toBeNull();
 
     // 11. Delete bill without products (deltas empty)
     const emptyBill = await db.collection('bills').insertOne({

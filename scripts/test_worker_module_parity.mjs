@@ -269,10 +269,10 @@ await assertDualStack('Delete Worker Cascades to Assignments and Payments in bot
   });
   log(`Django Worker DELETE Status: ${delDRes.status}`);
 
-  // Query MongoDB directly for orphaned records
+  // Query MongoDB directly to verify cascade cleanup (0 remaining records)
   const dAssCount = await mongoDb.collection('material_assignments').countDocuments({ worker: new ObjectId(dWorker.id) });
   const dPayCount = await mongoDb.collection('pay_records').countDocuments({ worker: new ObjectId(dWorker.id) });
-  log(`Django Worker ${dWorker.id} after delete in DB: orphaned assignments=${dAssCount}, pay_records=${dPayCount}`);
+  log(`Django Worker ${dWorker.id} after delete in DB: remaining assignments=${dAssCount}, pay_records=${dPayCount}`);
   if (dAssCount !== 0 || dPayCount !== 0) {
     throw new Error(`Django failed cascade delete: assignments=${dAssCount}, pay_records=${dPayCount}`);
   }
@@ -309,7 +309,7 @@ await assertDualStack('Delete Worker Cascades to Assignments and Payments in bot
 
   const nAssCount = await mongoDb.collection('material_assignments').countDocuments({ worker: new ObjectId(nWorker.id) });
   const nPayCount = await mongoDb.collection('pay_records').countDocuments({ worker: new ObjectId(nWorker.id) });
-  log(`Node Worker ${nWorker.id} after delete in DB: orphaned assignments=${nAssCount}, pay_records=${nPayCount}`);
+  log(`Node Worker ${nWorker.id} after delete in DB: remaining assignments=${nAssCount}, pay_records=${nPayCount}`);
   if (nAssCount !== 0 || nPayCount !== 0) {
     throw new Error(`Node failed cascade delete: assignments=${nAssCount}, pay_records=${nPayCount}`);
   }

@@ -84,7 +84,7 @@ describe('Bills Deep Branch Exhaustion Suite', () => {
           { name: 'Delta Item 1', quantity: 9999, rate: 40, inventory_item_id: item1.id },
         ],
       })
-    ).rejects.toThrow('Insufficient stock: Delta Item 1: requested 9984 pcs, only 35 pcs in stock');
+    ).rejects.toThrow('Insufficient stock: Delta Item 1: requested 9984.0 pcs, only 35.0 pcs in stock');
 
     stock1 = await InventoryRepository.findItemById(scope, item1.id);
     expect(stock1?.quantity).toBe(35);

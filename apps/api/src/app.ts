@@ -24,6 +24,8 @@ import { contactRouter } from './modules/contact/contact.routes.js';
 import { legacyRouter } from './modules/legacy/legacy.routes.js';
 import { StorageService, getMimeType } from './modules/upload/storage.service.js';
 
+import { requireMetricsAuth } from './middleware/metricsAuth.js';
+
 export const app: express.Express = express();
 
 app.set('trust proxy', Number(env.TRUST_PROXY) || 1);
@@ -59,16 +61,26 @@ app.use(requestIdMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root endpoint: mirrors Django root_redirect (redirects to FRONTEND_ORIGIN, or returns JSON)
+app.get('/', (_req: Request, res: Response) => {
+  const origin = env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGIN;
+  if (origin && typeof origin === 'string' && origin.trim()) {
+    res.redirect(origin.trim());
+    return;
+  }
+  res.status(200).json({ status: 'ok', service: 'InsightLoop API' });
+});
+
 // Root health check and observability endpoints
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'InsightLoop Node API' });
 });
-app.get('/health/detailed', asyncHandler(HealthController.getDetailed));
-app.get('/metrics', asyncHandler(HealthController.getMetrics));
+app.get('/health/detailed', requireMetricsAuth, asyncHandler(HealthController.getDetailed));
+app.get('/metrics', requireMetricsAuth, asyncHandler(HealthController.getMetrics));
 
 // Mount module routers
 app.use('/api/v1/health', healthRouter);
-app.use('/api/v1/metrics', asyncHandler(HealthController.getMetrics));
+app.use('/api/v1/metrics', requireMetricsAuth, asyncHandler(HealthController.getMetrics));
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/inventory', inventoryRouter);
