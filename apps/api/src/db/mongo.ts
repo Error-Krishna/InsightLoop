@@ -70,7 +70,7 @@ export async function connectMongo(customUri?: string, customDbName?: string): P
     await db.collection('schema_migrations').findOne({});
     findOneMs = Math.round((performance.now() - findStart) * 100) / 100;
   } catch {
-    // Non-fatal if schema_migrations does not exist yet
+    // SILENT-FALLBACK-REASON: Non-fatal if schema_migrations does not exist yet
   }
 
   let sanitizedHost = 'localhost';
@@ -83,7 +83,7 @@ export async function connectMongo(customUri?: string, customDbName?: string): P
       sanitizedHost = parsed.host;
     }
   } catch {
-    // fallback
+    // SILENT-FALLBACK-REASON: Fallback to localhost if URI host parsing fails
   }
 
   logger.info({ dbName, host: sanitizedHost, pingMs, findOneMs }, 'Connected to MongoDB & verified round-trip latency');

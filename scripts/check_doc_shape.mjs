@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
@@ -8,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const pythonBin = path.join(rootDir, '.venv/bin/python');
+const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
 
 const require = createRequire(import.meta.url);
 const { MongoClient, ObjectId } = require(path.join(rootDir, 'apps/api/node_modules/mongodb'));
@@ -18,9 +20,10 @@ const dbName = process.env.MONGODB_DB_NAME || 'InsightLoop_test';
 console.log(`[check_doc_shape] 1. Extracting Django MongoEngine model definitions...`);
 
 let schemaJson = '';
-try {
-  schemaJson = execSync(
-    `"${pythonBin}" -c "
+if (hasDjango) {
+  try {
+    schemaJson = execSync(
+      `"${pythonBin}" -c "
 import os, sys, django, json
 sys.path.insert(0, 'insightloop')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
@@ -59,11 +62,44 @@ for name, cls in list(mongoengine.base._document_registry.items()):
 
 print(json.dumps(collections))
 "`,
-    { cwd: rootDir, encoding: 'utf-8' }
-  );
-} catch (err) {
-  console.error('[check_doc_shape] Failed to extract Django MongoEngine models:', err);
-  process.exit(1);
+      { cwd: rootDir, encoding: 'utf-8' }
+    );
+  } catch (err) {
+    console.error('[check_doc_shape] Failed to extract Django MongoEngine models:', err);
+    process.exit(1);
+  }
+} else {
+  console.log('[check_doc_shape] Python/Django runtime not present. Loading frozen schema from docs/migration/django-model-schema.json...');
+  const frozen = JSON.parse(fs.readFileSync(path.join(rootDir, 'docs/migration/django-model-schema.json'), 'utf8'));
+  const collections = {};
+  for (const [coll, def] of Object.entries(frozen)) {
+    const fields = {
+      _id: { name: 'id', type: 'ObjectIdField', required: false },
+    };
+    for (const [fName, fMeta] of Object.entries(def.fields)) {
+      const dbKey = fName === 'id' ? '_id' : fName;
+      fields[dbKey] = {
+        name: fName,
+        type: fMeta.bson_type === 'string' ? 'StringField'
+            : fMeta.bson_type === 'int' ? 'IntField'
+            : fMeta.bson_type === 'double' ? 'FloatField'
+            : fMeta.bson_type === 'decimal' ? 'DecimalField'
+            : fMeta.bson_type === 'bool' ? 'BooleanField'
+            : fMeta.bson_type === 'date' ? 'DateTimeField'
+            : fMeta.bson_type === 'objectId' ? 'ObjectIdField'
+            : fMeta.bson_type === 'array' ? 'ListField'
+            : 'DictField',
+        required: fMeta.required,
+      };
+    }
+    collections[coll] = {
+      model: coll,
+      collection: coll,
+      fields,
+      strict: true,
+    };
+  }
+  schemaJson = JSON.stringify(collections);
 }
 
 const schemas = JSON.parse(schemaJson);
@@ -494,8 +530,9 @@ try {
     process.exit(1);
   }
 
-  console.log(`[check_doc_shape] 5. Executing Django API roundtrip: Load, List, Update, and Delete through Django API...`);
-  const djangoApiOutput = execSync(
+  if (hasDjango) {
+    console.log(`[check_doc_shape] 5. Executing Django API roundtrip: Load, List, Update, and Delete through Django API...`);
+    const djangoApiOutput = execSync(
     `"${pythonBin}" -c "
 import os, sys, django
 sys.path.insert(0, 'insightloop')
@@ -592,11 +629,14 @@ print('DJANGO_API_ROUNDTRIP_PASSED')
     }
   );
 
-  if (!djangoApiOutput.includes('DJANGO_API_ROUNDTRIP_PASSED')) {
-    console.error(`[ERROR] Django API roundtrip did not pass! Output:\n${djangoApiOutput}`);
-    process.exit(1);
+    if (!djangoApiOutput.includes('DJANGO_API_ROUNDTRIP_PASSED')) {
+      console.error(`[ERROR] Django API roundtrip did not pass! Output:\n${djangoApiOutput}`);
+      process.exit(1);
+    }
+    console.log(`[check_doc_shape] Django API roundtrip successfully validated load, list, update, and delete!`);
+  } else {
+    console.log(`[check_doc_shape] 5. Python-free environment: Django codebase removed, skipping Django API roundtrip.`);
   }
-  console.log(`[check_doc_shape] Django API roundtrip successfully validated load, list, update, and delete!`);
 
 } finally {
   console.log(`[check_doc_shape] 6. Cleaning up temporary deterministic test entities...`);

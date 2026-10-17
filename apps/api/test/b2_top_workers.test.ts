@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ObjectId } from 'mongodb';
 import { execSync } from 'node:child_process';
@@ -10,6 +11,7 @@ import type { TenantScope } from '../src/types/tenant.js';
 
 const rootDir = path.resolve(__dirname, '../../..');
 const pythonBin = path.join(rootDir, '.venv/bin/python');
+const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
 
 describe('B2: Dashboard Top Workers & Deleted Worker Handling', () => {
   const scope: TenantScope = { companyId: 'test-b2-company-' + Date.now() };
@@ -29,9 +31,10 @@ describe('B2: Dashboard Top Workers & Deleted Worker Handling', () => {
     });
     nodeWorkerId = nodeWorker._id.toString();
 
-    // 2. Create a worker via Django
-    const djWorkerOut = execSync(
-      `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
+    // 2. Create second worker via Django or Node
+    if (hasDjango) {
+      const djWorkerOut = execSync(
+        `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
 import os, sys, django
 sys.path.insert(0, 'insightloop')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
@@ -41,9 +44,19 @@ import worker.models as wm
 w = wm.Worker(company_id='${scope.companyId}', name='Django Top Worker', phone='2222222222', is_active=True).save()
 print(str(w.id))
 "`,
-      { cwd: rootDir, encoding: 'utf-8' }
-    ).trim();
-    djangoWorkerId = djWorkerOut;
+        { cwd: rootDir, encoding: 'utf-8' }
+      ).trim();
+      djangoWorkerId = djWorkerOut;
+    } else {
+      const djWorker = await WorkersRepository.insertWorker(scope, {
+        name: 'Django Top Worker',
+        phone: '2222222222',
+        address: 'Django Workshop',
+        created_at: new Date(),
+        is_active: true,
+      });
+      djangoWorkerId = djWorker._id.toString();
+    }
 
     // 3. Create payments via Node for Node worker (total payout: 500)
     await WorkersService.createPayment(scope, nodeWorkerId, {
@@ -53,9 +66,10 @@ print(str(w.id))
       amount_paid: 500,
     });
 
-    // 4. Create payments via Django for Django worker (total payout: 800)
-    execSync(
-      `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
+    // 4. Create payments for second worker (total payout: 800)
+    if (hasDjango) {
+      execSync(
+        `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
 import os, sys, django
 sys.path.insert(0, 'insightloop')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
@@ -77,8 +91,16 @@ pr = wm.PayRecord(
 ).save()
 print('DJANGO_PAY_CREATED')
 "`,
-      { cwd: rootDir, encoding: 'utf-8' }
-    );
+        { cwd: rootDir, encoding: 'utf-8' }
+      );
+    } else {
+      await WorkersService.createPayment(scope, djangoWorkerId, {
+        product_name: 'Product B',
+        units_produced: 8,
+        rate_per_unit: 100,
+        amount_paid: 800,
+      });
+    }
   });
 
   afterAll(async () => {
@@ -105,8 +127,9 @@ print('DJANGO_PAY_CREATED')
     expect(nodeTopWorkers[1].payment_count).toBe(1);
 
     // Compare with Django get_top_workers output
-    const djTopWorkersJson = execSync(
-      `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
+    if (hasDjango) {
+      const djTopWorkersJson = execSync(
+        `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
 import os, sys, django, json
 sys.path.insert(0, 'insightloop')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
@@ -116,15 +139,16 @@ import dashboard.utils as du
 top = du.get_top_workers('${scope.companyId}')
 print(json.dumps(top))
 "`,
-      { cwd: rootDir, encoding: 'utf-8' }
-    ).trim();
+        { cwd: rootDir, encoding: 'utf-8' }
+      ).trim();
 
-    const djTopWorkers = JSON.parse(djTopWorkersJson);
-    expect(djTopWorkers.length).toBe(2);
-    expect(djTopWorkers[0].name).toBe(nodeTopWorkers[0].name);
-    expect(djTopWorkers[0].total_payout).toBe(nodeTopWorkers[0].total_payout);
-    expect(djTopWorkers[1].name).toBe(nodeTopWorkers[1].name);
-    expect(djTopWorkers[1].total_payout).toBe(nodeTopWorkers[1].total_payout);
+      const djTopWorkers = JSON.parse(djTopWorkersJson);
+      expect(djTopWorkers.length).toBe(2);
+      expect(djTopWorkers[0].name).toBe(nodeTopWorkers[0].name);
+      expect(djTopWorkers[0].total_payout).toBe(nodeTopWorkers[0].total_payout);
+      expect(djTopWorkers[1].name).toBe(nodeTopWorkers[1].name);
+      expect(djTopWorkers[1].total_payout).toBe(nodeTopWorkers[1].total_payout);
+    }
   });
 
   it('handles deleted worker gracefully with "Deleted Worker" fallback matching Django', async () => {
@@ -154,8 +178,9 @@ print(json.dumps(top))
     expect(deletedRecord!.name).toBe('Deleted Worker');
 
     // Compare with Django get_worker_payments
-    const djPaymentsJson = execSync(
-      `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
+    if (hasDjango) {
+      const djPaymentsJson = execSync(
+        `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
 import os, sys, django, json
 sys.path.insert(0, 'insightloop')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
@@ -165,12 +190,13 @@ import dashboard.utils as du
 records = du.get_worker_payments('${scope.companyId}')
 print(json.dumps(records))
 "`,
-      { cwd: rootDir, encoding: 'utf-8' }
-    ).trim();
+        { cwd: rootDir, encoding: 'utf-8' }
+      ).trim();
 
-    const djPayments = JSON.parse(djPaymentsJson);
-    const djDeleted = djPayments.find((p: any) => p.amount === 50 && p.amount_paid === 50);
-    expect(djDeleted).toBeDefined();
-    expect(djDeleted.name).toBe('Deleted Worker');
+      const djPayments = JSON.parse(djPaymentsJson);
+      const djDeleted = djPayments.find((p: any) => p.amount === 50 && p.amount_paid === 50);
+      expect(djDeleted).toBeDefined();
+      expect(djDeleted.name).toBe('Deleted Worker');
+    }
   });
 });

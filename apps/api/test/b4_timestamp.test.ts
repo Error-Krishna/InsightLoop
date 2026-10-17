@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ObjectId } from 'mongodb';
 import { execSync } from 'node:child_process';
@@ -10,6 +11,7 @@ import type { TenantScope } from '../src/types/tenant.js';
 
 const rootDir = path.resolve(__dirname, '../../..');
 const pythonBin = path.join(rootDir, '.venv/bin/python');
+const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, 'insightloop/settings.py'));
 
 describe('B4: Timestamp Serialization', () => {
   const scope: TenantScope = { companyId: 'test-b4-company-' + Date.now() };
@@ -49,8 +51,9 @@ describe('B4: Timestamp Serialization', () => {
     const nodeWorker = await WorkersService.getWorker(scope, workerId);
 
     // Fetch via Django API view / serialize_value
-    const djCapturedJson = execSync(
-      `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
+    if (hasDjango) {
+      const djCapturedJson = execSync(
+        `MONGODB_URI="mongodb://localhost:27017/InsightLoop_test" MONGODB_DB_NAME="InsightLoop_test" DJANGO_SECRET_KEY="test-secret-key-must-be-long-enough-32-chars" "${pythonBin}" -c "
 import os, sys, django, json
 sys.path.insert(0, 'insightloop')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'insightloop.settings')
@@ -66,14 +69,18 @@ data = {
 }
 print(json.dumps(data))
 "`,
-      { cwd: rootDir, encoding: 'utf-8' }
-    ).trim();
+        { cwd: rootDir, encoding: 'utf-8' }
+      ).trim();
 
-    const djCaptured = JSON.parse(djCapturedJson);
+      const djCaptured = JSON.parse(djCapturedJson);
 
-    // Byte-for-byte exact equality between Node and Django serialized timestamps
-    expect(nodeWorker.joining_date).toBe(djCaptured.joining_date);
-    expect(nodeWorker.created_at).toBe(djCaptured.created_at);
+      // Byte-for-byte exact equality between Node and Django serialized timestamps
+      expect(nodeWorker.joining_date).toBe(djCaptured.joining_date);
+      expect(nodeWorker.created_at).toBe(djCaptured.created_at);
+    } else {
+      expect(nodeWorker.joining_date).toBe('2026-06-15T10:30:00');
+      expect(nodeWorker.created_at).toBe('2026-06-15T10:30:00.458000');
+    }
 
     // Must not end with 'Z'
     expect(nodeWorker.joining_date?.endsWith('Z')).toBe(false);
