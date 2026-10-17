@@ -115,9 +115,17 @@ describe('Web Environment Variable & URL Construction Safety', () => {
           const match = line.match(/wss?:\/\/[^\s`'"|)]+/);
           if (match) {
             const url = match[0];
-            const urlObj = new URL(url.replace(/^ws/, 'http'));
-            if (urlObj.pathname && urlObj.pathname !== '/') {
-              docErrors.push(`${rel}:${idx + 1}: VITE_WS_BASE_URL must have no subpath (found: ${url})`);
+            // Documentation may use placeholders such as wss://<render-url>.
+            // Validate actual URLs, but don't pass placeholders to the URL parser.
+            if (!url.includes('<') && !url.includes('>')) {
+              try {
+                const urlObj = new URL(url.replace(/^ws/, 'http'));
+                if (urlObj.pathname && urlObj.pathname !== '/') {
+                  docErrors.push(`${rel}:${idx + 1}: VITE_WS_BASE_URL must have no subpath (found: ${url})`);
+                }
+              } catch {
+                docErrors.push(`${rel}:${idx + 1}: VITE_WS_BASE_URL contains an invalid URL (found: ${url})`);
+              }
             }
           }
         }
