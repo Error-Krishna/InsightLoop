@@ -21,3 +21,14 @@ export const InventoryItemSchema = z.object({
 });
 
 export type InventoryItemInput = z.infer<typeof InventoryItemSchema>;
+
+export const UpdateFinishedItemSchema = z.object({
+  name: z.string().min(1, 'Item name cannot be empty.').optional(),
+  selling_price: z.coerce.number().min(0, 'Selling price must be non-negative.').optional(),
+  reorder_level: z.coerce.number().min(0, 'Reorder level must be non-negative.').optional(),
+  warehouse_id: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
+  quantity: z.any().optional(),
+});
+
+export type UpdateFinishedItemInput = z.infer<typeof UpdateFinishedItemSchema>;

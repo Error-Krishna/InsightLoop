@@ -80,6 +80,19 @@ const INDEX_DEFINITIONS = [
     indexes: [
       { key: { company_id: 1, worker_id: 1 }, options: {} },
       { key: { company_id: 1, status: 1 }, options: {} },
+      { key: { company_id: 1, bill_id: 1 }, options: {} },
+    ],
+  },
+  {
+    collection: 'material_assignments',
+    indexes: [
+      { key: { company_id: 1, bill_id: 1 }, options: {} },
+    ],
+  },
+  {
+    collection: 'stock_movements',
+    indexes: [
+      { key: { company_id: 1, bill_id: 1, date: -1 }, options: {} },
     ],
   },
   {

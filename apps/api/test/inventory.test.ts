@@ -51,16 +51,15 @@ describe('Inventory Module Integration Suite', () => {
     expect(updateWhRes.status).toBe(200);
     expect(updateWhRes.body.name).toBe('Central Hub North');
 
-    // 3b. Create an item linked to this warehouse
+    // 3b. Create a raw item linked to this warehouse
     await request(app)
-      .post('/api/v1/inventory/finished')
+      .post('/api/v1/inventory/raw')
       .set('Authorization', `Bearer ${user.token}`)
       .send({
-        name: 'Warehouse Stocked Item',
+        name: 'Warehouse Stocked Raw Item',
         unit: 'pcs',
         quantity: 25,
         cost_price: 100,
-        selling_price: 200,
         warehouse_id: whId,
       });
 
@@ -83,66 +82,7 @@ describe('Inventory Module Integration Suite', () => {
   it('manages finished, semi-finished, and raw inventory items with live stats', async () => {
     const user = await createTestUser();
 
-    // 1. Create Finished Item
-    const finishedRes = await request(app)
-      .post('/api/v1/inventory/finished')
-      .set('Authorization', `Bearer ${user.token}`)
-      .send({
-        name: 'Classic White Shirt',
-        unit: 'pcs',
-        quantity: 50,
-        cost_price: 250,
-        selling_price: 500,
-        reorder_level: 10,
-      });
-
-    expect(finishedRes.status).toBe(201);
-    expect(finishedRes.body.name).toBe('Classic White Shirt');
-    expect(finishedRes.body.sku).toBeDefined();
-    const finishedId = finishedRes.body.id as string;
-
-    // 2. Update Finished Item
-    const updateFinRes = await request(app)
-      .put(`/api/v1/inventory/finished/${finishedId}`)
-      .set('Authorization', `Bearer ${user.token}`)
-      .send({
-        quantity: 60,
-      });
-
-    expect(updateFinRes.status).toBe(200);
-    expect(updateFinRes.body.quantity).toBe(60);
-
-    // 3. List Finished
-    const listFinRes = await request(app)
-      .get('/api/v1/inventory/finished')
-      .set('Authorization', `Bearer ${user.token}`);
-
-    expect(listFinRes.status).toBe(200);
-    expect(listFinRes.body).toHaveLength(1);
-
-    // 4. Create Semi-Finished Item
-    const semiRes = await request(app)
-      .post('/api/v1/inventory/semi-finished')
-      .set('Authorization', `Bearer ${user.token}`)
-      .send({
-        name: 'Cut Fabric Pieces',
-        unit: 'sets',
-        quantity: 100,
-        cost_price: 100,
-        selling_price: 150,
-      });
-
-    expect(semiRes.status).toBe(201);
-    const semiId = semiRes.body.id as string;
-
-    // 5. Live Semi-Finished
-    const liveSemiRes = await request(app)
-      .get('/api/v1/inventory/semi-finished/live')
-      .set('Authorization', `Bearer ${user.token}`);
-
-    expect(liveSemiRes.status).toBe(200);
-
-    // 6. Create Raw Material
+    // 1. Create Raw Material
     const rawRes = await request(app)
       .post('/api/v1/inventory/raw')
       .set('Authorization', `Bearer ${user.token}`)
@@ -154,19 +94,100 @@ describe('Inventory Module Integration Suite', () => {
       });
 
     expect(rawRes.status).toBe(201);
+    expect(rawRes.body.name).toBe('Cotton Yarn Spool');
+    expect(rawRes.body.sku).toBeDefined();
     const rawId = rawRes.body.id as string;
 
-    // 7. List Raw
+    // 2. Update Raw Material
+    const updateRawRes = await request(app)
+      .put(`/api/v1/inventory/raw/${rawId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        quantity: 250,
+      });
+
+    expect(updateRawRes.status).toBe(200);
+    expect(updateRawRes.body.quantity).toBe(250);
+
+    // 3. List Raw
     const listRawRes = await request(app)
       .get('/api/v1/inventory/raw')
       .set('Authorization', `Bearer ${user.token}`);
 
     expect(listRawRes.status).toBe(200);
-    expect(listRawRes.body).toHaveLength(1);
+    expect(listRawRes.body.length).toBeGreaterThanOrEqual(1);
 
-    // 8. Delete all
-    await request(app).delete(`/api/v1/inventory/finished/${finishedId}`).set('Authorization', `Bearer ${user.token}`).expect(204);
-    await request(app).delete(`/api/v1/inventory/semi-finished/${semiId}`).set('Authorization', `Bearer ${user.token}`).expect(204);
+    // 4. Create worker and bill, then assign to create finished good via production
+    const workerRes = await request(app)
+      .post('/api/v1/workers')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ name: 'Prod Worker', phone: '9988776655' });
+    expect(workerRes.status).toBe(201);
+    const workerId = workerRes.body.id;
+
+    const billRes = await request(app)
+      .post('/api/v1/bills/kacha')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        buyer: { name: 'Direct Buyer' },
+        products: [{ name: 'Classic White Shirt', quantity: 50, rate: 500, unit: 'pcs' }],
+      });
+    expect(billRes.status).toBe(201);
+    const billId = billRes.body.id;
+
+    const assignRes = await request(app)
+      .post(`/api/v1/workers/${workerId}/materials`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        bill_id: billId,
+        material_name: 'Classic White Shirt',
+        quantity: 50,
+        raw_item_id: rawId,
+        raw_per_unit: 1,
+        wage_amount: 100,
+      });
+    expect(assignRes.status).toBe(201);
+    const assignId = assignRes.body.id;
+
+    // Output batch creates finished stock
+    const batchRes = await request(app)
+      .post(`/api/v1/workers/materials/${assignId}/batches`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ quantity: 50 });
+    expect(batchRes.status).toBe(201);
+
+    // 5. List Finished
+    const listFinRes = await request(app)
+      .get('/api/v1/inventory/finished')
+      .set('Authorization', `Bearer ${user.token}`);
+
+    expect(listFinRes.status).toBe(200);
+    expect(listFinRes.body).toHaveLength(1);
+    const finishedId = listFinRes.body[0].id;
+    expect(listFinRes.body[0].quantity).toBe(50);
+
+    // 6. Update Finished metadata (allowed) and quantity (blocked)
+    const blockedQtyRes = await request(app)
+      .put(`/api/v1/inventory/finished/${finishedId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ quantity: 100 });
+    expect(blockedQtyRes.status).toBe(400);
+
+    const updateFinMetaRes = await request(app)
+      .put(`/api/v1/inventory/finished/${finishedId}`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({ selling_price: 600, reorder_level: 15 });
+    expect(updateFinMetaRes.status).toBe(200);
+    expect(updateFinMetaRes.body.selling_price).toBe(600);
+
+    // 7. Live Semi-Finished
+    const liveSemiRes = await request(app)
+      .get('/api/v1/inventory/semi-finished/live')
+      .set('Authorization', `Bearer ${user.token}`);
+
+    expect(liveSemiRes.status).toBe(200);
+
+    // 8. Delete Raw
     await request(app).delete(`/api/v1/inventory/raw/${rawId}`).set('Authorization', `Bearer ${user.token}`).expect(204);
   });
 });

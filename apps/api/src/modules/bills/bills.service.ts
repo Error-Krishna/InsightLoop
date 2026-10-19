@@ -1,6 +1,7 @@
 import { ObjectId, type Document } from 'mongodb';
 import { BillsRepository, type BillDoc } from './bills.repository.js';
 import type { MaterialAssignmentDoc } from '../workers/workers.repository.js';
+import { InventoryRepository, type InventoryItemDoc } from '../inventory/inventory.repository.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import {
   calculateBillDerived,
@@ -54,11 +55,11 @@ export interface CostInput {
   notes?: string;
 }
 
-export interface ReadyToDeliverInput {
-  inventory_item_id?: string;
-  quantity?: number | string;
-  notes?: string;
+export interface ShipmentInput {
+  items?: { product_name: string; quantity: number }[];
+  ship_all?: boolean;
   date?: string;
+  notes?: string;
 }
 
 export class BillsService {
@@ -74,7 +75,66 @@ export class BillsService {
       }
     }
 
-    const shipmentConfirmed = Boolean(bill.shipment_confirmed);
+    const shipments = Array.isArray(bill.shipments) ? bill.shipments : [];
+    const nonCancelledAssignments = (linkedAssignments as MaterialAssignmentDoc[]).filter(
+      (a) => a.status !== 'cancelled'
+    );
+
+    const lines = (bill.products ?? []).map((p) => {
+      const pNameNorm = (p.name ?? '').trim().toLowerCase();
+      const ordered = Number(p.quantity) || 0;
+
+      let targeted = 0;
+      let produced = 0;
+      for (const a of nonCancelledAssignments) {
+        if ((a.material_name ?? '').trim().toLowerCase() === pNameNorm) {
+          targeted += Number(a.quantity) || 0;
+          let delivered = 0;
+          if (a.produced_quantity !== undefined && a.produced_quantity !== null) {
+            delivered = Number(a.produced_quantity) || 0;
+          } else if (Array.isArray(a.batches)) {
+            for (const b of a.batches) delivered += Number(b.quantity) || 0;
+          }
+          produced += delivered;
+        }
+      }
+
+      let shipped = 0;
+      for (const s of shipments) {
+        for (const item of s.items ?? []) {
+          if ((item.product_name ?? '').trim().toLowerCase() === pNameNorm) {
+            shipped += Number(item.quantity) || 0;
+          }
+        }
+      }
+      if (shipments.length === 0 && bill.shipment_confirmed) {
+        shipped = ordered;
+      }
+
+      const ready_to_ship = Math.max(0, produced - shipped);
+
+      return {
+        name: p.name,
+        unit: p.unit ?? 'pcs',
+        ordered,
+        targeted,
+        produced,
+        shipped,
+        ready_to_ship,
+      };
+    });
+
+    const allLinesShipped = lines.length > 0 && lines.every((l) => l.shipped >= l.ordered);
+    const shipmentConfirmed = allLinesShipped || Boolean(bill.shipment_confirmed);
+
+    let shipmentConfirmedAt = bill.shipment_confirmed_at;
+    if (allLinesShipped && shipments.length > 0 && !shipmentConfirmedAt) {
+      const lastShipment = shipments[shipments.length - 1];
+      if (lastShipment?.date) {
+        shipmentConfirmedAt = new Date(lastShipment.date);
+      }
+    }
+
     const billIdStr = bill._id.toString();
 
     const derived = calculateBillDerived(
@@ -87,7 +147,8 @@ export class BillsService {
       profitConfirmed,
       bill.bill_type ?? 'kacha',
       shipmentConfirmed,
-      linkedAssignments.map((a: Document) => ({ status: String((a as { status?: unknown }).status ?? '') }))
+      linkedAssignments.map((a: Document) => ({ status: String((a as { status?: unknown }).status ?? '') })),
+      lines
     );
 
     let transportationCostTotal = 0;
@@ -122,6 +183,7 @@ export class BillsService {
       id: billIdStr,
       company_id: bill.company_id,
       bill_type: bill.bill_type,
+      workflow: bill.workflow ?? (bill.workflow === undefined ? undefined : 'order_first'),
       buyer,
       products: (bill.products ?? []).map((p) => ({
         name: p.name,
@@ -131,6 +193,17 @@ export class BillsService {
         unit: p.unit ?? 'pcs',
         total: Number(p.total) || roundPy((Number(p.quantity) || 0) * (Number(p.rate) || 0), 2),
         inventory_item_id: p.inventory_item_id ?? null,
+      })),
+      lines,
+      shipments: shipments.map((s) => ({
+        shipment_id: s.shipment_id,
+        date: formatDjangoIso(s.date),
+        notes: s.notes ?? '',
+        items: (s.items ?? []).map((it) => ({
+          product_name: it.product_name,
+          quantity: Number(it.quantity) || 0,
+          finished_item_id: it.finished_item_id,
+        })),
       })),
       subtotal: Number(bill.subtotal) || 0,
       gst_percentage: Number(bill.gst_percentage) || 0,
@@ -180,8 +253,9 @@ export class BillsService {
       })),
       ready_to_deliver_quantity: readyToDeliverQty,
       shipment_confirmed: shipmentConfirmed,
-      shipment_confirmed_at: formatDjangoIso(bill.shipment_confirmed_at),
+      shipment_confirmed_at: formatDjangoIso(shipmentConfirmedAt),
       order_status: derived.order_status,
+      status: derived.order_status,
       created_at: formatDjangoIso(bill.created_at),
       updated_at: formatDjangoIso(bill.updated_at),
     };
@@ -284,21 +358,31 @@ export class BillsService {
     return applied;
   }
 
+  private static validateUniqueProductNames(products: { name?: string }[]): void {
+    const seen = new Set<string>();
+    for (const p of products) {
+      const normalized = (p.name ?? '').trim().toLowerCase();
+      if (!normalized) continue;
+      if (seen.has(normalized)) {
+        throw new ValidationError(`Duplicate product name in bill: "${(p.name ?? '').trim()}". Each product in a bill must have a unique name.`);
+      }
+      seen.add(normalized);
+    }
+  }
+
   static async createBill(scope: TenantScope, billType: string, data: BillInput) {
     const rawProducts = data.products ?? [];
     if (!Array.isArray(rawProducts) || rawProducts.length === 0) {
       throw new ValidationError('At least one product is required.');
     }
 
+    this.validateUniqueProductNames(rawProducts);
+
     const discount = parseFloat(String(data.discount ?? 0)) || 0;
     const gstPercentage = billType === 'kacha' ? 0 : parseFloat(String(data.gst_percentage ?? 0)) || 0;
 
     const totals = calculateBillTotals(rawProducts, discount, gstPercentage);
     const now = new Date();
-
-    // Stock deduction for linked items with rollback on error
-    const deltas = this.getStockDeltas(totals.products);
-    const appliedStock = await this.applyStockDeductions(scope, deltas);
 
     const buyerInput = data.buyer ?? {};
     const buyer = {
@@ -308,35 +392,59 @@ export class BillsService {
       phone: data.buyer_phone ?? buyerInput.phone ?? '',
     };
 
-    try {
-      const created = await BillsRepository.insertBillWithRetry(scope, (invoiceNumber) => ({
-        bill_type: billType,
-        buyer,
-        products: totals.products,
-        subtotal: totals.subtotal,
-        gst_percentage: totals.gst_percentage,
-        gst_amount: totals.gst_amount,
-        discount: totals.discount,
-        grand_total: totals.grand_total,
-        invoice_number: invoiceNumber,
-        payments: data.payments ?? [],
-        profit_confirmed: false,
-        worker_assignment_ids: [],
-        transportation_costs: [],
-        misc_costs: [],
-        ready_to_deliver: [],
-        shipment_confirmed: false,
-        created_at: now,
-        updated_at: now,
-      }));
+    const isLegacy = (data as { workflow?: string }).workflow === 'legacy';
+    let appliedStock: { itemId: string; qty: number }[] = [];
+    if (isLegacy) {
+      const deltas = this.getStockDeltas(totals.products);
+      appliedStock = await this.applyStockDeductions(scope, deltas);
+    }
 
-      return await this.serializeBill(created, scope);
+    // R1: New bills use workflow: 'order_first', products.inventory_item_id is stored as null,
+    // and inventory is never read or written. Legacy bills retain items and deduction.
+    const products = isLegacy
+      ? totals.products
+      : totals.products.map((p) => ({
+          ...p,
+          inventory_item_id: null,
+        }));
+
+    let created;
+    try {
+      created = await BillsRepository.insertBillWithRetry(scope, (invoiceNumber) => {
+        const doc: Parameters<typeof BillsRepository.insertBillWithRetry>[1] extends (inv: string) => infer R ? R : never = {
+          bill_type: billType,
+          workflow: isLegacy ? undefined : 'order_first',
+          buyer,
+          products,
+          subtotal: totals.subtotal,
+          gst_percentage: totals.gst_percentage,
+          gst_amount: totals.gst_amount,
+          discount: totals.discount,
+          grand_total: totals.grand_total,
+          invoice_number: invoiceNumber,
+          payments: data.payments ?? [],
+          profit_confirmed: false,
+          worker_assignment_ids: [],
+          transportation_costs: [],
+          misc_costs: [],
+          ready_to_deliver: [],
+          shipments: [],
+          shipment_confirmed: false,
+          created_at: now,
+          updated_at: now,
+        };
+        return doc;
+      });
     } catch (err) {
-      for (const roll of appliedStock) {
-        await BillsRepository.adjustInventoryStockById(scope, roll.itemId, roll.qty);
+      if (isLegacy) {
+        for (const roll of appliedStock) {
+          await BillsRepository.adjustInventoryStockById(scope, roll.itemId, roll.qty);
+        }
       }
       throw err;
     }
+
+    return await this.serializeBill(created, scope);
   }
 
   static async updateBill(scope: TenantScope, id: string, data: BillInput) {
@@ -369,6 +477,8 @@ export class BillsService {
     }
 
     const rawProducts = data.products ?? existing.products ?? [];
+    this.validateUniqueProductNames(rawProducts);
+
     const discount = data.discount !== undefined ? parseFloat(String(data.discount)) || 0 : (existing.discount ?? 0);
     const gstPercentage =
       existing.bill_type === 'kacha'
@@ -379,8 +489,77 @@ export class BillsService {
 
     const totals = calculateBillTotals(rawProducts, discount, gstPercentage);
 
-    // Reconcile stock on update:
-    // net_delta = new_delta - old_delta
+    if (existing.workflow === 'order_first') {
+      // R11 Guards for order_first:
+      // Cannot remove/rename a line that has non-cancelled assignments or shipments
+      // Cannot lower a line quantity below max(targeted, shipped)
+      const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, id);
+      const activeAssignments = linkedAssignments.filter((a) => a.status !== 'cancelled');
+      const shipments = existing.shipments ?? [];
+
+      const newProductMap = new Map<string, { quantity: number }>();
+      for (const np of totals.products) {
+        newProductMap.set(np.name.trim().toLowerCase(), { quantity: Number(np.quantity) || 0 });
+      }
+
+      for (const oldLine of existing.products ?? []) {
+        const oldNorm = oldLine.name.trim().toLowerCase();
+        let targeted = 0;
+        for (const a of activeAssignments) {
+          if ((a.material_name ?? '').trim().toLowerCase() === oldNorm) {
+            targeted += Number(a.quantity) || 0;
+          }
+        }
+        let shipped = 0;
+        for (const s of shipments) {
+          for (const item of s.items ?? []) {
+            if ((item.product_name ?? '').trim().toLowerCase() === oldNorm) {
+              shipped += Number(item.quantity) || 0;
+            }
+          }
+        }
+
+        const requiredMin = Math.max(targeted, shipped);
+        const newLine = newProductMap.get(oldNorm);
+        if (requiredMin > 0) {
+          if (!newLine) {
+            throw new ValidationError(
+              `Cannot remove or rename product "${oldLine.name}": active worker assignments or shipments exist for this product.`
+            );
+          }
+          if (newLine.quantity < requiredMin) {
+            throw new ValidationError(
+              `Cannot lower quantity for product "${oldLine.name}" below ${requiredMin} (already targeted/shipped).`
+            );
+          }
+        }
+      }
+
+      const buyer = { ...(data.buyer ?? existing.buyer) };
+      if (existing.bill_type === 'pakka') {
+        const gstNum = data.gst_number ?? (data.buyer?.gst_number || existing.buyer?.gst_number);
+        if (gstNum) {
+          buyer.gst_number = gstNum;
+        }
+      }
+
+      const updateDoc: Partial<BillDoc> = {
+        buyer,
+        products: totals.products.map((p) => ({ ...p, inventory_item_id: null })),
+        subtotal: totals.subtotal,
+        gst_percentage: totals.gst_percentage,
+        gst_amount: totals.gst_amount,
+        discount: totals.discount,
+        grand_total: totals.grand_total,
+        updated_at: new Date(),
+      };
+
+      const updated = await BillsRepository.updateBill(scope, id, updateDoc);
+      if (!updated) throw new NotFoundError('Bill not found.');
+      return await this.serializeBill(updated, scope);
+    }
+
+    // LEGACY PATH: exact stock deduct/restore behavior as today
     const oldDeltas = this.getStockDeltas(existing.products ?? []);
     const newDeltas = this.getStockDeltas(totals.products ?? []);
 
@@ -473,6 +652,20 @@ export class BillsService {
     const existing = await BillsRepository.findBillById(scope, id);
     if (!existing) throw new NotFoundError('Bill not found.');
 
+    if (existing.workflow === 'order_first') {
+      // R11 Guard: delete bill blocked (400) if any non-cancelled assignment or any shipment exists
+      const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, id);
+      const activeAssignments = linkedAssignments.filter((a) => a.status !== 'cancelled');
+      const shipments = existing.shipments ?? [];
+      if (activeAssignments.length > 0 || shipments.length > 0) {
+        throw new ValidationError('Cannot delete order: non-cancelled worker assignments or shipments exist for this order.');
+      }
+
+      await BillsRepository.deleteBill(scope, id);
+      return;
+    }
+
+    // LEGACY PATH: restore stock
     const deleted = await BillsRepository.deleteBill(scope, id);
     if (deleted) {
       const deltas = this.getStockDeltas(existing.products ?? []);
@@ -501,10 +694,51 @@ export class BillsService {
 
     const gstPercentage = parseFloat(String(data.gst_percentage ?? 0)) || 0;
     const rawProducts = data.products ?? bill.products ?? [];
-    const discount = bill.discount ?? 0;
+    this.validateUniqueProductNames(rawProducts);
 
+    const discount = bill.discount ?? 0;
     const totals = calculateBillTotals(rawProducts, discount, gstPercentage);
 
+    if (bill.workflow === 'order_first') {
+      // R1: order_first bills never read or write inventory
+      const buyer = {
+        ...(bill.buyer ?? {}),
+        gst_number: gstNumber,
+      };
+
+      let updated: BillDoc | null = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const newInvoiceNumber = await BillsRepository.getNextInvoiceNumber(scope, attempt > 0);
+        try {
+          updated = await BillsRepository.updateBill(scope, id, {
+            bill_type: 'pakka',
+            invoice_number: newInvoiceNumber,
+            buyer,
+            products: totals.products.map((p) => ({ ...p, inventory_item_id: null })),
+            subtotal: totals.subtotal,
+            gst_percentage: totals.gst_percentage,
+            gst_amount: totals.gst_amount,
+            grand_total: totals.grand_total,
+            updated_at: new Date(),
+          });
+          break;
+        } catch (err: unknown) {
+          const isDupKey =
+            (err as { code?: number })?.code === 11000 ||
+            /E11000|duplicate key/i.test((err as Error)?.message || '');
+          if (isDupKey && attempt < 4) continue;
+          if (isDupKey) {
+            throw new ValidationError('Could not generate a unique invoice number, please retry.');
+          }
+          throw err;
+        }
+      }
+
+      if (!updated) throw new NotFoundError('Bill not found.');
+      return this.serializeBill(updated, scope);
+    }
+
+    // LEGACY PATH: exact stock reconciliation as today
     if (data.products) {
       const oldDeltas = this.getStockDeltas(bill.products ?? []);
       const newDeltas = this.getStockDeltas(totals.products ?? []);
@@ -603,43 +837,75 @@ export class BillsService {
     if (!bill) throw new NotFoundError('Bill not found.');
 
     let materialCost = 0;
+    let workerCost = 0;
+    let hasOpenAssignments = false;
     const lines = [];
 
-    for (const p of bill.products ?? []) {
-      let unitCost: number | null = null;
-      let costKnown = false;
-      if (p.inventory_item_id && ObjectId.isValid(p.inventory_item_id)) {
-        const item = await BillsRepository.findInventoryItemById(scope, p.inventory_item_id);
-        if (item) {
-          unitCost = Number(item.cost_price) || 0;
-          costKnown = true;
-        }
+    if (bill.workflow === 'order_first') {
+      const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, id);
+      const nonCancelled = linkedAssignments.filter((a) => a.status !== 'cancelled');
+      hasOpenAssignments = nonCancelled.some((a) => a.status === 'open');
+
+      for (const a of nonCancelled) {
+        const netRaw = Math.max(
+          0,
+          (Number(a.raw_issued_quantity) || 0) - (Number(a.raw_returned_quantity) || 0)
+        );
+        const unitCost = Number(a.price_per_unit) || 0;
+        const lineCost = roundPy(netRaw * unitCost, 2);
+        materialCost += lineCost;
+        lines.push({
+          inventory_item_id: a.raw_item_id ?? null,
+          name: `${a.raw_item_name || 'Raw'} (${a.material_name})`,
+          quantity: netRaw,
+          unit_cost: unitCost,
+          line_cost: lineCost,
+          cost_known: true,
+        });
       }
-      const lineCost = costKnown ? roundPy((Number(p.quantity) || 0) * (unitCost ?? 0), 2) : 0;
-      materialCost += lineCost;
-      lines.push({
-        inventory_item_id: p.inventory_item_id ?? null,
-        name: p.name,
-        quantity: Number(p.quantity) || 0,
-        unit_cost: unitCost,
-        line_cost: lineCost,
-        cost_known: costKnown,
-      });
+      materialCost = roundPy(materialCost, 2);
+
+      const completedAssignments = nonCancelled.filter((a) => a.status === 'completed');
+      for (const a of completedAssignments) {
+        workerCost += Number(a.wage_amount) || 0;
+      }
+      workerCost = roundPy(workerCost, 2);
+    } else {
+      // LEGACY BILL PATH
+      for (const p of bill.products ?? []) {
+        let unitCost: number | null = null;
+        let costKnown = false;
+        if (p.inventory_item_id && ObjectId.isValid(p.inventory_item_id)) {
+          const item = await BillsRepository.findInventoryItemById(scope, p.inventory_item_id);
+          if (item) {
+            unitCost = Number(item.cost_price) || 0;
+            costKnown = true;
+          }
+        }
+        const lineCost = costKnown ? roundPy((Number(p.quantity) || 0) * (unitCost ?? 0), 2) : 0;
+        materialCost += lineCost;
+        lines.push({
+          inventory_item_id: p.inventory_item_id ?? null,
+          name: p.name,
+          quantity: Number(p.quantity) || 0,
+          unit_cost: unitCost,
+          line_cost: lineCost,
+          cost_known: costKnown,
+        });
+      }
+      materialCost = roundPy(materialCost, 2);
+
+      const linkedPayRecords = await BillsRepository.findLinkedPayRecords(
+        scope,
+        id,
+        bill.worker_assignment_ids ?? []
+      );
+
+      for (const p of linkedPayRecords) {
+        workerCost += (Number(p.units_produced) || 0) * (Number(p.rate_per_unit) || 0);
+      }
+      workerCost = roundPy(workerCost, 2);
     }
-
-    materialCost = roundPy(materialCost, 2);
-
-    let workerCost = 0;
-    const linkedPayRecords = await BillsRepository.findLinkedPayRecords(
-      scope,
-      id,
-      bill.worker_assignment_ids ?? []
-    );
-
-    for (const p of linkedPayRecords) {
-      workerCost += (Number(p.units_produced) || 0) * (Number(p.rate_per_unit) || 0);
-    }
-    workerCost = roundPy(workerCost, 2);
 
     let transportationCost = 0;
     for (const t of bill.transportation_costs ?? []) {
@@ -677,11 +943,24 @@ export class BillsService {
       cost_basis_scaled: profitCalc.cost_basis_scaled,
       suggested_profit: profitCalc.suggested_profit,
       lines,
+      has_open_assignments: hasOpenAssignments,
     };
   }
 
   static async confirmProfit(scope: TenantScope, id: string, confirmedAmountOverride?: number) {
     if (!ObjectId.isValid(id)) throw new ValidationError('Invalid bill id.');
+
+    const bill = await BillsRepository.findBillById(scope, id);
+    if (!bill) throw new NotFoundError('Bill not found.');
+
+    if (bill.workflow === 'order_first') {
+      const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, id);
+      const serialized = this.serializeBillSync(bill, linkedAssignments);
+      const isFullyShipped = serialized.order_status === 'shipped' || serialized.order_status === 'closed';
+      if (!isFullyShipped) {
+        throw new ValidationError('Cannot confirm profit: order must be fully shipped before confirming profit.');
+      }
+    }
 
     const preview = await this.getProfitPreview(scope, id);
     const confirmedAmount =
@@ -757,74 +1036,191 @@ export class BillsService {
     return this.serializeBill(updated, scope);
   }
 
-  static async addReadyToDeliver(scope: TenantScope, id: string, data: ReadyToDeliverInput) {
-    if (!ObjectId.isValid(id)) throw new ValidationError('Invalid bill id.');
-
-    const bill = await BillsRepository.findBillById(scope, id);
-    if (!bill) throw new NotFoundError('Bill not found.');
-    if (bill.shipment_confirmed) {
-      throw new ValidationError('This order has already been marked shipped.');
-    }
-
-    const itemId = data.inventory_item_id;
-    if (!itemId || !ObjectId.isValid(itemId)) {
-      throw new ValidationError('Valid inventory_item_id required.');
-    }
-
-    const item = await BillsRepository.findInventoryItemById(scope, itemId);
-    if (!item) {
-      throw new NotFoundError('Inventory item not found.');
-    }
-
-    const qty = parseFloat(String(data.quantity ?? 0)) || 0;
-    if (qty <= 0) throw new ValidationError('Quantity must be positive.');
-
-    const entry = {
-      inventory_item_id: itemId,
-      item_name: (item.name as string) ?? '',
-      quantity: qty,
-      notes: (data.notes ?? '').trim(),
-      date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
-    };
-
-    const updated = await BillsRepository.updateBillRaw(scope, id, {
-      $push: { ready_to_deliver: entry } as Document,
-      $set: { updated_at: new Date() },
-    });
-
-    if (!updated) throw new NotFoundError('Bill not found.');
-    return this.serializeBill(updated, scope);
-  }
-
-  static async confirmShipment(scope: TenantScope, id: string) {
+  static async createShipment(scope: TenantScope, id: string, data: ShipmentInput) {
     if (!ObjectId.isValid(id)) throw new ValidationError('Invalid bill id.');
 
     const bill = await BillsRepository.findBillById(scope, id);
     if (!bill) throw new NotFoundError('Bill not found.');
 
-    if (bill.shipment_confirmed) {
-      throw new ValidationError('This order is already marked shipped.');
-    }
-    if (!bill.ready_to_deliver || !Array.isArray(bill.ready_to_deliver) || bill.ready_to_deliver.length === 0) {
-      throw new ValidationError('No ready-to-deliver batches recorded for this order yet.');
+    const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, id);
+    const nonCancelledAssignments = linkedAssignments.filter(
+      (a) => a.status !== 'cancelled'
+    );
+
+    const products = bill.products ?? [];
+    if (products.length === 0) {
+      throw new ValidationError('Bill has no products.');
     }
 
-    if (Array.isArray(bill.ready_to_deliver)) {
-      for (const r of bill.ready_to_deliver) {
-        if (r.inventory_item_id && ObjectId.isValid(r.inventory_item_id)) {
-          await BillsRepository.adjustInventoryStockById(scope, r.inventory_item_id, -Number(r.quantity));
-        }
+    const shipments = bill.shipments ?? [];
+    const shippedSoFar = new Map<string, number>();
+    for (const s of shipments) {
+      for (const item of s.items ?? []) {
+        const norm = (item.product_name ?? '').trim().toLowerCase();
+        shippedSoFar.set(norm, (shippedSoFar.get(norm) ?? 0) + (Number(item.quantity) || 0));
       }
     }
 
-    const updated = await BillsRepository.updateBill(scope, id, {
-      shipment_confirmed: true,
-      shipment_confirmed_at: new Date(),
-      updated_at: new Date(),
-    });
+    const producedSoFar = new Map<string, number>();
+    for (const a of nonCancelledAssignments) {
+      const norm = (a.material_name ?? '').trim().toLowerCase();
+      producedSoFar.set(norm, (producedSoFar.get(norm) ?? 0) + (Number(a.produced_quantity) || 0));
+    }
 
-    if (!updated) throw new NotFoundError('Bill not found.');
-    return this.serializeBill(updated, scope);
+    interface ItemToShip {
+      product_name: string;
+      quantity: number;
+      finished_item_id?: string | null;
+    }
+    const itemsToShip: ItemToShip[] = [];
+
+    if (data.ship_all) {
+      for (const p of products) {
+        const norm = (p.name ?? '').trim().toLowerCase();
+        const produced = producedSoFar.get(norm) ?? 0;
+        const shipped = shippedSoFar.get(norm) ?? 0;
+        const available = Math.max(0, produced - shipped);
+        if (available > 0) {
+          const assignmentWithFinished = nonCancelledAssignments.find(
+            (a) => (a.material_name ?? '').trim().toLowerCase() === norm && a.finished_item_id
+          );
+          itemsToShip.push({
+            product_name: p.name,
+            quantity: available,
+            finished_item_id: assignmentWithFinished?.finished_item_id ?? null,
+          });
+        }
+      }
+      if (itemsToShip.length === 0) {
+        throw new ValidationError('No products are ready to ship.');
+      }
+    } else {
+      if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
+        throw new ValidationError('No items specified to ship.');
+      }
+
+      for (const reqItem of data.items) {
+        const reqName = (reqItem.product_name ?? '').trim();
+        const norm = reqName.toLowerCase();
+        const matchedProduct = products.find((p) => (p.name ?? '').trim().toLowerCase() === norm);
+        if (!matchedProduct) {
+          throw new ValidationError(`Product "${reqName}" is not part of this order.`);
+        }
+
+        const qty = Number(reqItem.quantity);
+        if (!Number.isInteger(qty) || qty <= 0) {
+          throw new ValidationError(`Quantity for "${matchedProduct.name}" must be a positive integer.`);
+        }
+
+        const produced = producedSoFar.get(norm) ?? 0;
+        const shipped = shippedSoFar.get(norm) ?? 0;
+        const available = Math.max(0, produced - shipped);
+
+        if (qty > available) {
+          throw new ValidationError(
+            `Cannot ship ${qty} of "${matchedProduct.name}": only ${available} ready to ship.`
+          );
+        }
+
+        producedSoFar.set(norm, produced - qty);
+
+        const assignmentWithFinished = nonCancelledAssignments.find(
+          (a) => (a.material_name ?? '').trim().toLowerCase() === norm && a.finished_item_id
+        );
+
+        itemsToShip.push({
+          product_name: matchedProduct.name,
+          quantity: qty,
+          finished_item_id: assignmentWithFinished?.finished_item_id ?? null,
+        });
+      }
+    }
+
+    const appliedDeductions: { itemId: string; qty: number; movementId?: ObjectId }[] = [];
+    const shipmentDate = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
+    const finalShipmentItems: { product_name: string; quantity: number; finished_item_id: string }[] = [];
+
+    try {
+      for (const shipItem of itemsToShip) {
+        let finishedItem: InventoryItemDoc | null = null;
+        if (shipItem.finished_item_id && ObjectId.isValid(shipItem.finished_item_id)) {
+          finishedItem = (await BillsRepository.findInventoryItemById(scope, shipItem.finished_item_id)) as InventoryItemDoc | null;
+        }
+        if (!finishedItem) {
+          finishedItem = await InventoryRepository.findItemByNameAndType(scope, shipItem.product_name, 'finished');
+        }
+
+        if (!finishedItem) {
+          throw new ValidationError(
+            `Finished inventory item for "${shipItem.product_name}" not found in stock.`
+          );
+        }
+
+        const finishedItemId = finishedItem._id.toString();
+        const success = await BillsRepository.adjustInventoryStockConditional(
+          scope,
+          finishedItemId,
+          -shipItem.quantity,
+          shipItem.quantity
+        );
+
+        if (!success) {
+          const currentQty = Number(finishedItem.quantity) || 0;
+          throw new ValidationError(
+            `Insufficient finished stock for "${shipItem.product_name}": requested ${shipItem.quantity}, available ${currentQty}.`
+          );
+        }
+
+        const movement = await InventoryRepository.insertStockMovement(scope, {
+          company_id: scope.companyId,
+          date: shipmentDate,
+          type: 'shipment_out',
+          item_id: finishedItemId,
+          item_name: finishedItem.name || shipItem.product_name,
+          quantity: shipItem.quantity,
+          bill_id: id,
+          assignment_id: null,
+          worker_id: null,
+          notes: data.notes ?? '',
+          created_at: new Date(),
+        });
+
+        appliedDeductions.push({
+          itemId: finishedItemId,
+          qty: shipItem.quantity,
+          movementId: movement._id,
+        });
+
+        finalShipmentItems.push({
+          product_name: shipItem.product_name,
+          quantity: shipItem.quantity,
+          finished_item_id: finishedItemId,
+        });
+      }
+
+      const shipmentRecord = {
+        shipment_id: new ObjectId().toString(),
+        date: shipmentDate,
+        notes: (data.notes ?? '').trim(),
+        items: finalShipmentItems,
+      };
+
+      const updated = await BillsRepository.updateBillRaw(scope, id, {
+        $push: { shipments: shipmentRecord } as Document,
+        $set: { updated_at: new Date() },
+      });
+
+      if (!updated) throw new NotFoundError('Bill not found.');
+      return await this.serializeBill(updated, scope);
+    } catch (err) {
+      for (const d of appliedDeductions) {
+        await BillsRepository.adjustInventoryStockById(scope, d.itemId, d.qty);
+        if (d.movementId) {
+          await InventoryRepository.deleteStockMovementById(scope, d.movementId);
+        }
+      }
+      throw err;
+    }
   }
 
   static async getBillAssignments(scope: TenantScope, id: string) {

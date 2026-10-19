@@ -13,7 +13,9 @@ workersRouter.post('/', asyncHandler(WorkersController.createWorker));
 
 // 2. Specific actions (batches & complete)
 workersRouter.post('/materials/:assignment_id/batches', asyncHandler(WorkersController.addBatch));
+workersRouter.post('/materials/:assignment_id/issues', asyncHandler(WorkersController.issueRawMaterial));
 workersRouter.put('/materials/:assignment_id/complete', asyncHandler(WorkersController.completeAssignment));
+workersRouter.put('/materials/:assignment_id/cancel', asyncHandler(WorkersController.cancelAssignment));
 workersRouter.put('/payments/:payment_id/mark-paid', asyncHandler(WorkersController.markPaymentPaid));
 workersRouter.post('/payments/:payment_id/record-payment', asyncHandler(WorkersController.recordPartialPayment));
 

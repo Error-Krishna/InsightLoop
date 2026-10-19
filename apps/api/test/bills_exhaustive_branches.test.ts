@@ -47,6 +47,7 @@ describe('Bills & Workers Exhaustive Branch Sweep', () => {
 
     // 2. Create bill without discount, products without inventory_item_id, and with inventory_item_id
     const b1 = await BillsService.createBill(scope, 'kacha', {
+      workflow: 'legacy' as any,
       buyer: { name: 'Buyer A' },
       products: [
         { name: 'Custom Product', quantity: 2, rate: 100 }, // no inventory_item_id
@@ -113,27 +114,39 @@ describe('Bills & Workers Exhaustive Branch Sweep', () => {
     });
     expect(b1WithMisc.misc_cost_total).toBe(75);
 
-    // 9. Add ready to deliver with item and notes
-    const b1Ready = await BillsService.addReadyToDeliver(scope, pakkaDefaultProds.id, {
-      inventory_item_id: itemA.id,
-      quantity: 2,
-      notes: 'Inspected boxes',
-      date: costDate,
-    });
-    expect(b1Ready.ready_to_deliver_quantity).toBe(2);
+    // 9. Legacy ready to deliver on bill doc
+    await db.collection('bills').updateOne(
+      { _id: new ObjectId(pakkaDefaultProds.id) },
+      {
+        $push: {
+          ready_to_deliver: {
+            inventory_item_id: itemA.id,
+            quantity: 2,
+            notes: 'Inspected boxes',
+            date: costDate,
+          },
+        } as any,
+      }
+    );
 
     // 10. Link worker assignments and pay records to bill and check profit preview
     const worker = await WorkersService.createWorker(scope, { name: 'Profit Worker' });
+    const rawProfit = await InventoryRepository.insertItem(scope, {
+      name: 'Profit Raw',
+      unit: 'm',
+      type: 'raw',
+      quantity: 50,
+      cost_price: 10,
+      created_at: new Date(),
+    });
     const assignment = await WorkersService.createMaterial(scope, worker.id, {
-      material_name: 'Raw Silk Fabric',
-      quantity: 10,
+      bill_id: pakkaDefaultProds.id,
+      raw_item_id: rawProfit._id.toString(),
+      material_name: 'Item Alpha',
+      quantity: 2,
       price_per_unit: 10,
       wage_amount: 100,
     });
-    await db.collection('material_assignments').updateOne(
-      { _id: new ObjectId(assignment.id) },
-      { $set: { bill_id: pakkaDefaultProds.id } }
-    );
     await db.collection('bills').updateOne(
       { _id: new ObjectId(pakkaDefaultProds.id) },
       { $push: { worker_assignment_ids: assignment.id } }
@@ -208,6 +221,7 @@ describe('Bills & Workers Exhaustive Branch Sweep', () => {
 
     // Profit preview with mixed product lines (known cost, unlinked item, invalid item id)
     const mixedBill = await BillsService.createBill(scope, 'kacha', {
+      workflow: 'legacy' as any,
       products: [
         { name: 'Known Item', quantity: 1, rate: 100, inventory_item_id: itemA.id },
         { name: 'Unknown Item', quantity: 2, rate: 50 },
@@ -303,6 +317,7 @@ describe('Bills & Workers Exhaustive Branch Sweep', () => {
       worker_id: w1.id,
       material_name: 'No Batch Material',
       quantity: 10,
+      raw_issued_quantity: 10,
       price_per_unit: 5,
       status: 'open',
       batches: null,
@@ -312,7 +327,27 @@ describe('Bills & Workers Exhaustive Branch Sweep', () => {
     expect(fetchedAssignment?.delivered_quantity).toBe(0);
 
     // Add batch edge cases: null quantity, float string, and formatted date
-    const dateAss = await WorkersService.createMaterial(scope, w1.id, { material_name: 'Batch Date Test', quantity: 10, price_per_unit: 1 });
+    await WorkersService.updateWorker(scope, w1.id, { is_active: true });
+    const rawBatchItem = await InventoryRepository.insertItem(scope, {
+      name: 'Batch Raw',
+      unit: 'pcs',
+      type: 'raw',
+      quantity: 50,
+      cost_price: 1,
+      sku: 'SKU-BATCH-' + Date.now(),
+      created_at: new Date(),
+    });
+    const batchBill = await BillsService.createBill(scope, 'kacha', {
+      buyer_name: 'Batch Buyer',
+      products: [{ name: 'Batch Date Test', quantity: 10, rate: 10 }],
+    });
+    const dateAss = await WorkersService.createMaterial(scope, w1.id, {
+      bill_id: batchBill.id,
+      raw_item_id: rawBatchItem._id.toString(),
+      material_name: 'Batch Date Test',
+      quantity: 10,
+      price_per_unit: 1,
+    });
     await expect(WorkersService.addBatch(scope, dateAss.id, { quantity: null as any })).rejects.toThrow('Batch quantity must be a positive number.');
     await expect(WorkersService.addBatch(scope, dateAss.id, { quantity: '3.14' as any })).rejects.toThrow('Batch quantity must be an integer.');
     const dateBatch = await WorkersService.addBatch(scope, dateAss.id, { quantity: 2, date: '2026-10-16' });

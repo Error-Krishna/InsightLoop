@@ -49,14 +49,19 @@ export const ConfirmProfitSchema = z.object({
 
 export type ConfirmProfitInput = z.infer<typeof ConfirmProfitSchema>;
 
-export const ReadyToDeliverSchema = z.object({
-  inventory_item_id: z.string().min(1, 'Inventory item id is required.'),
+export const ShipmentItemSchema = z.object({
+  product_name: z.string().min(1, 'Product name is required.'),
   quantity: z.coerce.number().positive('Quantity must be positive.'),
-  notes: z.string().optional().default(''),
-  date: z.string().optional(),
 });
 
-export type ReadyToDeliverInput = z.infer<typeof ReadyToDeliverSchema>;
+export const CreateShipmentSchema = z.object({
+  items: z.array(ShipmentItemSchema).optional().default([]),
+  ship_all: z.boolean().optional().default(false),
+  date: z.string().optional(),
+  notes: z.string().optional().default(''),
+});
+
+export type CreateShipmentInput = z.infer<typeof CreateShipmentSchema>;
 
 export const TransportationCostSchema = z.object({
   amount: z.coerce.number().positive('Amount must be positive.'),

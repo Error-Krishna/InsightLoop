@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { OrderStatus } from './constants.js';
 
 // Configure Decimal.js to use Banker's Rounding (ROUND_HALF_EVEN)
 Decimal.set({
@@ -153,25 +154,32 @@ export interface BillPaymentItem {
   notes?: string;
 }
 
+export interface BillLineProgress {
+  ordered: number;
+  produced?: number;
+  shipped?: number;
+}
+
 export interface BillDerivedStatus {
   amount_received: number;
   balance_due: number;
   over_received: boolean;
   payment_status: 'unpaid' | 'partial' | 'paid';
   payment_fraction: number;
-  order_status: 'draft' | 'confirmed' | 'in_production' | 'ready_to_ship' | 'shipped' | 'closed';
+  order_status: OrderStatus;
 }
 
 /**
- * Computes derived payment status and order status from bill financial state.
+ * Computes derived payment status and order status from bill financial state and line progress.
  */
 export function calculateBillDerived(
   grandTotal: number,
   payments: BillPaymentItem[] = [],
-  profitConfirmed = false,
-  billType = 'kacha',
+  _profitConfirmed = false,
+  _billType = 'kacha',
   shipmentConfirmed = false,
-  assignments: { status: string }[] = []
+  assignments: { status: string }[] = [],
+  lines: BillLineProgress[] = []
 ): BillDerivedStatus {
   let amount_received = 0;
   for (const p of payments) {
@@ -203,19 +211,33 @@ export function calculateBillDerived(
 
   const over_received = amount_received > grandTotal;
 
-  let order_status: 'draft' | 'confirmed' | 'in_production' | 'ready_to_ship' | 'shipped' | 'closed';
-  if (profitConfirmed && payment_status === 'paid') {
+  const nonCancelledAssignments = assignments.filter((a) => a.status !== 'cancelled');
+  const hasNonCancelledAssignment = nonCancelledAssignments.length > 0;
+
+  const fullyShipped =
+    Boolean(shipmentConfirmed) ||
+    (lines.length > 0 && lines.every((l) => (l.shipped ?? 0) >= (l.ordered ?? 0) && (l.ordered ?? 0) > 0));
+
+  const partiallyShipped = lines.length > 0 && lines.some((l) => (l.shipped ?? 0) > 0);
+
+  const readyToShip =
+    lines.length > 0
+      ? lines.every((l) => (l.produced ?? 0) >= (l.ordered ?? 0) && (l.ordered ?? 0) > 0)
+      : (nonCancelledAssignments.length > 0 && nonCancelledAssignments.every((a) => a.status === 'completed'));
+
+  let order_status: OrderStatus;
+  if (fullyShipped && payment_status === 'paid') {
     order_status = 'closed';
-  } else if (shipmentConfirmed) {
+  } else if (fullyShipped) {
     order_status = 'shipped';
-  } else if (billType === 'kacha') {
-    order_status = 'draft';
-  } else if (assignments.length === 0) {
-    order_status = 'confirmed';
-  } else if (assignments.every(a => a.status === 'completed')) {
+  } else if (partiallyShipped) {
+    order_status = 'partially_shipped';
+  } else if (readyToShip) {
     order_status = 'ready_to_ship';
-  } else {
+  } else if (hasNonCancelledAssignment) {
     order_status = 'in_production';
+  } else {
+    order_status = 'confirmed';
   }
 
   return {

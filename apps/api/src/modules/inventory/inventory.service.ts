@@ -111,7 +111,12 @@ export class InventoryService {
     if (data.unit !== undefined) updateFields.unit = data.unit;
     if (data.selling_price !== undefined) updateFields.selling_price = parseFloat(String(data.selling_price)) || 0;
     if (data.cost_price !== undefined) updateFields.cost_price = parseFloat(String(data.cost_price)) || 0;
-    if (data.quantity !== undefined) updateFields.quantity = parseFloat(String(data.quantity)) || 0;
+    if (data.quantity !== undefined) {
+      if (itemType === 'finished') {
+        throw new ValidationError('Finished stock changes only through production and shipments.');
+      }
+      updateFields.quantity = parseFloat(String(data.quantity)) || 0;
+    }
     if (data.reorder_level !== undefined) updateFields.reorder_level = parseFloat(String(data.reorder_level)) || 0;
     if (data.warehouse_id !== undefined) updateFields.warehouse_id = data.warehouse_id;
     if (data.image_url !== undefined) updateFields.image_url = data.image_url;
@@ -164,7 +169,7 @@ export class InventoryService {
 
     const derivedRows = [];
     for (const assignment of openAssignments) {
-      let orderInfo = null;
+      let orderInfo: { bill_id: string; invoice_number: string; order_status?: string; buyer_name: string | null } | null = null;
       if (assignment.bill_id && ObjectId.isValid(String(assignment.bill_id))) {
         const bill = await InventoryRepository.findBillById(scope, String(assignment.bill_id));
         if (bill) {
@@ -193,15 +198,19 @@ export class InventoryService {
       if (typeof assignment.worker === 'object' && assignment.worker !== null && !(assignment.worker instanceof ObjectId) && 'name' in assignment.worker && typeof assignment.worker.name === 'string') {
         fallbackWorkerName = assignment.worker.name;
       }
-      const workerName = worker?.name ?? fallbackWorkerName;
+      const workerName = worker?.name ?? fallbackWorkerName ?? null;
 
       let deliveredQty = 0;
-      if (Array.isArray(assignment.batches)) {
+      if (assignment.produced_quantity !== undefined && assignment.produced_quantity !== null) {
+        deliveredQty = Number(assignment.produced_quantity) || 0;
+      } else if (Array.isArray(assignment.batches)) {
         for (const b of assignment.batches) {
           deliveredQty += Number(b.quantity) || 0;
         }
       }
-      const balanceQty = Math.max(0, (Number(assignment.quantity) || 0) - deliveredQty);
+
+      const target = Number(assignment.quantity) || 0;
+      const balanceQty = Math.max(0, target - deliveredQty);
 
       derivedRows.push({
         id: `assignment:${assignment._id.toString()}`,
@@ -210,7 +219,7 @@ export class InventoryService {
         name: assignment.material_name ?? 'Unknown',
         unit: 'pcs',
         type: 'semi_finished',
-        assigned_quantity: Number(assignment.quantity) || 0,
+        assigned_quantity: target,
         delivered_quantity: deliveredQty,
         balance_quantity: balanceQty,
         quantity: balanceQty,
@@ -226,6 +235,24 @@ export class InventoryService {
       manual_items: manualRows,
       in_production: derivedRows,
     };
+  }
+
+  static async listMovements(scope: TenantScope, billId?: string) {
+    const movements = await InventoryRepository.findStockMovements(scope, billId, 200);
+    return movements.map((m) => ({
+      id: m._id.toString(),
+      company_id: m.company_id,
+      date: formatDjangoIso(m.date),
+      type: m.type,
+      item_id: m.item_id ? m.item_id.toString() : null,
+      item_name: m.item_name ?? '',
+      quantity: Number(m.quantity) || 0,
+      bill_id: m.bill_id ?? null,
+      assignment_id: m.assignment_id ?? null,
+      worker_id: m.worker_id ?? null,
+      notes: m.notes ?? '',
+      created_at: formatDjangoIso(m.created_at),
+    }));
   }
 
   static async listWarehouses(scope: TenantScope) {

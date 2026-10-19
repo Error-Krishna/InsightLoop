@@ -508,6 +508,7 @@ describe('Branch Coverage Final Closure Suite', () => {
 
       await expect(
         BillsService.createBill(scope, 'kacha', {
+          workflow: 'legacy' as any,
           products: [
             { name: 'Item A', quantity: 2, rate: 100, inventory_item_id: item1.insertedId.toString() },
             { name: 'Item B', quantity: 2, rate: 100, inventory_item_id: item2.insertedId.toString() },
@@ -519,6 +520,7 @@ describe('Branch Coverage Final Closure Suite', () => {
 
       // 2. updateBill rollback when BillsRepository.updateBill throws
       const bill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [
           { name: 'Item A', quantity: 1, rate: 100, inventory_item_id: item1.insertedId.toString() },
         ],
@@ -564,8 +566,8 @@ describe('Branch Coverage Final Closure Suite', () => {
       await expect(BillsService.addMiscCost(scope, 'invalid-id', { amount: 10 })).rejects.toThrow(ValidationError);
       await expect(BillsService.addMiscCost(scope, dummyId, { amount: 10 })).rejects.toThrow(NotFoundError);
 
-      await expect(BillsService.confirmShipment(scope, 'invalid-id')).rejects.toThrow(ValidationError);
-      await expect(BillsService.confirmShipment(scope, dummyId)).rejects.toThrow(NotFoundError);
+      await expect(BillsService.createShipment(scope, 'invalid-id', { items: [] })).rejects.toThrow(ValidationError);
+      await expect(BillsService.createShipment(scope, dummyId, { items: [] })).rejects.toThrow(NotFoundError);
 
       await expect(BillsService.getBillPdf(scope, dummyId)).rejects.toThrow(NotFoundError);
       await expect(BillsService.shareWhatsApp(scope, dummyId)).rejects.toThrow(NotFoundError);
@@ -582,6 +584,7 @@ describe('Branch Coverage Final Closure Suite', () => {
         unit: 'pcs',
       });
       const billToConvert = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [{ name: 'Low Stock Item', quantity: 1, rate: 100, inventory_item_id: itemLow.insertedId.toString() }],
       });
 

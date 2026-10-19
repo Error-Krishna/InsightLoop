@@ -450,6 +450,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
 
     it('covers confirmProfit override undefined vs NaN, and reopenProfit', async () => {
       const bill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [{ name: 'P1', quantity: 1, rate: 100 }],
       });
 
@@ -467,56 +468,27 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
       expect(conf2.profit_confirmed_amount).toBe(250);
     });
 
-    it('covers addReadyToDeliver and confirmShipment validations & stock deductions', async () => {
-      const item = await db.collection('inventory_items').insertOne({
-        company_id: companyId,
-        sku: 'SKU-SHIP-' + Date.now(),
-        name: 'Shipment Item',
-        quantity: 50,
-        unit: 'box',
-      });
-
+    it('covers createShipment validations & error branches', async () => {
       const bill = await BillsService.createBill(scope, 'kacha', {
-        products: [{ name: 'Shipment Item', quantity: 10, rate: 100, inventory_item_id: item.insertedId.toString() }],
+        products: [{ name: 'Shipment Item', quantity: 10, rate: 100 }],
       });
 
-      // Validation errors on addReadyToDeliver
+      // Validation errors on createShipment
       await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: '' as any, quantity: 5 })
-      ).rejects.toThrow('Valid inventory_item_id required.');
-
-      await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: 'invalid-id' as any, quantity: 5 })
-      ).rejects.toThrow('Valid inventory_item_id required.');
+        BillsService.createShipment(scope, bill.id, { items: [] })
+      ).rejects.toThrow('No items specified to ship.');
 
       await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: new ObjectId().toString(), quantity: 5 })
-      ).rejects.toThrow(NotFoundError);
+        BillsService.createShipment(scope, bill.id, { items: [{ product_name: 'Shipment Item', quantity: 0 }] })
+      ).rejects.toThrow('Quantity for "Shipment Item" must be a positive integer.');
 
       await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: item.insertedId.toString(), quantity: 0 })
-      ).rejects.toThrow('Quantity must be positive.');
-
-      // Valid addReadyToDeliver
-      const withBatch = await BillsService.addReadyToDeliver(scope, bill.id, {
-        inventory_item_id: item.insertedId.toString(),
-        quantity: 5,
-        notes: 'Batch 1 ready',
-      });
-      expect(withBatch.ready_to_deliver.length).toBe(1);
-
-      // Confirm shipment
-      const shipped = await BillsService.confirmShipment(scope, bill.id);
-      expect(shipped.profit_confirmed).toBeDefined();
-
-      // Attempting to add ready to deliver or confirm shipment after shipped
-      await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: item.insertedId.toString(), quantity: 1 })
-      ).rejects.toThrow('This order has already been marked shipped.');
+        BillsService.createShipment(scope, bill.id, { items: [{ product_name: 'Shipment Item', quantity: 5 }] })
+      ).rejects.toThrow('Cannot ship 5 of "Shipment Item": only 0 ready to ship.');
 
       await expect(
-        BillsService.confirmShipment(scope, bill.id)
-      ).rejects.toThrow('This order is already marked shipped.');
+        BillsService.createShipment(scope, bill.id, { ship_all: true })
+      ).rejects.toThrow('No products are ready to ship.');
     });
 
     it('covers getBillAssignments batch aggregation and over_returned', async () => {
@@ -595,6 +567,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
 
     it('covers updateBill fallback branches, null item rollback, and null update returns', async () => {
       const pakkaBill = await BillsService.createBill(scope, 'pakka', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Corporate Buyer', address: 'Plot 10', gst_number: '07AAAAA0000A1Z5' },
         discount: 10,
         gst_percentage: 12,
@@ -609,6 +582,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
       // 2. updateBill when positive delta conditional deduction fails and findInventoryItemById returns null
       const fakeItemId = new ObjectId().toString();
       const billForNullItem = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [{ name: 'Item P', quantity: 1, rate: 50 }],
       });
 
@@ -631,31 +605,25 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
       ).rejects.toThrow(NotFoundError);
       updateNullSpy.mockRestore();
 
-      // 4. updateBillRaw returning null in recordPayment, addTransportationCost, addMiscCost, addReadyToDeliver
+      // 4. updateBillRaw returning null in recordPayment, addTransportationCost, addMiscCost
       const rawNullSpy = vi.spyOn(BillsRepository, 'updateBillRaw').mockResolvedValue(null);
 
-      await expect(BillsService.recordPayment(scope, pakkaBill.id, { amount: 50 })).rejects.toThrow(NotFoundError);
-      await expect(BillsService.addTransportationCost(scope, pakkaBill.id, { amount: 50 })).rejects.toThrow(NotFoundError);
-      await expect(BillsService.addMiscCost(scope, pakkaBill.id, { amount: 50 })).rejects.toThrow(NotFoundError);
+      try {
+        await expect(BillsService.recordPayment(scope, pakkaBill.id, { amount: 50 })).rejects.toThrow(NotFoundError);
+        await expect(BillsService.addTransportationCost(scope, pakkaBill.id, { amount: 50 })).rejects.toThrow(NotFoundError);
+        await expect(BillsService.addMiscCost(scope, pakkaBill.id, { amount: 50 })).rejects.toThrow(NotFoundError);
+      } finally {
+        rawNullSpy.mockRestore();
+      }
 
-      const invItem = await db.collection('inventory_items').insertOne({
-        company_id: companyId,
-        sku: 'SKU-R2D-' + Date.now(),
-        name: 'R2D Item',
-        quantity: 10,
-        unit: 'pcs',
-      });
-      await expect(
-        BillsService.addReadyToDeliver(scope, pakkaBill.id, { inventory_item_id: invItem.insertedId.toString(), quantity: 1 })
-      ).rejects.toThrow(NotFoundError);
-
-      rawNullSpy.mockRestore();
-
-      // 5. updateBill returning null in confirmProfit, reopenProfit, confirmShipment
+      // 5. updateBill returning null in confirmProfit, reopenProfit
       const updateNullSpy2 = vi.spyOn(BillsRepository, 'updateBill').mockResolvedValue(null);
-      await expect(BillsService.confirmProfit(scope, pakkaBill.id)).rejects.toThrow(NotFoundError);
-      await expect(BillsService.reopenProfit(scope, pakkaBill.id)).rejects.toThrow(NotFoundError);
-      updateNullSpy2.mockRestore();
+      try {
+        await expect(BillsService.confirmProfit(scope, pakkaBill.id)).rejects.toThrow(NotFoundError);
+        await expect(BillsService.reopenProfit(scope, pakkaBill.id)).rejects.toThrow(NotFoundError);
+      } finally {
+        updateNullSpy2.mockRestore();
+      }
     });
 
     it('covers getProfitPreview and getBillAssignments deep branch coverage', async () => {
@@ -678,6 +646,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
       });
 
       const billDoc = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [
           { name: 'Cost Item', quantity: 2, rate: 100, inventory_item_id: itemWithCost.insertedId.toString() },
           { name: 'Unknown Cost Item', quantity: 1, rate: 80, inventory_item_id: itemWithoutCost.insertedId.toString() },
@@ -975,6 +944,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
 
       await expect(
         BillsService.createBill(scope, 'kacha', {
+          workflow: 'legacy' as any,
           products: [{ name: 'Ghost Item', quantity: 2, rate: 10, inventory_item_id: fakeObjId }],
         })
       ).rejects.toThrow('Insufficient stock: undefined: requested 2.0 pcs, only 0.0 pcs in stock');
@@ -985,6 +955,7 @@ describe('Phase 5.9 Missing Branch Coverage Suite', () => {
 
     it('covers workerCostTotal, listBills multiple assignment mapping, and zero cost fallbacks', async () => {
       const finalBill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [{ name: 'Final Item', quantity: 1, rate: 50 }],
       });
 

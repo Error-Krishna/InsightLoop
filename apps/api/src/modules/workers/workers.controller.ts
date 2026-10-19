@@ -2,8 +2,10 @@ import type { Request, Response } from 'express';
 import {
   WorkersService,
   type BatchInput,
+  type CompleteAssignmentInput,
   type MaterialInput,
   type PaymentInput,
+  type RawIssueInput,
   type WorkerInput,
 } from './workers.service.js';
 import type { TenantScope } from '../../types/tenant.js';
@@ -30,10 +32,24 @@ export class WorkersController {
     res.status(201).json(result);
   }
 
+  static async issueRawMaterial(req: Request, res: Response): Promise<void> {
+    const scope: TenantScope = { companyId: req.companyId! };
+    const assignmentId = req.params.assignment_id as string;
+    const result = await WorkersService.issueRawMaterial(scope, assignmentId, req.body as RawIssueInput);
+    res.status(201).json(result);
+  }
+
   static async completeAssignment(req: Request, res: Response): Promise<void> {
     const scope: TenantScope = { companyId: req.companyId! };
     const assignmentId = req.params.assignment_id as string;
-    const result = await WorkersService.completeAssignment(scope, assignmentId);
+    const result = await WorkersService.completeAssignment(scope, assignmentId, req.body as CompleteAssignmentInput);
+    res.status(200).json(result);
+  }
+
+  static async cancelAssignment(req: Request, res: Response): Promise<void> {
+    const scope: TenantScope = { companyId: req.companyId! };
+    const assignmentId = req.params.assignment_id as string;
+    const result = await WorkersService.cancelAssignment(scope, assignmentId);
     res.status(200).json(result);
   }
 

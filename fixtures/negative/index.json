@@ -24,12 +24,14 @@
   },
   {
     "id": "03_shipment_without_ready_to_deliver",
-    "description": "Confirming shipment on bill without ready-to-deliver batches",
-    "endpoint": "/api/v1/bills/:kachaBillId/confirm-shipment",
+    "description": "Shipping items exceeding ready-to-ship produced quantity",
+    "endpoint": "/api/v1/bills/:kachaBillId/shipments",
     "method": "POST",
-    "payload": {},
+    "payload": {
+      "items": [{ "product_name": "Fabric", "quantity": 1 }]
+    },
     "expectedStatus": 400,
-    "expectedErrorSubstring": "No ready-to-deliver batches recorded for this order yet.",
+    "expectedErrorSubstring": "only 0 ready to ship",
     "useAuth": true
   },
   {
@@ -128,7 +130,7 @@
   {
     "id": "13_missing_inventory_name",
     "description": "Inventory item missing required name",
-    "endpoint": "/api/v1/inventory/finished",
+    "endpoint": "/api/v1/inventory/raw",
     "method": "POST",
     "payload": { "name": "   ", "unit": "pcs", "selling_price": 100 },
     "expectedStatus": 400,

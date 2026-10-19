@@ -248,6 +248,7 @@ describe('Branch Coverage Target Exhaustion Suite', () => {
       });
 
       const bill = await BillsService.createBill(scope, 'pakka', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Acme Buyer', phone: '9876543210', gst_number: '29ABCDE1234F1Z5' },
         products: [
           { name: 'Bill Edge Item 1', quantity: 5, rate: 100, unit: 'pcs', inventory_item_id: invItem1.id },
@@ -292,27 +293,7 @@ describe('Branch Coverage Target Exhaustion Suite', () => {
       const bWithMisc = await BillsService.addMiscCost(scope, bill.id, { amount: 75, notes: 'Packaging' });
       expect(bWithMisc.misc_costs?.length).toBe(1);
 
-      // 6. Ready to deliver & shipment confirmation
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: '', quantity: 5 })).rejects.toThrow('Valid inventory_item_id required.');
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: invItem1.id, quantity: 0 })).rejects.toThrow('Quantity must be positive.');
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: 'invalid-hex', quantity: 5 })).rejects.toThrow('Valid inventory_item_id required.');
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: new ObjectId().toString(), quantity: 5 })).rejects.toThrow(NotFoundError);
-
-      // Ready to deliver with available stock
-      const bWithReady = await BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: invItem1.id, quantity: 5, notes: 'Batch A' });
-      expect(bWithReady.ready_to_deliver?.length).toBe(1);
-
-      // Confirm shipment
-      const shippedBill = await BillsService.confirmShipment(scope, bill.id);
-      expect(shippedBill.shipment_confirmed).toBe(true);
-
-      // Try earmarking on shipped bill
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: invItem1.id, quantity: 1 })).rejects.toThrow('This order has already been marked shipped.');
-
-      // Try confirming shipment again
-      await expect(BillsService.confirmShipment(scope, bill.id)).rejects.toThrow('This order is already marked shipped.');
-
-      // 7. Profit lifecycle: suggested, confirm with override, reopen
+      // 6. Profit lifecycle: suggested, confirm with override, reopen
       const suggestion = await BillsService.getProfitPreview(scope, bill.id);
       expect(suggestion.suggested_profit).toBeDefined();
 
@@ -330,10 +311,10 @@ describe('Branch Coverage Target Exhaustion Suite', () => {
       expect(reopenedBill.profit_confirmed).toBe(false);
       expect(reopenedBill.profit_confirmed_amount).toBeNull();
 
-      // Delete bill restores stock (11 + 4 = 15)
+      // Delete bill restores stock (16 + 4 = 20)
       await BillsService.deleteBill(scope, bill.id);
       const itemFinal = await InventoryRepository.findItemById(scope, invItem1.id);
-      expect(itemFinal?.quantity).toBe(15);
+      expect(itemFinal?.quantity).toBe(20);
     });
   });
 

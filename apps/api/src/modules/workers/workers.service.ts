@@ -5,6 +5,7 @@ import {
   type PayRecordDoc,
   type WorkerDoc,
 } from './workers.repository.js';
+import { InventoryRepository } from '../inventory/inventory.repository.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { roundPy } from '@insightloop/shared';
 import { formatDjangoIso } from '../../utils/timezone.js';
@@ -21,14 +22,27 @@ export interface WorkerInput {
 }
 
 export interface MaterialInput {
-  material_name?: string;
-  quantity?: number | string;
+  bill_id: string;
+  material_name: string;
+  quantity: number | string;
+  raw_item_id: string;
+  raw_per_unit?: number | string;
+  issue_quantity?: number | string;
   price_per_unit?: number | string;
+  wage_amount?: number | string;
   date?: string | Date;
   notes?: string;
   batches?: { quantity: number; date?: string; notes?: string }[];
-  wage_amount?: number | string;
-  bill_id?: string | null;
+}
+
+export interface RawIssueInput {
+  quantity: number | string;
+  date?: string | Date;
+  notes?: string;
+}
+
+export interface CompleteAssignmentInput {
+  raw_returned_quantity?: number | string;
 }
 
 export interface BatchInput {
@@ -58,7 +72,8 @@ export class WorkersService {
       }
     }
 
-    const completed = assignments.filter((a) => a.status === 'completed');
+    const nonCancelled = assignments.filter((a) => a.status !== 'cancelled');
+    const completed = nonCancelled.filter((a) => a.status === 'completed');
     let totalAssignedCompleted = 0;
     let totalWasted = 0;
     for (const a of completed) {
@@ -71,17 +86,20 @@ export class WorkersService {
         ? roundPy((totalWasted / totalAssignedCompleted) * 100, 1)
         : 0.0;
 
-    let totalAssigned = 0;
-    let totalDelivered = 0;
+    let totalTargeted = 0;
+    let totalProduced = 0;
+    let totalRawIssued = 0;
+    let totalRawReturned = 0;
     let openCount = 0;
 
-    for (const a of assignments) {
-      totalAssigned += Number(a.quantity) || 0;
-      let delivered = 0;
-      if (Array.isArray(a.batches)) {
-        for (const b of a.batches) delivered += Number(b.quantity) || 0;
-      }
-      totalDelivered += delivered;
+    for (const a of nonCancelled) {
+      totalTargeted += Number(a.quantity) || 0;
+      const prod =
+        Number(a.produced_quantity) ||
+        (Array.isArray(a.batches) ? a.batches.reduce((s, b) => s + (Number(b.quantity) || 0), 0) : 0);
+      totalProduced += prod;
+      totalRawIssued += Number(a.raw_issued_quantity) || 0;
+      totalRawReturned += Number(a.raw_returned_quantity) || 0;
       if (a.status === 'open') openCount += 1;
     }
 
@@ -94,8 +112,10 @@ export class WorkersService {
       image_url: worker.image_url ?? null,
       joining_date: formatDjangoIso(worker.joining_date),
       is_active: worker.is_active !== false,
-      material_assigned: totalAssigned,
-      material_delivered: totalDelivered,
+      material_assigned: totalTargeted,
+      material_delivered: totalProduced,
+      raw_issued: totalRawIssued,
+      raw_returned: totalRawReturned,
       pending_amount: roundPy(pendingAmount, 2),
       open_assignments: openCount,
       total_wasted: totalWasted,
@@ -110,27 +130,55 @@ export class WorkersService {
     if (Array.isArray(item.batches)) {
       for (const b of item.batches) deliveredQty += Number(b.quantity) || 0;
     }
+    const producedQty = Number(item.produced_quantity) || deliveredQty;
     const qty = Number(item.quantity) || 0;
     const price = Number(item.price_per_unit) || 0;
-    const balanceQty = Math.max(0, qty - deliveredQty);
+    const balanceQty = Math.max(0, qty - producedQty);
     const totalValue = roundPy(qty * price, 2);
+
+    const rawIssued = Number(item.raw_issued_quantity) || 0;
+    const rawReturned = Number(item.raw_returned_quantity) || 0;
+    const rawNet = Math.max(0, rawIssued - rawReturned);
+    const rawPerUnit = Number(item.raw_per_unit) || 1;
+    const plannedRaw = roundPy(qty * rawPerUnit, 4);
 
     const workerId = (item.worker_id ?? (item.worker as { _id?: unknown })?._id ?? item.worker)?.toString();
 
     return {
       id: item._id.toString(),
       worker_id: workerId ?? null,
+      worker_name: (item.worker as { name?: string })?.name || _worker?.name || undefined,
+      bill_id: item.bill_id ?? null,
       material_name: item.material_name,
       quantity: qty,
       price_per_unit: price,
+      raw_item_id: item.raw_item_id ?? null,
+      raw_item_name: item.raw_item_name ?? null,
+      raw_unit: item.raw_unit ?? 'pcs',
+      raw_per_unit: rawPerUnit,
+      raw_issues: (item.raw_issues ?? []).map((ri) => ({
+        issue_id: ri.issue_id,
+        quantity: Number(ri.quantity) || 0,
+        date: formatDjangoIso(ri.date),
+        notes: ri.notes ?? '',
+      })),
+      raw_issued_quantity: rawIssued,
+      raw_returned_quantity: rawReturned,
+      raw_net_used: rawNet,
+      planned_raw: plannedRaw,
+      produced_quantity: producedQty,
+      finished_item_id: item.finished_item_id ?? null,
       assignment_date: formatDjangoIso(item.assignment_date),
       notes: item.notes ?? '',
       batches: (item.batches ?? []).map((b) => ({
-        ...b,
+        batch_id: b.batch_id,
+        batch_number: b.batch_number,
         quantity: Number(b.quantity) || 0,
         date: formatDjangoIso(b.date),
+        notes: b.notes ?? '',
+        synced_to_inventory: Boolean(b.synced_to_inventory),
       })),
-      delivered_quantity: deliveredQty,
+      delivered_quantity: producedQty,
       balance_quantity: balanceQty,
       total_value: totalValue,
       status: item.status || 'open',
@@ -139,8 +187,7 @@ export class WorkersService {
         item.wastage_quantity !== undefined && item.wastage_quantity !== null
           ? Number(item.wastage_quantity)
           : null,
-      over_returned: deliveredQty > qty,
-      bill_id: item.bill_id ?? null,
+      over_returned: producedQty > qty,
       wage_amount: Number(item.wage_amount) || 0,
       pay_record_id: item.pay_record_id ?? null,
     };
@@ -209,6 +256,8 @@ export class WorkersService {
         is_active: w.is_active !== false,
         material_assigned: Number(a?.material_assigned) || 0,
         material_delivered: Number(a?.material_delivered) || 0,
+        raw_issued: Number(a?.raw_issued) || 0,
+        raw_returned: Number(a?.raw_returned) || 0,
         pending_amount: roundPy(Number(p?.pending_amount) || 0, 2),
         open_assignments: Number(a?.open_assignments) || 0,
         total_wasted: totalWasted,
@@ -288,6 +337,12 @@ export class WorkersService {
     const existing = await WorkersRepository.findWorkerById(scope, id);
     if (!existing) throw new NotFoundError('Worker not found.');
 
+    // R11 Guard: Delete worker blocked (400) if the worker has any open assignment
+    const openAssignments = await WorkersRepository.findOpenAssignmentsByWorker(scope, id);
+    if (openAssignments.length > 0) {
+      throw new ValidationError('Cannot delete worker: worker has open material assignments.');
+    }
+
     await WorkersRepository.deleteAssignmentsByWorker(scope, id);
     await WorkersRepository.deletePaymentsByWorker(scope, id);
     await WorkersRepository.deleteWorker(scope, id);
@@ -307,40 +362,242 @@ export class WorkersService {
 
     const worker = await WorkersRepository.findWorkerById(scope, workerId);
     if (!worker) throw new NotFoundError('Worker not found.');
-
-    if (data.bill_id) {
-      if (!ObjectId.isValid(data.bill_id)) throw new ValidationError('Invalid bill id.');
-      const bill = await WorkersRepository.findBillById(scope, data.bill_id);
-      if (!bill) throw new ValidationError('That bill was not found for this company.');
+    if (worker.is_active === false) {
+      throw new ValidationError('Worker is inactive.');
     }
 
+    // R3: material_name required
     const materialName = (data.material_name ?? '').trim();
     if (!materialName) throw new ValidationError('Material name is required.');
 
-    const qty = parseFloat(String(data.quantity ?? 0)) || 0;
-    if (qty <= 0) throw new ValidationError('Quantity must be a positive number.');
+    // R3: quantity = target output, positive integer
+    const qty = Number(data.quantity);
+    if (isNaN(qty) || qty <= 0) {
+      throw new ValidationError('Quantity must be a positive number.');
+    }
+    if (!Number.isInteger(qty)) {
+      throw new ValidationError('Target quantity must be a positive integer.');
+    }
 
-    const pricePerUnit = parseFloat(String(data.price_per_unit ?? 0)) || 0;
-    if (pricePerUnit <= 0) throw new ValidationError('Price per unit must be a positive number.');
+    if (data.price_per_unit !== undefined && data.price_per_unit !== null) {
+      const price = Number(data.price_per_unit);
+      if (isNaN(price) || price <= 0) {
+        throw new ValidationError('Price per unit must be a positive number.');
+      }
+    }
 
-    const wageAmount = parseFloat(String(data.wage_amount ?? 0)) || 0;
-    if (wageAmount < 0) throw new ValidationError('Wage amount cannot be negative.');
+    // R3: bill_id required
+    if (!data.bill_id) {
+      throw new ValidationError('Valid bill_id is required.');
+    }
+    if (!ObjectId.isValid(data.bill_id)) {
+      throw new ValidationError('Invalid bill id.');
+    }
+    const bill = await WorkersRepository.findBillById(scope, data.bill_id);
+    if (!bill) {
+      throw new ValidationError('That bill was not found for this company.');
+    }
 
-    const created = await WorkersRepository.insertAssignment(scope, {
-      worker: worker._id,
-      material_name: materialName,
-      quantity: qty,
-      price_per_unit: pricePerUnit,
-      assignment_date: data.date ? new Date(data.date) : new Date(),
-      notes: (data.notes ?? '').trim(),
-      batches: data.batches ?? [],
-      status: 'open',
-      wage_amount: wageAmount,
-      bill_id: data.bill_id ?? null,
-      created_at: new Date(),
-    });
+    // R3: material_name matches a bill line (case-insensitive)
+    const billProducts = (bill.products as { name: string; quantity: number; rate: number; unit?: string }[]) ?? [];
+    const matchedLine = billProducts.find((p) => (p.name || '').trim().toLowerCase() === materialName.toLowerCase());
+    if (!matchedLine) {
+      throw new ValidationError(`Product "${materialName}" does not match any line in the specified bill.`);
+    }
 
-    return this.serializeAssignment(created, worker);
+
+    const activeAssignments = await WorkersRepository.findActiveAssignmentsForBill(scope, data.bill_id);
+    const normLine = materialName.toLowerCase();
+    let alreadyTargeted = 0;
+    for (const a of activeAssignments) {
+      if ((a.material_name || '').trim().toLowerCase() === normLine) {
+        alreadyTargeted += Number(a.quantity) || 0;
+      }
+    }
+    const orderedQty = Number(matchedLine.quantity) || 0;
+    const remainingToAssign = Math.max(0, orderedQty - alreadyTargeted);
+    if (qty > remainingToAssign) {
+      throw new ValidationError(
+        `Quantity (${qty}) exceeds remaining unassigned quantity (${remainingToAssign}) for product "${matchedLine.name}".`
+      );
+    }
+
+    // R3: raw_item_id required, inventory item of type raw
+    if (!data.raw_item_id || !ObjectId.isValid(data.raw_item_id)) {
+      throw new ValidationError('Valid raw_item_id is required.');
+    }
+    const rawItem = await InventoryRepository.findItemById(scope, data.raw_item_id);
+    if (rawItem?.type !== 'raw') {
+      throw new ValidationError('Raw inventory item not found or is not of type raw.');
+    }
+
+    const rawPerUnit = data.raw_per_unit !== undefined ? Number(data.raw_per_unit) : 1;
+    if (isNaN(rawPerUnit) || rawPerUnit <= 0) {
+      throw new ValidationError('raw_per_unit must be greater than 0.');
+    }
+
+    const plannedRaw = roundPy(qty * rawPerUnit, 4);
+    const issueQty = data.issue_quantity !== undefined ? Number(data.issue_quantity) : plannedRaw;
+    if (isNaN(issueQty) || issueQty < 0) {
+      throw new ValidationError('Issue quantity cannot be negative.');
+    }
+
+    const pricePerUnit =
+      data.price_per_unit !== undefined ? Number(data.price_per_unit) : (Number(rawItem.cost_price) || 0);
+    const wageAmount = Number(data.wage_amount ?? 0);
+    if (isNaN(wageAmount) || wageAmount < 0) {
+      throw new ValidationError('Wage amount cannot be negative.');
+    }
+
+    const assignmentDate = data.date ? new Date(data.date) : new Date();
+    const notes = (data.notes ?? '').trim();
+    const assignmentId = new ObjectId();
+    const issueDateStr = assignmentDate.toISOString();
+    const issueId = new ObjectId().toString();
+
+    let movementId: ObjectId | null = null;
+    if (issueQty > 0) {
+      const success = await InventoryRepository.adjustStockConditional(scope, data.raw_item_id, -issueQty, issueQty);
+      if (!success) {
+        const available = Number(rawItem.quantity) || 0;
+        const reqStr = Number.isInteger(issueQty) ? `${issueQty}.0` : String(issueQty);
+        const availStr = Number.isInteger(available) ? `${available}.0` : String(available);
+        throw new ValidationError(
+          `Insufficient raw stock: ${rawItem.name}: requested ${reqStr} ${rawItem.unit || 'pcs'}, only ${availStr} ${rawItem.unit || 'pcs'} in stock`
+        );
+      }
+
+      const movement = await InventoryRepository.insertStockMovement(scope, {
+        company_id: scope.companyId,
+        date: issueDateStr,
+        type: 'raw_issue',
+        item_id: data.raw_item_id,
+        item_name: rawItem.name,
+        quantity: issueQty,
+        bill_id: data.bill_id,
+        assignment_id: assignmentId.toString(),
+        worker_id: worker._id.toString(),
+        notes,
+        created_at: new Date(),
+      });
+      movementId = movement._id;
+    }
+
+    try {
+      const created = await WorkersRepository.insertAssignment(scope, {
+        _id: assignmentId,
+        worker: worker._id,
+        bill_id: data.bill_id,
+        material_name: matchedLine.name,
+        quantity: qty,
+        price_per_unit: pricePerUnit,
+        unit: matchedLine.unit || 'pcs',
+        raw_item_id: data.raw_item_id,
+        raw_item_name: rawItem.name,
+        raw_unit: rawItem.unit || 'pcs',
+        raw_per_unit: rawPerUnit,
+        raw_issues: issueQty > 0 ? [{ issue_id: issueId, quantity: issueQty, date: issueDateStr, notes }] : [],
+        raw_issued_quantity: issueQty,
+        raw_returned_quantity: 0,
+        produced_quantity: 0,
+        finished_item_id: null,
+        batches: [],
+        status: 'open',
+        wage_amount: wageAmount,
+        assignment_date: assignmentDate,
+        notes,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      await WorkersRepository.linkBillWorkerAssignment(scope, data.bill_id, created._id.toString());
+      return this.serializeAssignment(created, worker);
+    } catch (err) {
+      if (issueQty > 0) {
+        await InventoryRepository.adjustStockById(scope, data.raw_item_id, issueQty);
+        if (movementId) {
+          await InventoryRepository.deleteStockMovementById(scope, movementId);
+        }
+      }
+      throw err;
+    }
+  }
+
+  static async issueRawMaterial(scope: TenantScope, assignmentId: string, data: RawIssueInput) {
+    if (!ObjectId.isValid(assignmentId)) throw new ValidationError('Invalid material assignment id.');
+
+    const assignment = await WorkersRepository.findAssignmentById(scope, assignmentId);
+    if (!assignment) throw new NotFoundError('Material assignment not found.');
+
+    if (assignment.status !== 'open') {
+      throw new ValidationError('Cannot issue raw material to a non-open assignment.');
+    }
+
+    if (!assignment.raw_item_id) {
+      throw new ValidationError('Assignment has no linked raw material item.');
+    }
+
+    const rawItem = await InventoryRepository.findItemById(scope, assignment.raw_item_id);
+    if (!rawItem) {
+      throw new NotFoundError('Linked raw inventory item not found.');
+    }
+
+    const qty = Number(data.quantity);
+    if (isNaN(qty) || qty <= 0) {
+      throw new ValidationError('Issue quantity must be a positive number.');
+    }
+
+    const success = await InventoryRepository.adjustStockConditional(scope, assignment.raw_item_id, -qty, qty);
+    if (!success) {
+      const available = Number(rawItem.quantity) || 0;
+      const reqStr = Number.isInteger(qty) ? `${qty}.0` : String(qty);
+      const availStr = Number.isInteger(available) ? `${available}.0` : String(available);
+      throw new ValidationError(
+        `Insufficient raw stock: ${rawItem.name}: requested ${reqStr} ${rawItem.unit || 'pcs'}, only ${availStr} ${rawItem.unit || 'pcs'} in stock`
+      );
+    }
+
+    const issueId = new ObjectId().toString();
+    const issueDateStr = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
+    const notes = (data.notes ?? '').trim();
+
+    let movement;
+    try {
+      movement = await InventoryRepository.insertStockMovement(scope, {
+        company_id: scope.companyId,
+        date: issueDateStr,
+        type: 'raw_issue',
+        item_id: assignment.raw_item_id,
+        item_name: assignment.raw_item_name || rawItem.name,
+        quantity: qty,
+        bill_id: assignment.bill_id ?? null,
+        assignment_id: assignmentId,
+        worker_id: assignment.worker_id ?? assignment.worker?.toString() ?? null,
+        notes,
+        created_at: new Date(),
+      });
+
+      const updated = await WorkersRepository.addRawIssue(
+        scope,
+        assignmentId,
+        {
+          issue_id: issueId,
+          quantity: qty,
+          date: issueDateStr,
+          notes,
+        },
+        qty
+      );
+
+      if (!updated) throw new NotFoundError('Material assignment not found.');
+      return this.serializeAssignment(updated);
+    } catch (err) {
+      await InventoryRepository.adjustStockById(scope, assignment.raw_item_id, qty);
+      if (movement) {
+        await InventoryRepository.deleteStockMovementById(scope, movement._id);
+      }
+      throw err;
+    }
   }
 
   static async addBatch(scope: TenantScope, assignmentId: string, data: BatchInput) {
@@ -349,8 +606,8 @@ export class WorkersService {
     const assignment = await WorkersRepository.findAssignmentById(scope, assignmentId);
     if (!assignment) throw new NotFoundError('Material assignment not found.');
 
-    if (assignment.status === 'completed') {
-      throw new ValidationError('This assignment is already marked complete. Reopen it before adding more batches.');
+    if (assignment.status !== 'open') {
+      throw new ValidationError('Cannot add batch: assignment is not open.');
     }
 
     const rawQty = data.quantity;
@@ -369,11 +626,22 @@ export class WorkersService {
       throw new ValidationError('Batch quantity must be a positive number.');
     }
 
+    const targetQty = Number(assignment.quantity) || 0;
+    const currentProduced =
+      Number(assignment.produced_quantity) ||
+      (Array.isArray(assignment.batches) ? assignment.batches.reduce((s, b) => s + (Number(b.quantity) || 0), 0) : 0);
+    const remaining = Math.max(0, targetQty - currentProduced);
+    if (qty > remaining) {
+      throw new ValidationError(
+        `Output can never exceed the order, that would create stock without an order. Remaining target: ${remaining}, requested: ${qty}.`
+      );
+    }
+
+    const batchId = new ObjectId().toString();
     let batchDate = new Date();
-    const rawDate = data.date;
-    if (rawDate && typeof rawDate === 'string' && rawDate.trim()) {
+    if (data.date && typeof data.date === 'string' && data.date.trim()) {
       try {
-        const [y, m, d] = rawDate.slice(0, 10).split('-').map(Number);
+        const [y, m, d] = data.date.slice(0, 10).split('-').map(Number);
         if (y && m && d) {
           batchDate = new Date(Date.UTC(y, m - 1, d));
         }
@@ -382,20 +650,83 @@ export class WorkersService {
         batchDate = new Date();
       }
     }
-
-    const batch = {
+    const batchDateStr = formatDjangoIso(batchDate) ?? batchDate.toISOString();
+    const batchRecord = {
+      batch_id: batchId,
+      batch_number: `B-${(assignment.batches?.length ?? 0) + 1}`,
       quantity: qty,
-      date: formatDjangoIso(batchDate) ?? batchDate.toISOString(),
+      date: batchDateStr,
       notes: (data.notes ?? '').trim(),
+      synced_to_inventory: false,
     };
 
-    const updated = await WorkersRepository.addBatchToAssignment(scope, assignmentId, batch);
-    if (!updated) throw new NotFoundError('Material assignment not found.');
+    const updatedAssignment = await WorkersRepository.addBatchWithRaceCheck(
+      scope,
+      assignmentId,
+      batchRecord,
+      targetQty,
+      qty
+    );
+    if (!updatedAssignment) {
+      throw new ValidationError('Output can never exceed the order, that would create stock without an order.');
+    }
 
-    return this.serializeAssignment(updated);
+    // R5: Increase Finished stock immediately (find-or-create)
+    try {
+      let finishedItem = null;
+      if (updatedAssignment.finished_item_id && ObjectId.isValid(updatedAssignment.finished_item_id)) {
+        finishedItem = await InventoryRepository.findItemById(scope, updatedAssignment.finished_item_id);
+      }
+      if (!finishedItem) {
+        finishedItem = await InventoryRepository.findItemByNameAndType(scope, updatedAssignment.material_name, 'finished');
+      }
+      if (!finishedItem) {
+        const bill = updatedAssignment.bill_id ? await WorkersRepository.findBillById(scope, updatedAssignment.bill_id) : null;
+        const line = (bill?.products as { name: string; unit?: string; rate?: number }[] | undefined)?.find(
+          (p) => (p.name || '').trim().toLowerCase() === updatedAssignment.material_name.trim().toLowerCase()
+        );
+        const sku = await InventoryRepository.getNextSku(scope);
+        finishedItem = await InventoryRepository.insertItem(scope, {
+          company_id: scope.companyId,
+          name: updatedAssignment.material_name,
+          type: 'finished',
+          unit: line?.unit || updatedAssignment.unit || 'pcs',
+          quantity: 0,
+          cost_price: 0,
+          selling_price: Number(line?.rate) || 0,
+          sku,
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+      }
+
+      const finishedItemId = finishedItem._id.toString();
+      await InventoryRepository.adjustStockById(scope, finishedItemId, qty);
+
+      await InventoryRepository.insertStockMovement(scope, {
+        company_id: scope.companyId,
+        date: batchDateStr,
+        type: 'production_in',
+        item_id: finishedItemId,
+        item_name: finishedItem.name,
+        quantity: qty,
+        bill_id: updatedAssignment.bill_id ?? null,
+        assignment_id: assignmentId,
+        worker_id: updatedAssignment.worker_id ?? updatedAssignment.worker?.toString() ?? null,
+        notes: (data.notes ?? '').trim(),
+        created_at: new Date(),
+      });
+
+      await WorkersRepository.markBatchSynced(scope, assignmentId, batchId, finishedItemId);
+    } catch {
+      // SILENT-FALLBACK-REASON: If finished-stock step fails after the push, batch stays synced_to_inventory:false and completeAssignment will resume/sync it (idempotent).
+    }
+
+    const finalAssignment = await WorkersRepository.findAssignmentById(scope, assignmentId);
+    return this.serializeAssignment(finalAssignment ?? updatedAssignment);
   }
 
-  static async completeAssignment(scope: TenantScope, assignmentId: string) {
+  static async completeAssignment(scope: TenantScope, assignmentId: string, data?: CompleteAssignmentInput) {
     if (!ObjectId.isValid(assignmentId)) throw new ValidationError('Invalid material assignment id.');
 
     const assignment = await WorkersRepository.findAssignmentById(scope, assignmentId);
@@ -405,20 +736,90 @@ export class WorkersService {
       throw new ValidationError('This assignment is already marked complete.');
     }
 
-    let deliveredQty = 0;
-    if (Array.isArray(assignment.batches)) {
-      for (const b of assignment.batches) deliveredQty += Number(b.quantity) || 0;
-    }
-    const expectedQty = Number(assignment.quantity) || 0;
-    const wastageQty = Math.max(0, expectedQty - deliveredQty);
+    // Step 1: Sync any unsynced batches (idempotent)
+    const batches = assignment.batches ?? [];
+    for (const b of batches) {
+      if (!b.synced_to_inventory && Number(b.quantity) > 0) {
+        const bQty = Number(b.quantity);
+        let finishedItem = null;
+        if (assignment.finished_item_id && ObjectId.isValid(assignment.finished_item_id)) {
+          finishedItem = await InventoryRepository.findItemById(scope, assignment.finished_item_id);
+        }
+        if (!finishedItem) {
+          finishedItem = await InventoryRepository.findItemByNameAndType(scope, assignment.material_name, 'finished');
+        }
+        if (!finishedItem) {
+          const bill = assignment.bill_id ? await WorkersRepository.findBillById(scope, assignment.bill_id) : null;
+          const line = (bill?.products as { name: string; unit?: string; rate?: number }[] | undefined)?.find(
+            (p) => (p.name || '').trim().toLowerCase() === assignment.material_name.trim().toLowerCase()
+          );
+          const sku = await InventoryRepository.getNextSku(scope);
+          finishedItem = await InventoryRepository.insertItem(scope, {
+            company_id: scope.companyId,
+            name: assignment.material_name,
+            type: 'finished',
+            unit: line?.unit || assignment.unit || 'pcs',
+            quantity: 0,
+            cost_price: 0,
+            selling_price: Number(line?.rate) || 0,
+            sku,
+            created_at: new Date(),
+            updated_at: new Date(),
+          });
+        }
 
-    // Step 1: Inventory sync (resumable)
-    if (!assignment.synced_to_inventory && deliveredQty > 0) {
-      await WorkersRepository.syncFinishedInventory(scope, assignment.material_name, deliveredQty);
-      await WorkersRepository.updateAssignment(scope, assignmentId, { synced_to_inventory: true });
+        const finishedItemId = finishedItem._id.toString();
+        await InventoryRepository.adjustStockById(scope, finishedItemId, bQty);
+
+        const batchDateStr = b.date ? formatDjangoIso(b.date) : new Date().toISOString();
+        await InventoryRepository.insertStockMovement(scope, {
+          company_id: scope.companyId,
+          date: batchDateStr,
+          type: 'production_in',
+          item_id: finishedItemId,
+          item_name: finishedItem.name,
+          quantity: bQty,
+          bill_id: assignment.bill_id ?? null,
+          assignment_id: assignmentId,
+          worker_id: assignment.worker_id ?? assignment.worker?.toString() ?? null,
+          notes: b.notes ?? '',
+          created_at: new Date(),
+        });
+
+        if (b.batch_id) {
+          await WorkersRepository.markBatchSynced(scope, assignmentId, b.batch_id, finishedItemId);
+        }
+      }
     }
 
-    // Step 2: Auto pay record (resumable)
+    // Step 2: Handle raw return (R6)
+    const rawReturnedReq = data?.raw_returned_quantity !== undefined ? Number(data.raw_returned_quantity) : 0;
+    const issuedQty = Number(assignment.raw_issued_quantity) || 0;
+    const alreadyReturned = Number(assignment.raw_returned_quantity) || 0;
+    const maxReturnable = Math.max(0, issuedQty - alreadyReturned);
+
+    if (rawReturnedReq < 0 || rawReturnedReq > maxReturnable) {
+      throw new ValidationError(`Raw returned quantity must be between 0 and ${maxReturnable}.`);
+    }
+
+    if (rawReturnedReq > 0 && assignment.raw_item_id) {
+      await InventoryRepository.adjustStockById(scope, assignment.raw_item_id, rawReturnedReq);
+      await InventoryRepository.insertStockMovement(scope, {
+        company_id: scope.companyId,
+        date: new Date().toISOString(),
+        type: 'raw_return',
+        item_id: assignment.raw_item_id,
+        item_name: assignment.raw_item_name || 'Raw material',
+        quantity: rawReturnedReq,
+        bill_id: assignment.bill_id ?? null,
+        assignment_id: assignmentId,
+        worker_id: assignment.worker_id ?? assignment.worker?.toString() ?? null,
+        notes: 'Returned upon assignment completion',
+        created_at: new Date(),
+      });
+    }
+
+    // Step 3: Auto pay record (resumable)
     let payRecordId = assignment.pay_record_id;
     if (!payRecordId && Number(assignment.wage_amount) > 0) {
       const rawWorkerId = (assignment.worker_id ?? (assignment.worker as { _id?: unknown })?._id ?? assignment.worker)?.toString();
@@ -440,20 +841,77 @@ export class WorkersService {
       await WorkersRepository.updateAssignment(scope, assignmentId, { pay_record_id: payRecordId });
     }
 
-    // Step 3: Mark complete
+    // Step 4: Wastage and completion status
+    const totalReturned = alreadyReturned + rawReturnedReq;
+    const producedQty =
+      Number(assignment.produced_quantity) ||
+      batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+    const rawPerUnit = Number(assignment.raw_per_unit) || 1;
+    const wastageQty = Math.max(0, issuedQty - totalReturned - producedQty * rawPerUnit);
+
     const completedAt = new Date();
     await WorkersRepository.updateAssignment(scope, assignmentId, {
       status: 'completed',
       completed_at: completedAt,
       wastage_quantity: wastageQty,
+      raw_returned_quantity: totalReturned,
+      synced_to_inventory: true,
+      updated_at: completedAt,
     });
 
-    // Step 4: Link to bill if linked
+    // Step 5: Link to bill if linked
     if (assignment.bill_id && ObjectId.isValid(assignment.bill_id)) {
       await WorkersRepository.linkBillWorkerAssignment(scope, assignment.bill_id, assignmentId);
     }
 
     const updated = await WorkersRepository.findAssignmentById(scope, assignmentId);
+    if (!updated) throw new NotFoundError('Material assignment not found.');
+    return this.serializeAssignment(updated);
+  }
+
+  static async cancelAssignment(scope: TenantScope, assignmentId: string) {
+    if (!ObjectId.isValid(assignmentId)) throw new ValidationError('Invalid material assignment id.');
+
+    const assignment = await WorkersRepository.findAssignmentById(scope, assignmentId);
+    if (!assignment) throw new NotFoundError('Material assignment not found.');
+
+    if (assignment.status !== 'open') {
+      throw new ValidationError('Only open assignments can be cancelled.');
+    }
+
+    const produced = Number(assignment.produced_quantity) || 0;
+    const batches = assignment.batches ?? [];
+    if (produced > 0 || batches.length > 0) {
+      throw new ValidationError('Cannot cancel assignment: production has already been recorded.');
+    }
+
+    const issued = Number(assignment.raw_issued_quantity) || 0;
+    const returned = Number(assignment.raw_returned_quantity) || 0;
+    const rawToReturn = Math.max(0, issued - returned);
+
+    if (rawToReturn > 0 && assignment.raw_item_id) {
+      await InventoryRepository.adjustStockById(scope, assignment.raw_item_id, rawToReturn);
+      await InventoryRepository.insertStockMovement(scope, {
+        company_id: scope.companyId,
+        date: new Date().toISOString(),
+        type: 'raw_return',
+        item_id: assignment.raw_item_id,
+        item_name: assignment.raw_item_name || 'Raw material',
+        quantity: rawToReturn,
+        bill_id: assignment.bill_id ?? null,
+        assignment_id: assignmentId,
+        worker_id: assignment.worker_id ?? assignment.worker?.toString() ?? null,
+        notes: 'Returned upon assignment cancellation',
+        created_at: new Date(),
+      });
+    }
+
+    const updated = await WorkersRepository.updateAssignment(scope, assignmentId, {
+      status: 'cancelled',
+      raw_returned_quantity: returned + rawToReturn,
+      updated_at: new Date(),
+    });
+
     if (!updated) throw new NotFoundError('Material assignment not found.');
     return this.serializeAssignment(updated);
   }

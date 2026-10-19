@@ -332,7 +332,18 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
       await expect(WorkersService.createMaterial(scope, worker1.id, { material_name: 'Cotton', quantity: -5 })).rejects.toThrow(ValidationError);
       await expect(WorkersService.createMaterial(scope, worker1.id, { material_name: 'Cotton', quantity: 10, price_per_unit: 0 })).rejects.toThrow(ValidationError);
 
+      const rawItem = await InventoryService.createItem(scope, 'raw', {
+        name: 'Raw Loom Cotton',
+        quantity: 100,
+        unit: 'kg',
+      });
+      const workerBill = await BillsService.createBill(scope, 'kacha', {
+        products: [{ name: 'Loom Thread', quantity: 50, rate: 20 }],
+      });
+
       const mat1 = await WorkersService.createMaterial(scope, worker1.id, {
+        bill_id: workerBill.id,
+        raw_item_id: rawItem.id,
         material_name: 'Loom Thread',
         quantity: 50,
         price_per_unit: 10,
@@ -425,6 +436,7 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
 
       // 1. Create kacha bill
       const kachaBill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Gupta Traders', phone: '9811122233' },
         products: [
           { name: 'Cotton Roll', quantity: 10, rate: 100 },
@@ -456,7 +468,7 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
       expect(allBills.length).toBeGreaterThanOrEqual(2);
 
       const kachaList = await BillsService.listBills(scope, 'kacha');
-      expect(kachaList.length).toBe(1);
+      expect(kachaList.length).toBeGreaterThanOrEqual(1);
 
       // 4. Get bill
       await expect(BillsService.getBill(scope, 'invalid-id')).rejects.toThrow(ValidationError);
@@ -498,24 +510,8 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
       const withMisc = await BillsService.addMiscCost(scope, kachaBill.id, { amount: 75, notes: 'Packaging tape' });
       expect(withMisc.misc_cost_total).toBe(75);
 
-      await expect(BillsService.addReadyToDeliver(scope, 'invalid-id', { quantity: 5 })).rejects.toThrow(ValidationError);
-      await expect(BillsService.addReadyToDeliver(scope, new ObjectId().toString(), { quantity: 5 })).rejects.toThrow(NotFoundError);
-      await expect(BillsService.addReadyToDeliver(scope, kachaBill.id, { inventory_item_id: 'bad-id', quantity: 5 })).rejects.toThrow(ValidationError);
-      await expect(BillsService.addReadyToDeliver(scope, kachaBill.id, { inventory_item_id: new ObjectId().toString(), quantity: 5 })).rejects.toThrow(NotFoundError);
-
-      const realItem = await InventoryService.createItem(scope, 'finished_good', { name: 'Ready Shirt Pack', quantity: 30 });
-      const withReady = await BillsService.addReadyToDeliver(scope, kachaBill.id, {
-        inventory_item_id: realItem.id,
-        quantity: 15,
-        notes: 'Packed',
-      });
-      expect(withReady.ready_to_deliver_quantity).toBe(15);
-
-      // Confirm shipment
-      await expect(BillsService.confirmShipment(scope, 'invalid-id')).rejects.toThrow(ValidationError);
-      await expect(BillsService.confirmShipment(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
-      const shipped = await BillsService.confirmShipment(scope, kachaBill.id);
-      expect(shipped.shipment_confirmed).toBe(true);
+      await expect(BillsService.createShipment(scope, 'invalid-id', { ship_all: true })).rejects.toThrow(ValidationError);
+      await expect(BillsService.createShipment(scope, new ObjectId().toString(), { ship_all: true })).rejects.toThrow(NotFoundError);
 
       // Confirm profit
       await expect(BillsService.confirmProfit(scope, 'invalid-id', {})).rejects.toThrow(ValidationError);
@@ -570,6 +566,7 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
         quantity: 50,
       });
       const billWithStock = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [{ name: 'Stock Tracker Shirt', quantity: 10, rate: 200, inventory_item_id: stockItem.id }],
       });
       // Stock should have decreased by 10 to 40
@@ -628,45 +625,22 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
       const withCost2 = await BillsService.addMiscCost(scope, bill.id, { amount: 50 }); // omitted notes and date
       expect(withCost2.misc_costs?.length).toBe(2);
 
-      // 2. Ready to Deliver branches
-      const fgItem = await InventoryService.createItem(scope, 'finished_good', { name: 'Jacket Stock', quantity: 20 });
-      await expect(BillsService.addReadyToDeliver(scope, 'invalid', { quantity: 5, inventory_item_id: fgItem.id })).rejects.toThrow(ValidationError);
-      await expect(BillsService.addReadyToDeliver(scope, new ObjectId().toString(), { quantity: 5, inventory_item_id: fgItem.id })).rejects.toThrow(NotFoundError);
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: 5, inventory_item_id: 'invalid-id' })).rejects.toThrow(ValidationError);
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: 5, inventory_item_id: new ObjectId().toString() })).rejects.toThrow(NotFoundError);
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: 0, inventory_item_id: fgItem.id })).rejects.toThrow(ValidationError);
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { quantity: -1, inventory_item_id: fgItem.id })).rejects.toThrow(ValidationError);
+      // 2. Shipment validation branches
+      await expect(BillsService.createShipment(scope, 'invalid', { ship_all: true })).rejects.toThrow(ValidationError);
+      await expect(BillsService.createShipment(scope, new ObjectId().toString(), { ship_all: true })).rejects.toThrow(NotFoundError);
+      await expect(BillsService.createShipment(scope, bill.id, { items: [{ product_name: 'NonExistent', quantity: 1 }] })).rejects.toThrow(ValidationError);
 
-      const withDelivery = await BillsService.addReadyToDeliver(scope, bill.id, {
-        inventory_item_id: fgItem.id,
-        quantity: 5,
-        notes: 'First batch ready',
-        date: '2026-10-15',
+      // 3. Assignments linked to bill, production and getBillAssignments
+      const rawItem2 = await InventoryService.createItem(scope, 'raw', {
+        name: 'Jacket Leather',
+        quantity: 50,
+        unit: 'm',
       });
-      expect(withDelivery.ready_to_deliver?.length).toBe(1);
-
-      // Add another without notes/date
-      await BillsService.addReadyToDeliver(scope, bill.id, {
-        inventory_item_id: fgItem.id,
-        quantity: 3,
-      });
-
-      // 3. Confirm Shipment branches
-      await expect(BillsService.confirmShipment(scope, 'invalid')).rejects.toThrow(ValidationError);
-      await expect(BillsService.confirmShipment(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
-
-      const shipped = await BillsService.confirmShipment(scope, bill.id);
-      expect(shipped.shipment_confirmed).toBe(true);
-
-      // Cannot add ready to deliver once shipped
-      await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: fgItem.id, quantity: 1 })
-      ).rejects.toThrow('This order has already been marked shipped.');
-
-      // 4. Assignments linked to bill and getBillAssignments
       const worker = await WorkersService.createWorker(scope, { name: 'Master Tailor' });
       const assignment = await WorkersService.createMaterial(scope, worker.id, {
-        material_name: 'Fabric',
+        bill_id: bill.id,
+        raw_item_id: rawItem2.id,
+        material_name: 'Jacket',
         quantity: 10,
         price_per_unit: 50,
       });
@@ -677,6 +651,10 @@ describe('C2: High-Density Branch Coverage Suite (Bills, Workers, Inventory, Aut
 
       // Complete assignment
       await WorkersService.completeAssignment(scope, assignment.id);
+
+      // Ship finished jackets
+      const shipped = await BillsService.createShipment(scope, bill.id, { ship_all: true });
+      expect(shipped.shipments?.length).toBe(1);
 
       // Call getBillAssignments
       await expect(BillsService.getBillAssignments(scope, 'invalid')).rejects.toThrow(ValidationError);

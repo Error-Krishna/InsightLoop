@@ -48,6 +48,7 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
 
     // 1. Create bill for 4 items -> stock drops to 6
     const bill = await BillsService.createBill(scope, 'pakka', {
+      workflow: 'legacy' as any,
       products: [
         {
           name: item.name,
@@ -136,6 +137,7 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
     // 50 concurrent buyers each attempting to create a bill for 1 item
     const attempts = Array.from({ length: 50 }, (_, i) =>
       BillsService.createBill(scope, 'pakka', {
+        workflow: 'legacy' as any,
         products: [
           {
             name: item.name,
@@ -179,10 +181,29 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
     });
     expect(preExisting).toBeNull();
 
+    const rawClockItem = await InventoryRepository.insertItem(scope, {
+      name: 'Raw Clock Wood',
+      unit: 'kg',
+      type: 'raw',
+      quantity: 100,
+      cost_price: 20,
+      selling_price: 30,
+      warehouse_id: warehouseId,
+      sku: 'SKU-RAW-CLOCK-' + Date.now(),
+      created_at: new Date(),
+    });
+    const clockBill = await BillsService.createBill(scope, 'kacha', {
+      buyer_name: 'Clock Buyer',
+      products: [{ name: uniqueMaterialName, quantity: 10, rate: 200, unit: 'pcs' }],
+    });
+
     // Create assignment and complete it
     const assignment = await WorkersService.createMaterial(scope, worker._id.toString(), {
+      bill_id: clockBill.id,
       material_name: uniqueMaterialName,
       quantity: 10,
+      raw_item_id: rawClockItem._id.toString(),
+      raw_per_unit: 1,
       price_per_unit: 100,
       wage_amount: 500,
     });
@@ -223,6 +244,7 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
     // 2. 50 concurrent buyers compete for the 10 units
     const attempts = Array.from({ length: 50 }, (_, i) =>
       BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [
           {
             name: itemName,
@@ -255,6 +277,7 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
     // 3. Further buy attempt is rejected
     await expect(
       BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [
           {
             name: itemName,
@@ -276,6 +299,7 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
 
     // 5. Now another buyer can successfully purchase that 1 restored unit
     const finalBill = await BillsService.createBill(scope, 'kacha', {
+      workflow: 'legacy' as any,
       products: [
         {
           name: itemName,
@@ -307,9 +331,10 @@ describe('B5: Bills Stock Handling, Concurrency & Reconciliation', () => {
     });
 
     const bill = await BillsService.createBill(scope, 'kacha', {
+      workflow: 'legacy' as any,
       products: [
         { name: item.name, quantity: 0, rate: 100, inventory_item_id: item._id.toString() },
-        { name: item.name, quantity: -2, rate: 100, inventory_item_id: item._id.toString() },
+        { name: item.name + ' Second', quantity: -2, rate: 100, inventory_item_id: item._id.toString() },
         { name: 'Invalid ID Item', quantity: 1, rate: 100, inventory_item_id: 'not-an-object-id' },
         { name: 'Null ID Item', quantity: 1, rate: 100, inventory_item_id: null },
       ],

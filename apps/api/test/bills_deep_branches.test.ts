@@ -43,6 +43,7 @@ describe('Bills Deep Branch Exhaustion Suite', () => {
 
     // 2. Create kacha bill with 2 items
     const bill = await BillsService.createBill(scope, 'kacha', {
+      workflow: 'legacy' as any,
       buyer: { name: 'Delta Buyer', phone: '9876543210', address: '123 Market', gst_number: '27AAAAA0000A1Z5' },
       products: [
         { name: 'Delta Item 1', quantity: 10, rate: 40, inventory_item_id: item1.id },
@@ -115,14 +116,9 @@ describe('Bills Deep Branch Exhaustion Suite', () => {
     await BillsService.addTransportationCost(scope, pakkaBill.id, { amount: 100 });
     await BillsService.addMiscCost(scope, pakkaBill.id, { amount: 50 });
 
-    // 8. Ready to deliver without notes and date
-    await BillsService.addReadyToDeliver(scope, pakkaBill.id, {
-      inventory_item_id: item1.id,
-      quantity: 5,
-    });
-
-    // 9. Profit preview on bill with zero grand total
+    // 8. Profit preview on bill with zero grand total
     const zeroBill = await BillsService.createBill(scope, 'kacha', {
+      workflow: 'legacy' as any,
       products: [{ name: 'Free Promo', quantity: 1, rate: 0 }],
       discount: 0,
     });
@@ -130,7 +126,7 @@ describe('Bills Deep Branch Exhaustion Suite', () => {
     expect(zeroPreview.revenue_collected).toBe(0);
     expect(zeroPreview.payment_fraction).toBe(0);
 
-    // 10. Confirm profit with explicit 0 amount
+    // 9. Confirm profit with explicit 0 amount
     const confirmedZero = await BillsService.confirmProfit(scope, zeroBill.id, 0);
     expect(confirmedZero.profit_confirmed_amount).toBe(0);
 

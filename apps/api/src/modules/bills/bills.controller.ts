@@ -4,7 +4,7 @@ import {
   type BillInput,
   type CostInput,
   type PaymentInput,
-  type ReadyToDeliverInput,
+  type ShipmentInput,
 } from './bills.service.js';
 import type { TenantScope } from '../../types/tenant.js';
 
@@ -110,18 +110,11 @@ export class BillsController {
     res.status(201).json(bill);
   }
 
-  static async addReadyToDeliver(req: Request, res: Response): Promise<void> {
+  static async createShipment(req: Request, res: Response): Promise<void> {
     const scope: TenantScope = { companyId: req.companyId! };
     const id = req.params.id as string;
-    const bill = await BillsService.addReadyToDeliver(scope, id, req.body as ReadyToDeliverInput);
+    const bill = await BillsService.createShipment(scope, id, req.body as ShipmentInput);
     res.status(201).json(bill);
-  }
-
-  static async confirmShipment(req: Request, res: Response): Promise<void> {
-    const scope: TenantScope = { companyId: req.companyId! };
-    const id = req.params.id as string;
-    const bill = await BillsService.confirmShipment(scope, id);
-    res.status(200).json(bill);
   }
 
   static async getBillAssignments(req: Request, res: Response): Promise<void> {

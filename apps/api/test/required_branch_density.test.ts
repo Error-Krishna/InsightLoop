@@ -116,12 +116,15 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       await expect(InventoryService.updateItem(scope, 'raw_material', defaultItem.id, {})).rejects.toThrow(NotFoundError);
 
       const wh = await InventoryService.createWarehouse(scope, { name: 'Density Warehouse', location: 'Section D' });
+      await expect(
+        InventoryService.updateItem(scope, 'finished', defaultItem.id, { quantity: 50 })
+      ).rejects.toThrow('Finished stock changes only through production and shipments.');
+
       const updated = await InventoryService.updateItem(scope, 'finished', defaultItem.id, {
         name: 'Updated Props Item',
         unit: 'box',
         selling_price: 150.5,
         cost_price: 100.0,
-        quantity: 50,
         reorder_level: 10,
         warehouse_id: wh.id,
         image_url: 'https://test.com/item.png',
@@ -343,7 +346,18 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       await expect(WorkersService.createMaterial(scope, testWorker.id, { material_name: 'M', quantity: -1, price_per_unit: 1 })).rejects.toThrow(ValidationError);
       await expect(WorkersService.createMaterial(scope, testWorker.id, { material_name: 'M', quantity: 1, price_per_unit: -5 })).rejects.toThrow(ValidationError);
 
+      const rawItem = await InventoryService.createItem(scope, 'raw', {
+        name: 'Canvas Raw Fabric',
+        quantity: 100,
+        unit: 'm',
+      });
+      const workerBill = await BillsService.createBill(scope, 'kacha', {
+        products: [{ name: 'Canvas', quantity: 50, rate: 20 }],
+      });
+
       const assignment = await WorkersService.createMaterial(scope, testWorker.id, {
+        bill_id: workerBill.id,
+        raw_item_id: rawItem.id,
         material_name: 'Canvas',
         quantity: 50,
         price_per_unit: 10,
@@ -369,7 +383,7 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
 
       // Attempting to add batch to completed assignment throws
       await expect(WorkersService.addBatch(scope, assignment.id, { quantity: 5 })).rejects.toThrow(
-        'This assignment is already marked complete. Reopen it before adding more batches.'
+        'Cannot add batch: assignment is not open.'
       );
 
       // 7. Payment validations and edge flows
@@ -423,26 +437,29 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       ).rejects.toThrow('This assignment is already marked complete.');
 
       // Assignment linked to a bill, with delivered batches and wage amount
+      const silkRaw = await InventoryService.createItem(scope, 'raw', {
+        name: 'Silk Raw',
+        quantity: 50,
+        unit: 'kg',
+      });
       const linkedBillId = new ObjectId();
       await db.collection('bills').insertOne({
         _id: linkedBillId,
         company_id: companyId,
         bill_type: 'kacha',
         invoice_number: 'INV-LINKED-' + Date.now(),
-        products: [],
+        products: [{ name: 'Silk Thread', quantity: 20, rate: 10 } as any],
         worker_assignment_ids: [],
       });
 
       const billLinkedAssignment = await WorkersService.createMaterial(scope, testWorker.id, {
+        bill_id: linkedBillId.toString(),
+        raw_item_id: silkRaw.id,
         material_name: 'Silk Thread',
         quantity: 20,
         price_per_unit: 5,
         wage_amount: 50,
       });
-      await db.collection('material_assignments').updateOne(
-        { _id: new ObjectId(billLinkedAssignment.id) },
-        { $set: { bill_id: linkedBillId.toString() } }
-      );
       await WorkersService.addBatch(scope, billLinkedAssignment.id, { quantity: 15 });
       const completedLinked = await WorkersService.completeAssignment(scope, billLinkedAssignment.id);
       expect(completedLinked.status).toBe('completed');
@@ -486,6 +503,7 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       });
 
       const bill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Density Buyer', address: '123 Market St', phone: '9988776655' },
         products: [
           { name: 'Stock Guard Product', quantity: 10, rate: 100, inventory_item_id: invItem.id },
@@ -544,23 +562,9 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       await BillsService.addTransportationCost(scope, bill.id, { amount: 80, notes: 'Logistics' });
       await BillsService.addMiscCost(scope, bill.id, { amount: 20, notes: 'Packaging' });
 
-      // 6. Ready to deliver & Confirm shipment
-      await expect(BillsService.addReadyToDeliver(scope, 'bad-id', { inventory_item_id: invItem.id, quantity: 5 })).rejects.toThrow(ValidationError);
-      await expect(BillsService.addReadyToDeliver(scope, new ObjectId().toString(), { inventory_item_id: invItem.id, quantity: 5 })).rejects.toThrow(NotFoundError);
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: '', quantity: 5 })).rejects.toThrow(ValidationError);
-      await expect(BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: invItem.id, quantity: 0 })).rejects.toThrow(ValidationError);
-
-      const readyBill = await BillsService.addReadyToDeliver(scope, bill.id, {
-        inventory_item_id: invItem.id,
-        quantity: 15,
-        notes: 'Ready package',
-      });
-      expect(readyBill.ready_to_deliver_quantity).toBe(15);
-
-      await expect(BillsService.confirmShipment(scope, 'bad-id')).rejects.toThrow(ValidationError);
-      await expect(BillsService.confirmShipment(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
-      const shippedBill = await BillsService.confirmShipment(scope, bill.id);
-      expect(shippedBill.shipment_confirmed).toBe(true);
+      // 6. Shipment validations
+      await expect(BillsService.createShipment(scope, 'bad-id', { ship_all: true })).rejects.toThrow(ValidationError);
+      await expect(BillsService.createShipment(scope, new ObjectId().toString(), { ship_all: true })).rejects.toThrow(NotFoundError);
 
       // 7. Confirm profit & Reopen profit
       await expect(BillsService.confirmProfit(scope, 'bad-id')).rejects.toThrow(ValidationError);
@@ -599,7 +603,7 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
 
       // Verify that bill deletion restored the 15 units of stock
       const checkStockFinal = await InventoryRepository.findItemById(scope, invItem.id);
-      expect(checkStockFinal?.quantity).toBe(85);
+      expect(checkStockFinal?.quantity).toBe(100);
 
       // 10. Stock Rollback on Bill Creation Failure
       const origInsert = BillsRepository.insertBillWithRetry;
@@ -609,11 +613,12 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       try {
         await expect(
           BillsService.createBill(scope, 'kacha', {
+            workflow: 'legacy' as any,
             products: [{ name: 'Rollback Prod', quantity: 10, rate: 100, inventory_item_id: invItem.id }],
           })
         ).rejects.toThrow('Database write failed during bill insert');
         const checkRollback = await InventoryRepository.findItemById(scope, invItem.id);
-        expect(checkRollback?.quantity).toBe(85); // Fully restored!
+        expect(checkRollback?.quantity).toBe(100); // Fully restored!
       } finally {
         BillsRepository.insertBillWithRetry = origInsert;
       }
@@ -624,6 +629,7 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
         quantity: 50,
       });
       const kachaForConv = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [{ name: 'Convertible Item', quantity: 5, rate: 100, inventory_item_id: convItem.id }],
       });
       // Convert with increased product quantity (deducts net 5 more)
@@ -638,6 +644,7 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
 
       // 12. Profit Preview & Confirm Fallback
       const prevBill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         products: [{ name: 'Item', quantity: 2, rate: 200 }],
       });
       await BillsService.recordPayment(scope, prevBill.id, { amount: 400 });
@@ -668,7 +675,30 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       await WorkersService.updateWorker(scope, w.id, { image_url: 'https://test.com/w.jpg' });
       await WorkersService.updateWorker(scope, w.id, { is_active: false });
 
+      // Worker is inactive -> throws ValidationError
+      await expect(
+        WorkersService.createMaterial(scope, w.id, {
+          material_name: 'Raw Cotton',
+          quantity: 20,
+          price_per_unit: 5,
+        })
+      ).rejects.toThrow('Worker is inactive.');
+
+      // Reactivate worker
+      await WorkersService.updateWorker(scope, w.id, { is_active: true });
+
+      const rawItem4 = await InventoryService.createItem(scope, 'raw', {
+        name: 'Raw Cotton Material',
+        quantity: 50,
+        unit: 'kg',
+      });
+      const workerBill4 = await BillsService.createBill(scope, 'kacha', {
+        products: [{ name: 'Raw Cotton', quantity: 20, rate: 10 }],
+      });
+
       const mat = await WorkersService.createMaterial(scope, w.id, {
+        bill_id: workerBill4.id,
+        raw_item_id: rawItem4.id,
         material_name: 'Raw Cotton',
         quantity: 20,
         price_per_unit: 5,
