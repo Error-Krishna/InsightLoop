@@ -50,7 +50,7 @@ const emptyForm: InventoryItemFormData = {
 };
 
 export interface InventoryItemsPageProps {
-  itemType: "finished" | "semi-finished" | "raw";
+  itemType: "finished" | "raw";
   title: string;
 }
 
@@ -104,11 +104,17 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
     event.preventDefault();
     try {
       if (editingId) {
-        await api.put(`/inventory/${itemType}/${editingId}/`, form);
+        if (itemType === "finished") {
+          await api.put(`/inventory/finished/${editingId}/`, form);
+        } else {
+          await api.put(`/inventory/raw/${editingId}/`, form);
+        }
         toast.success("Inventory item updated");
       } else {
-        await api.post(`/inventory/${itemType}/`, form);
-        toast.success("Inventory item created");
+        if (itemType === "raw") {
+          await api.post("/inventory/raw/", form);
+          toast.success("Inventory item created");
+        }
       }
       setForm(emptyForm);
       setEditingId(null);
@@ -155,6 +161,15 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
         <MetricCard label="Stock Value" value={`₹${inventoryStats.stockValue.toLocaleString("en-IN")}`} />
       </div>
 
+      {itemType === "finished" && (
+        <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4 text-sm text-blue-800">
+          <p className="font-semibold">Finished Goods Stock</p>
+          <p className="mt-1">
+            Finished goods stock is created through worker production and decremented through shipments.
+          </p>
+        </div>
+      )}
+
       <Card className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -172,44 +187,53 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 grid gap-4 md:grid-cols-3">
-          {formFields.map(([key, label, type]) => (
-            <label key={key} className="block text-sm font-medium text-slate-700">
-              {label}
-              <input
-                type={type}
-                value={form[key]}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    [key]: type === "number" ? parseFloat(event.target.value) || 0 : event.target.value,
-                  }))
-                }
+        {(itemType === "raw" || editingId !== null) && (
+          <form onSubmit={handleSubmit} className="mt-6 grid gap-4 md:grid-cols-3">
+            {formFields.map(([key, label, type]) => {
+              const isQuantityDisabled = itemType === "finished" && key === "quantity";
+              return (
+                <label key={key} className="block text-sm font-medium text-slate-700">
+                  {label}
+                  {isQuantityDisabled && (
+                    <span className="ml-1 text-xs font-normal text-slate-400">(managed via production)</span>
+                  )}
+                  <input
+                    type={type}
+                    value={form[key]}
+                    disabled={isQuantityDisabled}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        [key]: type === "number" ? parseFloat(event.target.value) || 0 : event.target.value,
+                      }))
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3 disabled:bg-slate-50 disabled:text-slate-500"
+                  />
+                </label>
+              );
+            })}
+            <label className="block text-sm font-medium text-slate-700">
+              Warehouse
+              <select
+                value={form.warehouse_id}
+                onChange={(event) => setForm((current) => ({ ...current, warehouse_id: event.target.value }))}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3"
-              />
+              >
+                <option value="">Select warehouse</option>
+                {warehouses.map((warehouse) => (
+                  <option key={warehouse.id} value={warehouse.id}>
+                    {warehouse.name}
+                  </option>
+                ))}
+              </select>
             </label>
-          ))}
-          <label className="block text-sm font-medium text-slate-700">
-            Warehouse
-            <select
-              value={form.warehouse_id}
-              onChange={(event) => setForm((current) => ({ ...current, warehouse_id: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3"
-            >
-              <option value="">Select warehouse</option>
-              {warehouses.map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-end gap-3">
-            <button type="submit" className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
-              {editingId ? "Update" : "Create"} Item
-            </button>
-          </div>
-        </form>
+            <div className="flex items-end gap-3">
+              <button type="submit" className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
+                {editingId ? "Update" : "Create"} Item
+              </button>
+            </div>
+          </form>
+        )}
       </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -284,22 +308,24 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
                   >
                     Edit
                   </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await api.delete(`/inventory/${itemType}/${item.id}/`);
-                        toast.success("Item deleted");
-                        if (editingId === item.id) cancelEditing();
-                        await load();
-                      } catch {
-                        toast.error("Unable to delete inventory item");
-                      }
-                    }}
-                    className="rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-600"
-                  >
-                    Delete
-                  </button>
+                  {itemType === "raw" && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await api.delete(`/inventory/raw/${item.id}/`);
+                          toast.success("Item deleted");
+                          if (editingId === item.id) cancelEditing();
+                          await load();
+                        } catch {
+                          toast.error("Unable to delete inventory item");
+                        }
+                      }}
+                      className="rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-600"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             </Card>

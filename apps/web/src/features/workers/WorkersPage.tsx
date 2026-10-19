@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
+import type { Bill, InventoryItemRef } from "../bills/types";
 
 const tabs = ["Workers List", "Material Distribution", "Pay Records"] as const;
 type TabType = typeof tabs[number];
@@ -31,6 +32,7 @@ export interface MaterialBatch {
 export interface MaterialAssignmentItem {
   id: string;
   worker_id?: string | null;
+  bill_id?: string | null;
   material_name: string;
   quantity: number;
   price_per_unit: number;
@@ -44,6 +46,13 @@ export interface MaterialAssignmentItem {
   completed_at?: string | null;
   wastage_quantity?: number | null;
   over_returned?: boolean;
+  raw_item_id?: string;
+  raw_item_name?: string;
+  raw_unit?: string;
+  raw_per_unit?: number;
+  raw_issued_quantity?: number;
+  raw_returned_quantity?: number;
+  produced_quantity?: number;
 }
 
 export interface PayRecordItem {
@@ -60,7 +69,6 @@ export interface PayRecordItem {
 }
 
 const emptyWorkerForm = { name: "", age: "", address: "", phone: "", joining_date: "", is_active: true };
-const emptyMaterialForm = { material_name: "", quantity: "", price_per_unit: "", date: "", notes: "" };
 const emptyPaymentForm = { product_name: "", units_produced: "", rate_per_unit: "", amount_paid: "", date: "" };
 
 export default function WorkersPage() {
@@ -72,7 +80,6 @@ export default function WorkersPage() {
   const [search, setSearch] = useState("");
   const [editingWorkerId, setEditingWorkerId] = useState<string | null>(null);
   const [workerForm, setWorkerForm] = useState(emptyWorkerForm);
-  const [materialForm, setMaterialForm] = useState(emptyMaterialForm);
   const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
 
   const filteredWorkers = useMemo(() => {
@@ -332,9 +339,6 @@ export default function WorkersPage() {
               selectedWorker={selectedWorker}
               selectedWorkerId={selectedWorkerId}
               materials={materials}
-              materialForm={materialForm}
-              setMaterialForm={setMaterialForm}
-              emptyMaterialForm={emptyMaterialForm}
               loadWorkerDetails={loadWorkerDetails}
               loadWorkers={loadWorkers}
             />
@@ -440,9 +444,6 @@ interface MaterialDistributionPanelProps {
   selectedWorker?: WorkerItem;
   selectedWorkerId: string;
   materials: MaterialAssignmentItem[];
-  materialForm: typeof emptyMaterialForm;
-  setMaterialForm: React.Dispatch<React.SetStateAction<typeof emptyMaterialForm>>;
-  emptyMaterialForm: typeof emptyMaterialForm;
   loadWorkerDetails: (id: string) => Promise<void>;
   loadWorkers: () => Promise<void>;
 }
@@ -451,49 +452,205 @@ function MaterialDistributionPanel({
   selectedWorker,
   selectedWorkerId,
   materials,
-  materialForm,
-  setMaterialForm,
-  emptyMaterialForm,
   loadWorkerDetails,
   loadWorkers,
 }: MaterialDistributionPanelProps) {
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [rawItems, setRawItems] = useState<InventoryItemRef[]>([]);
+  const [selectedBillId, setSelectedBillId] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [selectedRawItemId, setSelectedRawItemId] = useState("");
+  const [targetQuantity, setTargetQuantity] = useState("");
+  const [rawPerUnit, setRawPerUnit] = useState("1");
+  const [issueQuantity, setIssueQuantity] = useState("");
+  const [wageAmount, setWageAmount] = useState("");
+  const [date, setDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    async function loadDependencies() {
+      try {
+        const [billsRes, rawRes] = await Promise.all([
+          api.get<Bill[]>("/bills/"),
+          api.get<InventoryItemRef[]>("/inventory/raw/"),
+        ]);
+        setBills(billsRes.data);
+        setRawItems(rawRes.data);
+      } catch {
+        // non-blocking
+      }
+    }
+    void loadDependencies();
+  }, []);
+
+  const selectedBill = bills.find((b) => b.id === selectedBillId);
+  const billProducts = selectedBill?.products || [];
+
   async function refresh() {
     await loadWorkerDetails(selectedWorkerId);
     await loadWorkers();
+  }
+
+  async function handleAssign(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selectedBillId) {
+      toast.error("Please select a confirmed order / bill");
+      return;
+    }
+    if (!selectedProduct) {
+      toast.error("Please select an ordered product");
+      return;
+    }
+    if (!selectedRawItemId) {
+      toast.error("Please select a raw material");
+      return;
+    }
+    const qty = Number(targetQuantity);
+    if (!qty || qty <= 0) {
+      toast.error("Please enter a valid target quantity");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.post(`/workers/${selectedWorkerId}/materials/`, {
+        bill_id: selectedBillId,
+        material_name: selectedProduct,
+        raw_item_id: selectedRawItemId,
+        quantity: qty,
+        raw_per_unit: Number(rawPerUnit) || 1,
+        issue_quantity: issueQuantity === "" ? undefined : Number(issueQuantity),
+        wage_amount: Number(wageAmount) || 0,
+        date: date || undefined,
+        notes: notes.trim() || undefined,
+      });
+      toast.success("Material assigned to worker");
+      setSelectedBillId("");
+      setSelectedProduct("");
+      setSelectedRawItemId("");
+      setTargetQuantity("");
+      setRawPerUnit("1");
+      setIssueQuantity("");
+      setWageAmount("");
+      setNotes("");
+      await refresh();
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to assign material");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold text-slate-900">Material Assignment</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Hand out a batch of raw material, then log each partial return as it comes back — e.g. 500 pieces
-        handed out, returned over time as 100, 50, 50, 200… Mark it complete once the job is done to see
-        how much was actually lost in processing.
+        Assign production work for confirmed orders. Raw material is deducted from stock and tracked with the worker until products are returned.
       </p>
-      <form
-        onSubmit={async (event) => {
-          event.preventDefault();
-          try {
-            await api.post(`/workers/${selectedWorkerId}/materials/`, materialForm);
-            toast.success("Material assigned");
-            setMaterialForm(emptyMaterialForm);
-            await refresh();
-          } catch (error: unknown) {
-            const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-            toast.error(detail ?? "Failed to assign material");
-          }
-        }}
-        className="mt-6 grid gap-4 md:grid-cols-2"
-      >
-        <Field label="Material Name" value={materialForm.material_name} onChange={(value) => setMaterialForm((current) => ({ ...current, material_name: value }))} />
-        <Field label="Quantity" type="number" value={materialForm.quantity} onChange={(value) => setMaterialForm((current) => ({ ...current, quantity: value }))} />
-        <Field label="Price / Unit" type="number" value={materialForm.price_per_unit} onChange={(value) => setMaterialForm((current) => ({ ...current, price_per_unit: value }))} />
-        <Field label="Date" type="date" value={materialForm.date} onChange={(value) => setMaterialForm((current) => ({ ...current, date: value }))} />
-        <Field label="Notes" value={materialForm.notes} onChange={(value) => setMaterialForm((current) => ({ ...current, notes: value }))} />
-        <button type="submit" disabled={!selectedWorker} className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-          Assign Material
-        </button>
+
+      <form onSubmit={handleAssign} className="mt-6 grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium text-slate-700">
+            Select Order / Bill *
+            <select
+              value={selectedBillId}
+              onChange={(e) => {
+                setSelectedBillId(e.target.value);
+                setSelectedProduct("");
+              }}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="">Select bill…</option>
+              {bills.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.invoice_number} · {b.buyer?.name || "Customer"} (₹{Number(b.grand_total).toLocaleString("en-IN")})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700">
+            Product Line *
+            <select
+              value={selectedProduct}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              disabled={!selectedBillId}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+            >
+              <option value="">Select product to produce…</option>
+              {billProducts.map((p, idx) => (
+                <option key={idx} value={p.name}>
+                  {p.name} ({p.quantity} {p.unit})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700">
+            Raw Material to Issue *
+            <select
+              value={selectedRawItemId}
+              onChange={(e) => setSelectedRawItemId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="">Select raw item…</option>
+              {rawItems.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} ({r.quantity} {r.unit} available)
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <Field
+          label="Target Output Quantity *"
+          type="number"
+          value={targetQuantity}
+          onChange={setTargetQuantity}
+        />
+
+        <Field
+          label="Raw per Output Unit"
+          type="number"
+          value={rawPerUnit}
+          onChange={setRawPerUnit}
+        />
+
+        <Field
+          label="Initial Raw Quantity to Issue (leave blank for all)"
+          type="number"
+          value={issueQuantity}
+          onChange={setIssueQuantity}
+        />
+
+        <Field
+          label="Worker Flat Wage (₹)"
+          type="number"
+          value={wageAmount}
+          onChange={setWageAmount}
+        />
+
+        <Field label="Assignment Date" type="date" value={date} onChange={setDate} />
+        <Field label="Notes (optional)" value={notes} onChange={setNotes} />
+
+        <div className="md:col-span-2">
+          <button
+            type="submit"
+            disabled={!selectedWorker || saving}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+          >
+            {saving ? "Assigning…" : "Assign Material & Issue Raw"}
+          </button>
+        </div>
       </form>
+
       <div className="mt-8 space-y-4">
         {materials.map((item) => (
           <AssignmentCard key={item.id} item={item} onChanged={refresh} />
@@ -507,9 +664,26 @@ function MaterialDistributionPanel({
 function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onChanged: () => Promise<void> }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmingComplete, setConfirmingComplete] = useState(false);
+  const [returnedRawInput, setReturnedRawInput] = useState("0");
+  const [showIssueRaw, setShowIssueRaw] = useState(false);
 
   const isCompleted = item.status === "completed";
+  const isCancelled = item.status === "cancelled";
+  const isOpen = item.status === "open";
   const batches = item.batches || [];
+  const producedQty = Number(item.produced_quantity ?? item.delivered_quantity ?? 0);
+  const canCancel = isOpen && producedQty === 0;
+
+  async function handleCancel() {
+    try {
+      await api.put(`/workers/materials/${item.id}/cancel/`);
+      toast.success("Assignment cancelled; raw material returned to inventory");
+      await onChanged();
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to cancel assignment");
+    }
+  }
 
   return (
     <div className="rounded-xl border border-slate-100 p-4">
@@ -519,18 +693,27 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
             <p className="font-semibold text-slate-900">{item.material_name}</p>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                isCompleted ? "bg-slate-100 text-slate-500" : "bg-blue-50 text-blue-600"
+                isCompleted
+                  ? "bg-emerald-50 text-emerald-700"
+                  : isCancelled
+                  ? "bg-slate-100 text-slate-500"
+                  : "bg-blue-50 text-blue-600"
               }`}
             >
-              {isCompleted ? "Completed" : "Open"}
+              {isCompleted ? "Completed" : isCancelled ? "Cancelled" : "Open"}
             </span>
           </div>
-          <p className="text-sm text-slate-500">{item.assignment_date?.slice(0, 10)}</p>
+          <p className="text-sm text-slate-500">
+            {item.raw_item_name ? `Raw: ${item.raw_item_name} · ` : ""}
+            Assigned: {item.assignment_date?.slice(0, 10)}
+          </p>
         </button>
         <div className="text-right text-sm">
-          <p className="font-medium text-slate-900">₹{Number(item.total_value || 0).toLocaleString("en-IN")}</p>
-          <p className="text-slate-500">
-            {item.delivered_quantity} / {item.quantity} returned
+          <p className="font-medium text-slate-900">
+            Produced: {producedQty} / {item.quantity} units
+          </p>
+          <p className="text-xs text-slate-500">
+            Raw Issued: {item.raw_issued_quantity ?? item.quantity} · Returned: {item.raw_returned_quantity ?? 0}
           </p>
         </div>
       </div>
@@ -538,25 +721,22 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
       {isCompleted && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
           <span>
-            Wastage: {item.wastage_quantity} of {item.quantity} ({item.quantity ? Math.round(((item.wastage_quantity || 0) / item.quantity) * 100) : 0}%)
+            Wastage: {item.wastage_quantity ?? 0} raw units
           </span>
           {item.over_returned && (
-            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-600">More returned than assigned — check entries</span>
+            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-600">More returned than assigned</span>
           )}
         </div>
-      )}
-
-      {!isCompleted && item.balance_quantity > 0 && (
-        <p className="mt-2 text-xs text-slate-400">{item.balance_quantity} still with the worker</p>
       )}
 
       {expanded && (
         <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
           {batches.length > 0 && (
             <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-slate-500">Output Batches Handed In:</p>
               {batches.map((batch, index) => (
                 <div key={index} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-700">Chunk {index + 1}: {batch.quantity} returned</span>
+                  <span className="font-medium text-slate-700">Chunk {index + 1}: {batch.quantity} finished units</span>
                   <span className="text-xs text-slate-400">
                     {batch.date ? String(batch.date).slice(0, 10) : ""}
                     {batch.notes ? ` · ${batch.notes}` : ""}
@@ -566,58 +746,176 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
             </div>
           )}
 
-          {!isCompleted && <AddBatchForm assignmentId={item.id} onAdded={onChanged} />}
+          {isOpen && (
+            <div className="space-y-3">
+              <AddBatchForm assignmentId={item.id} onAdded={onChanged} />
 
-          {!isCompleted && (
-            <div>
-              {!confirmingComplete ? (
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setConfirmingComplete(true)}
-                  className="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                  onClick={() => setShowIssueRaw((c) => !c)}
+                  className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
                 >
-                  Mark complete
+                  {showIssueRaw ? "Cancel Issue" : "+ Issue More Raw"}
                 </button>
-              ) : (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
-                  <p className="text-emerald-800">
-                    {item.delivered_quantity} of {item.quantity} returned so far. Marking this complete will record{" "}
-                    <strong>{Math.max(item.quantity - item.delivered_quantity, 0)}</strong> as wastage and lock this
-                    assignment — no more chunks can be added afterward. Continue?
-                  </p>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await api.put(`/workers/materials/${item.id}/complete/`);
-                          toast.success("Assignment marked complete");
-                          setConfirmingComplete(false);
-                          await onChanged();
-                        } catch (error: unknown) {
-                          const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-                          toast.error(detail ?? "Failed to mark complete");
-                        }
-                      }}
-                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingComplete(false)}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+
+                {canCancel && (
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                  >
+                    Cancel Assignment
+                  </button>
+                )}
+              </div>
+
+              {showIssueRaw && (
+                <IssueRawForm
+                  assignmentId={item.id}
+                  onIssued={async () => {
+                    setShowIssueRaw(false);
+                    await onChanged();
+                  }}
+                />
               )}
+
+              <div>
+                {!confirmingComplete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingComplete(true)}
+                    className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                  >
+                    Mark Job Complete
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
+                    <p className="text-emerald-800">
+                      Produced {producedQty} of {item.quantity} target units. Enter any unused raw material returned by the worker to restore it to inventory:
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={returnedRawInput}
+                        onChange={(e) => setReturnedRawInput(e.target.value)}
+                        placeholder="Raw returned"
+                        className="w-28 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await api.put(`/workers/materials/${item.id}/complete/`, {
+                              raw_returned_quantity: Number(returnedRawInput) || 0,
+                            });
+                            toast.success("Assignment marked complete");
+                            setConfirmingComplete(false);
+                            await onChanged();
+                          } catch (error: unknown) {
+                            const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+                            toast.error(detail ?? "Failed to mark complete");
+                          }
+                        }}
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                      >
+                        Confirm Complete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingComplete(false)}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+function IssueRawForm({ assignmentId, onIssued }: { assignmentId: string; onIssued: () => Promise<void> }) {
+  const [quantity, setQuantity] = useState("");
+  const [date, setDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleIssue(event: React.FormEvent) {
+    event.preventDefault();
+    const qty = Number(quantity);
+    if (!qty || qty <= 0) {
+      toast.error("Enter raw quantity to issue");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post(`/workers/materials/${assignmentId}/issues/`, {
+        quantity: qty,
+        date: date || undefined,
+        notes: notes.trim() || undefined,
+      });
+      toast.success(`Issued ${qty} raw material to worker`);
+      setQuantity("");
+      setNotes("");
+      await onIssued();
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to issue raw material");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleIssue} className="flex flex-wrap items-end gap-2 rounded-lg bg-blue-50/70 p-3">
+      <div className="w-28">
+        <label className="text-xs font-medium text-slate-600">
+          <span>More Raw Qty</span>
+          <input
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="e.g. 50"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+          />
+        </label>
+      </div>
+      <div className="w-32">
+        <label className="text-xs font-medium text-slate-600">
+          <span>Date</span>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+          />
+        </label>
+      </div>
+      <div className="min-w-[140px] flex-1">
+        <label className="text-xs font-medium text-slate-600">
+          <span>Notes (optional)</span>
+          <input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. extra roll"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+          />
+        </label>
+      </div>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+      >
+        {saving ? "Issuing…" : "Issue Raw"}
+      </button>
+    </form>
   );
 }
 
@@ -631,19 +929,23 @@ function AddBatchForm({ assignmentId, onAdded }: { assignmentId: string; onAdded
     event.preventDefault();
     const qty = Number(quantity);
     if (!qty || qty <= 0) {
-      toast.error("Enter how many pieces were returned in this chunk");
+      toast.error("Enter how many pieces were produced in this chunk");
       return;
     }
     setSaving(true);
     try {
-      await api.post(`/workers/materials/${assignmentId}/batches/`, { quantity: qty, date, notes });
-      toast.success(`Logged ${qty} returned`);
+      await api.post(`/workers/materials/${assignmentId}/batches/`, {
+        quantity: qty,
+        date: date || undefined,
+        notes: notes.trim() || undefined,
+      });
+      toast.success(`Logged ${qty} produced`);
       setQuantity("");
       setNotes("");
       await onAdded();
     } catch (error: unknown) {
       const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail ?? "Failed to log returned chunk");
+      toast.error(detail ?? "Failed to log produced chunk");
     } finally {
       setSaving(false);
     }

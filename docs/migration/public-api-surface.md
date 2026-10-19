@@ -41,6 +41,7 @@ This document catalogs registered Express API routes that are not directly invok
 | `GET`  | `/api/v1/dashboard/overview` | API Surface | Consolidated dashboard overview payload for batch consumers. |
 | `GET`  | `/api/v1/dashboard/export/:type` | API Surface | CSV/Excel report streaming download endpoint for dashboard analytics. |
 | `GET`  | `/api/v1/insights` | API Surface | RESTful insights list retrieval. |
+| `GET`  | `/api/v1/inventory/movements` | API Surface | Audit and ledger retrieval endpoint for stock movements (raw issues, returns, production, shipments). |
 | `GET`  | `/api/v1/ai/config` | API Surface | Public capabilities and available model configuration for AI assistant. |
 | `POST` | `/api/v1/ai/command` | API Surface | HTTP REST fallback for AI command execution (alongside WebSocket). |
 

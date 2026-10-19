@@ -4,7 +4,6 @@ import { Package } from "lucide-react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
-import InventoryItemsPage from "./InventoryItemsPage";
 
 interface InProductionItem {
   id: string;
@@ -90,8 +89,6 @@ export default function SemiFinishedInventoryPage() {
           </div>
         )}
       </Card>
-
-      <InventoryItemsPage itemType="semi-finished" title="Manually Tracked Work in Progress" />
     </div>
   );
 }

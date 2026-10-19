@@ -365,14 +365,37 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
                           <ArrowRightLeft className="h-3.5 w-3.5" />
                         </ActionButton>
                       )}
-                      {bill.payment_status === "paid" && !bill.profit_confirmed && (
-                        <ActionButton
-                          title="Confirm profit for this consignment"
-                          onClick={() => setConfirmingBill(bill)}
-                          tone="green"
-                        >
-                          <BadgeCheck className="h-3.5 w-3.5" />
-                        </ActionButton>
+                      {!bill.profit_confirmed && (
+                        bill.workflow === "order_first" ? (
+                          (bill.order_status === "shipped" || bill.order_status === "closed") ? (
+                            <ActionButton
+                              title="Confirm profit for this consignment"
+                              onClick={() => setConfirmingBill(bill)}
+                              tone="green"
+                            >
+                              <BadgeCheck className="h-3.5 w-3.5" />
+                            </ActionButton>
+                          ) : (
+                            <ActionButton
+                              title="Profit can be confirmed once all items are shipped"
+                              onClick={() => undefined}
+                              disabled
+                              tone="slate"
+                            >
+                              <BadgeCheck className="h-3.5 w-3.5" />
+                            </ActionButton>
+                          )
+                        ) : (
+                          bill.payment_status === "paid" && (
+                            <ActionButton
+                              title="Confirm profit for this consignment"
+                              onClick={() => setConfirmingBill(bill)}
+                              tone="green"
+                            >
+                              <BadgeCheck className="h-3.5 w-3.5" />
+                            </ActionButton>
+                          )
+                        )
                       )}
                       <ActionButton
                         title="Delete bill"
@@ -923,13 +946,13 @@ function RecordPaymentModal({ bill, onClose, onUpdated }: RecordPaymentModalProp
   );
 }
 
-interface ProfitConfirmationModalProps {
+export interface ProfitConfirmationModalProps {
   bill: Bill;
   onClose: () => void;
   onConfirmed: (bill: Bill) => void;
 }
 
-function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmationModalProps) {
+export function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmationModalProps) {
   const [loading, setLoading] = useState(true);
   const [suggestion, setSuggestion] = useState<ProfitPreviewResponse | null>(null);
   const [override, setOverride] = useState("");

@@ -103,7 +103,7 @@ describe("SemiFinishedInventoryPage - Lifecycle States", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Silk Dupatta Dyeing")).toBeInTheDocument();
-      expect(screen.getByText("Dyed Fabric Rolls")).toBeInTheDocument();
+      expect(screen.getByText(/INV-100/)).toBeInTheDocument();
     });
   });
 });
