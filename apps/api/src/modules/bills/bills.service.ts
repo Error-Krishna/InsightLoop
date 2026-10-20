@@ -376,7 +376,10 @@ export class BillsService {
       throw new ValidationError('At least one product is required.');
     }
 
-    this.validateUniqueProductNames(rawProducts);
+    const isLegacy = (data as { workflow?: string }).workflow === 'legacy';
+    if (!isLegacy) {
+      this.validateUniqueProductNames(rawProducts);
+    }
 
     const discount = parseFloat(String(data.discount ?? 0)) || 0;
     const gstPercentage = billType === 'kacha' ? 0 : parseFloat(String(data.gst_percentage ?? 0)) || 0;
@@ -392,7 +395,6 @@ export class BillsService {
       phone: data.buyer_phone ?? buyerInput.phone ?? '',
     };
 
-    const isLegacy = (data as { workflow?: string }).workflow === 'legacy';
     let appliedStock: { itemId: string; qty: number }[] = [];
     if (isLegacy) {
       const deltas = this.getStockDeltas(totals.products);
@@ -477,7 +479,9 @@ export class BillsService {
     }
 
     const rawProducts = data.products ?? existing.products ?? [];
-    this.validateUniqueProductNames(rawProducts);
+    if (existing.workflow === 'order_first') {
+      this.validateUniqueProductNames(rawProducts);
+    }
 
     const discount = data.discount !== undefined ? parseFloat(String(data.discount)) || 0 : (existing.discount ?? 0);
     const gstPercentage =
@@ -536,6 +540,9 @@ export class BillsService {
       }
 
       const buyer = { ...(data.buyer ?? existing.buyer) };
+      if (data.buyer_name !== undefined) buyer.name = data.buyer_name;
+      if (data.buyer_phone !== undefined) buyer.phone = data.buyer_phone;
+      if (data.buyer_address !== undefined) buyer.address = data.buyer_address;
       if (existing.bill_type === 'pakka') {
         const gstNum = data.gst_number ?? (data.buyer?.gst_number || existing.buyer?.gst_number);
         if (gstNum) {
@@ -694,7 +701,9 @@ export class BillsService {
 
     const gstPercentage = parseFloat(String(data.gst_percentage ?? 0)) || 0;
     const rawProducts = data.products ?? bill.products ?? [];
-    this.validateUniqueProductNames(rawProducts);
+    if (bill.workflow === 'order_first') {
+      this.validateUniqueProductNames(rawProducts);
+    }
 
     const discount = bill.discount ?? 0;
     const totals = calculateBillTotals(rawProducts, discount, gstPercentage);
@@ -844,7 +853,9 @@ export class BillsService {
     if (bill.workflow === 'order_first') {
       const linkedAssignments = await BillsRepository.findLinkedAssignments(scope, id);
       const nonCancelled = linkedAssignments.filter((a) => a.status !== 'cancelled');
-      hasOpenAssignments = nonCancelled.some((a) => a.status === 'open');
+      hasOpenAssignments = nonCancelled.some(
+        (a) => a.status === 'open' || a.status === 'completing' || a.status === 'cancelling'
+      );
 
       for (const a of nonCancelled) {
         const netRaw = Math.max(
@@ -860,7 +871,7 @@ export class BillsService {
           quantity: netRaw,
           unit_cost: unitCost,
           line_cost: lineCost,
-          cost_known: true,
+          cost_known: unitCost > 0,
         });
       }
       materialCost = roundPy(materialCost, 2);

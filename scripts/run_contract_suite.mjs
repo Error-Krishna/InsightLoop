@@ -439,12 +439,6 @@ async function main() {
     });
   }, stats);
 
-  await runTest('semi_finished_list', 'inventory', async () => {
-    return request('GET', '/api/v1/inventory/semi-finished/', {
-      headers: authHeaderA(),
-    });
-  }, stats);
-
   await runTest('semi_finished_live', 'inventory', async () => {
     return request('GET', '/api/v1/inventory/semi-finished/live/', {
       headers: authHeaderA(),

@@ -52,12 +52,6 @@ export class InventoryController {
   }
 
   // Semi-finished / In-Progress (Live only)
-  static async listSemiFinished(req: Request, res: Response): Promise<void> {
-    const scope: TenantScope = { companyId: req.companyId! };
-    const items = await InventoryService.listItems(scope, 'semi_finished');
-    res.status(200).json(items);
-  }
-
   static async getLiveSemiFinished(req: Request, res: Response): Promise<void> {
     const scope: TenantScope = { companyId: req.companyId! };
     const result = await InventoryService.getLiveSemiFinished(scope);

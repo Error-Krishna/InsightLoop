@@ -24,14 +24,6 @@
     "file": "inventory_finished.json"
   },
   {
-    "id": "inventory_semi_finished",
-    "description": "List semi-finished inventory items",
-    "nodeEndpoint": "/api/v1/inventory/semi-finished",
-    "method": "GET",
-    "status": 200,
-    "file": "inventory_semi_finished.json"
-  },
-  {
     "id": "inventory_semi_finished_live",
     "description": "Live semi-finished inventory with active worker calculations",
     "nodeEndpoint": "/api/v1/inventory/semi-finished/live",

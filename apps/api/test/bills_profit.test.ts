@@ -158,7 +158,7 @@ describe('Bills Lifecycle, State Machine & Profit Transitions Suite', () => {
       .set('Authorization', `Bearer ${user.token}`)
       .send({ ship_all: true });
     expect(shipRes.status).toBe(201);
-    expect(shipRes.body.order_status).toBe('closed');
+    expect(shipRes.body.order_status).toBe('shipped');
 
     // 7. Query Profit Preview
     const previewRes = await request(app)

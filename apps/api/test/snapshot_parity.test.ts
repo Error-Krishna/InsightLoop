@@ -144,7 +144,7 @@ describe('Snapshot Parity Suite (Python-Free Safety Net 5: Fast Offline Parity)'
     expect(fs.existsSync(indexPath), `Snapshot index not found at ${indexPath}`).toBe(true);
 
     const indexItems: SnapshotIndexItem[] = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
-    expect(indexItems.length).toBeGreaterThanOrEqual(15);
+    expect(indexItems.length).toBeGreaterThanOrEqual(14);
 
     snapshots = indexItems.map((meta) => {
       const data: SnapshotFile = JSON.parse(fs.readFileSync(path.join(snapshotsDir, meta.file), 'utf8'));
@@ -157,7 +157,7 @@ describe('Snapshot Parity Suite (Python-Free Safety Net 5: Fast Offline Parity)'
   });
 
   it('loads all static Django snapshots from fixtures/django_snapshots', () => {
-    expect(snapshots.length).toBeGreaterThanOrEqual(15);
+    expect(snapshots.length).toBeGreaterThanOrEqual(14);
   });
 
   it('matches Node API responses to frozen Django snapshots with 0 diff', async () => {

@@ -694,4 +694,257 @@ describe('Order-First Production Workflow (Raw -> In Progress -> Finished -> Shi
     const workerAfter = await WorkersRepository.findWorkerById(scope, worker.id);
     expect(workerAfter).toBeNull();
   });
+
+  it('Fix 1: completeAssignment must require status open', async () => {
+    const raw = await InventoryService.createItem(scope, 'raw', {
+      name: 'Fix1 Raw Timber',
+      quantity: 50,
+      cost_price: 10,
+    });
+    const bill = await BillsService.createBill(scope, 'kacha', {
+      products: [{ name: 'Fix1 Chair', quantity: 5, rate: 100 }],
+    });
+    const worker = await WorkersService.createWorker(scope, { name: 'Fix1 Worker' });
+
+    const a1 = await WorkersService.createMaterial(scope, worker.id, {
+      bill_id: bill.id,
+      raw_item_id: raw.id,
+      material_name: 'Fix1 Chair',
+      quantity: 2,
+    });
+
+    // Cancel a1
+    await WorkersService.cancelAssignment(scope, a1.id);
+
+    // Complete after cancel is rejected with 400
+    await expect(
+      WorkersService.completeAssignment(scope, a1.id)
+    ).rejects.toThrow('Cannot complete assignment with status "cancelled". Only open assignments can be completed.');
+
+    // Create a2 and complete it
+    const a2 = await WorkersService.createMaterial(scope, worker.id, {
+      bill_id: bill.id,
+      raw_item_id: raw.id,
+      material_name: 'Fix1 Chair',
+      quantity: 2,
+    });
+    const completed = await WorkersService.completeAssignment(scope, a2.id);
+    expect(completed.status).toBe('completed');
+
+    // Complete twice is rejected with 400
+    await expect(
+      WorkersService.completeAssignment(scope, a2.id)
+    ).rejects.toThrow('This assignment is already marked complete.');
+  });
+
+  it('Fix 2: raw return idempotency and rollback on failure', async () => {
+    const raw = await InventoryService.createItem(scope, 'raw', {
+      name: 'Fix2 Raw Leather',
+      quantity: 100,
+      cost_price: 20,
+    });
+    const bill = await BillsService.createBill(scope, 'kacha', {
+      products: [{ name: 'Fix2 Wallet', quantity: 10, rate: 50 }],
+    });
+    const worker = await WorkersService.createWorker(scope, { name: 'Fix2 Artisan' });
+
+    const assignment = await WorkersService.createMaterial(scope, worker.id, {
+      bill_id: bill.id,
+      raw_item_id: raw.id,
+      material_name: 'Fix2 Wallet',
+      quantity: 5,
+      issue_quantity: 10,
+    });
+    // Raw stock was 100 - 10 = 90
+    let rawItem = await InventoryRepository.findItemById(scope, raw.id);
+    expect(rawItem?.quantity).toBe(90);
+
+    // Simulate failure during completeAssignment by claiming completing, then verifying rollback logic
+    // We can test this by checking that claimCompletingAssignment succeeds only once:
+    const claim1 = await WorkersRepository.claimCompletingAssignment(scope, assignment.id, 2);
+    expect(claim1).toBeDefined();
+    expect(claim1?.status).toBe('completing');
+
+    // Second claim fails because status is now 'completing'
+    const claim2 = await WorkersRepository.claimCompletingAssignment(scope, assignment.id, 2);
+    expect(claim2).toBeNull();
+
+    // Rollback to open
+    await WorkersRepository.updateAssignment(scope, assignment.id, {
+      status: 'open',
+      raw_returned_quantity: 0,
+    });
+
+    // Now normal complete with 2 returned raw items works
+    const finalComplete = await WorkersService.completeAssignment(scope, assignment.id, {
+      raw_returned_quantity: 2,
+    });
+    expect(finalComplete.status).toBe('completed');
+    expect(finalComplete.raw_returned_quantity).toBe(2);
+
+    // Raw stock: 90 + 2 = 92
+    rawItem = await InventoryRepository.findItemById(scope, raw.id);
+    expect(rawItem?.quantity).toBe(92);
+  });
+
+  it('Fix 3: addBatch finished-stock sync and double-sync protection on complete', async () => {
+    const raw = await InventoryService.createItem(scope, 'raw', {
+      name: 'Fix3 Raw Brass',
+      quantity: 40,
+      cost_price: 15,
+    });
+    const bill = await BillsService.createBill(scope, 'kacha', {
+      products: [{ name: 'Fix3 Brass Lamp', quantity: 4, rate: 200 }],
+    });
+    const worker = await WorkersService.createWorker(scope, { name: 'Fix3 Artisan' });
+
+    const assignment = await WorkersService.createMaterial(scope, worker.id, {
+      bill_id: bill.id,
+      raw_item_id: raw.id,
+      material_name: 'Fix3 Brass Lamp',
+      quantity: 4,
+      issue_quantity: 4,
+    });
+
+    // Add batch 1: quantity 2 (synced automatically)
+    const b1 = await WorkersService.addBatch(scope, assignment.id, { quantity: 2 });
+    expect(b1.batches?.[0].synced_to_inventory).toBe(true);
+
+    let finishedItem = await InventoryRepository.findItemByNameAndType(scope, 'Fix3 Brass Lamp', 'finished');
+    expect(finishedItem?.quantity).toBe(2);
+
+    // Complete assignment: should not double-sync the already synced batch
+    await WorkersService.completeAssignment(scope, assignment.id);
+    finishedItem = await InventoryRepository.findItemByNameAndType(scope, 'Fix3 Brass Lamp', 'finished');
+    // Stock remains 2 (not 4)
+    expect(finishedItem?.quantity).toBe(2);
+  });
+
+  it('Fix 5: live WIP shape has all required fields and no manual_items', async () => {
+    const raw = await InventoryService.createItem(scope, 'raw', {
+      name: 'Fix5 Raw Yarn',
+      quantity: 100,
+      unit: 'kg',
+    });
+    const bill = await BillsService.createBill(scope, 'kacha', {
+      products: [{ name: 'Fix5 Scarf', quantity: 10, rate: 80, unit: 'pcs' }],
+    });
+    const worker = await WorkersService.createWorker(scope, { name: 'Fix5 Weaver' });
+
+    const assignment = await WorkersService.createMaterial(scope, worker.id, {
+      bill_id: bill.id,
+      raw_item_id: raw.id,
+      material_name: 'Fix5 Scarf',
+      quantity: 10,
+      issue_quantity: 15,
+      raw_per_unit: 1.5,
+    });
+
+    await WorkersService.addBatch(scope, assignment.id, { quantity: 4 });
+
+    const live = await InventoryService.getLiveSemiFinished(scope);
+    expect((live as any).manual_items).toBeUndefined();
+    expect(Array.isArray(live.in_production)).toBe(true);
+
+    const row = live.in_production.find((r) => r.assignment_id === assignment.id);
+    expect(row).toBeDefined();
+    expect(row?.assignment_id).toBe(assignment.id);
+    expect(row?.worker_id).toBe(worker.id);
+    expect(row?.worker_name).toBe('Fix5 Weaver');
+    expect(row?.bill_id).toBe(bill.id);
+    expect(row?.invoice_number).toBe(bill.invoice_number);
+    expect(row?.product_name).toBe('Fix5 Scarf');
+    expect(row?.unit).toBe('pcs');
+    expect(row?.raw_item_name).toBe('Fix5 Raw Yarn');
+    expect(row?.raw_unit).toBe('kg');
+    expect(row?.raw_issued).toBe(15);
+    expect(row?.raw_returned).toBe(0);
+    // raw_with_worker = 15 - 0 - 4 * 1.5 = 9
+    expect(row?.raw_with_worker).toBe(9);
+    expect(row?.target).toBe(10);
+    expect(row?.produced).toBe(4);
+    expect(row?.remaining_output).toBe(6);
+  });
+
+  it('Fix 8: Concurrency on line ordered cap rolls back and rejects exceeding assignment', async () => {
+    const raw = await InventoryService.createItem(scope, 'raw', {
+      name: 'Fix8 Raw Steel',
+      quantity: 50,
+    });
+    const bill = await BillsService.createBill(scope, 'kacha', {
+      products: [{ name: 'Fix8 Steel Rod', quantity: 10, rate: 50 }],
+    });
+    const worker = await WorkersService.createWorker(scope, { name: 'Fix8 Welder' });
+
+    // Assign 8
+    await WorkersService.createMaterial(scope, worker.id, {
+      bill_id: bill.id,
+      raw_item_id: raw.id,
+      material_name: 'Fix8 Steel Rod',
+      quantity: 8,
+      issue_quantity: 8,
+    });
+
+    // Assign 5 (8 + 5 = 13 > 10 ordered) -> 400
+    await expect(
+      WorkersService.createMaterial(scope, worker.id, {
+        bill_id: bill.id,
+        raw_item_id: raw.id,
+        material_name: 'Fix8 Steel Rod',
+        quantity: 5,
+        issue_quantity: 5,
+      })
+    ).rejects.toThrow('Quantity (5) exceeds remaining unassigned quantity (2) for product "Fix8 Steel Rod".');
+
+    // Raw stock was 50 - 8 = 42; failed assignment did not deduct 5
+    const rawItem = await InventoryRepository.findItemById(scope, raw.id);
+    expect(rawItem?.quantity).toBe(42);
+  });
+
+  it('Fix 8: Profit preview cost_known is false when raw material has cost 0', async () => {
+    const raw = await InventoryService.createItem(scope, 'raw', {
+      name: 'Fix8 Free Raw Sand',
+      quantity: 100,
+      cost_price: 0, // Unknown/0 cost
+    });
+    const bill = await BillsService.createBill(scope, 'kacha', {
+      products: [{ name: 'Fix8 Glass Vase', quantity: 5, rate: 100 }],
+    });
+    const worker = await WorkersService.createWorker(scope, { name: 'Fix8 Glassblower' });
+
+    await WorkersService.createMaterial(scope, worker.id, {
+      bill_id: bill.id,
+      raw_item_id: raw.id,
+      material_name: 'Fix8 Glass Vase',
+      quantity: 5,
+      issue_quantity: 5,
+    });
+
+    const preview = await BillsService.getProfitPreview(scope, bill.id);
+    expect(preview.lines[0].cost_known).toBe(false);
+  });
+
+  it('Fix 8: Legacy bill update allows duplicate product names without 400', async () => {
+    // Create legacy bill directly in db with duplicate product names
+    const legacyBillDoc = await db.collection('bills').insertOne({
+      company_id: scope.companyId,
+      bill_type: 'kacha',
+      workflow: 'legacy',
+      invoice_number: 'LEGACY-001',
+      date: new Date(),
+      products: [
+        { name: 'Duplicate Item', quantity: 2, rate: 50 },
+        { name: 'Duplicate Item', quantity: 3, rate: 50 },
+      ],
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    // Updating a legacy bill should NOT throw duplicate product name error
+    const updated = await BillsService.updateBill(scope, legacyBillDoc.insertedId.toString(), {
+      discount: 10,
+    });
+    expect(updated).toBeDefined();
+    expect(updated.discount).toBe(10);
+  });
 });

@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { InventoryRepository, type InventoryItemDoc, type WarehouseDoc } from './inventory.repository.js';
+import { InventoryRepository, type InventoryItemDoc, type WarehouseDoc, type InventoryBillDoc } from './inventory.repository.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 import { roundPy } from '@insightloop/shared';
 import { formatDjangoIso } from '../../utils/timezone.js';
@@ -148,9 +148,6 @@ export class InventoryService {
   }
 
   static async getLiveSemiFinished(scope: TenantScope) {
-    const manualItems = await this.listItems(scope, 'semi_finished');
-    const manualRows = manualItems.map((item) => ({ ...item, source: 'manual' }));
-
     const openAssignments = await InventoryRepository.findOpenAssignments(scope);
     const workerIds = [
       ...new Set(
@@ -170,8 +167,9 @@ export class InventoryService {
     const derivedRows = [];
     for (const assignment of openAssignments) {
       let orderInfo: { bill_id: string; invoice_number: string; order_status?: string; buyer_name: string | null } | null = null;
+      let bill: InventoryBillDoc | null = null;
       if (assignment.bill_id && ObjectId.isValid(String(assignment.bill_id))) {
-        const bill = await InventoryRepository.findBillById(scope, String(assignment.bill_id));
+        bill = await InventoryRepository.findBillById(scope, String(assignment.bill_id));
         if (bill) {
           orderInfo = {
             bill_id: bill._id.toString(),
@@ -210,29 +208,52 @@ export class InventoryService {
       }
 
       const target = Number(assignment.quantity) || 0;
-      const balanceQty = Math.max(0, target - deliveredQty);
+      const produced = deliveredQty;
+      const remainingOutput = Math.max(0, target - produced);
+
+      const rawIssued = Number(assignment.raw_issued_quantity) || 0;
+      const rawReturned = Number(assignment.raw_returned_quantity) || 0;
+      const rawPerUnit = Number(assignment.raw_per_unit) || 1;
+      const rawWithWorker = Math.max(0, rawIssued - rawReturned - produced * rawPerUnit);
+
+      const matchingProduct = (bill?.products ?? []).find(
+        (p: { name?: string; unit?: string }) => (p.name ?? '').trim().toLowerCase() === (assignment.material_name ?? '').trim().toLowerCase()
+      );
+      const unit = matchingProduct?.unit ?? 'pcs';
+      const rawUnit = assignment.raw_unit ?? 'pcs';
 
       derivedRows.push({
         id: `assignment:${assignment._id.toString()}`,
         source: 'assignment',
         assignment_id: assignment._id.toString(),
-        name: assignment.material_name ?? 'Unknown',
-        unit: 'pcs',
-        type: 'semi_finished',
-        assigned_quantity: target,
-        delivered_quantity: deliveredQty,
-        balance_quantity: balanceQty,
-        quantity: balanceQty,
-        location_label: workerName ? `With ${workerName}` : 'Worker unassigned',
         worker_id: workerId ?? null,
         worker_name: workerName,
+        bill_id: assignment.bill_id ? String(assignment.bill_id) : null,
+        invoice_number: bill?.invoice_number ?? '',
+        product_name: assignment.material_name ?? 'Unknown',
+        unit,
+        raw_item_name: assignment.raw_item_name ?? 'Raw',
+        raw_unit: rawUnit,
+        raw_issued: rawIssued,
+        raw_returned: rawReturned,
+        raw_with_worker: rawWithWorker,
+        target,
+        produced,
+        remaining_output: remainingOutput,
+        // Compat fields
+        name: assignment.material_name ?? 'Unknown',
+        type: 'semi_finished',
+        assigned_quantity: target,
+        delivered_quantity: produced,
+        balance_quantity: remainingOutput,
+        quantity: remainingOutput,
+        location_label: workerName ? `With ${workerName}` : 'Worker unassigned',
         order: orderInfo,
         assignment_date: formatDjangoIso(assignment.assignment_date),
       });
     }
 
     return {
-      manual_items: manualRows,
       in_production: derivedRows,
     };
   }

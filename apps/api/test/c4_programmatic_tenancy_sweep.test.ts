@@ -268,7 +268,6 @@ describe('C4: Programmatic Express Route Table Tenancy Sweep', () => {
     const listEndpoints = [
       '/api/v1/inventory/warehouses',
       '/api/v1/inventory/finished',
-      '/api/v1/inventory/semi-finished',
       '/api/v1/inventory/semi-finished/live',
       '/api/v1/inventory/raw',
       '/api/v1/inventory/meta/warehouse-summary',

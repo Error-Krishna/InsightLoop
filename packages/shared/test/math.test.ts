@@ -107,6 +107,11 @@ describe('Mathematical Compatibility Engine', () => {
     expect(closed.order_status).toBe('closed');
     expect(closed.payment_status).toBe('paid');
 
+    // 2b. fully shipped + paid, but profit NOT confirmed -> shipped (not closed)
+    const paidShippedNotConfirmed = calculateBillDerived(1000, [{ amount: 1000 }], false, 'pakka', true, []);
+    expect(paidShippedNotConfirmed.order_status).toBe('shipped');
+    expect(paidShippedNotConfirmed.payment_status).toBe('paid');
+
     // 3. profitConfirmed + unpaid + shipped -> shipped (not closed)
     const notClosed = calculateBillDerived(1000, [{ amount: 500 }], true, 'pakka', true, []);
     expect(notClosed.order_status).toBe('shipped');

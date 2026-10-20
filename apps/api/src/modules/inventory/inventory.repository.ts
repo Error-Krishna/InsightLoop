@@ -77,6 +77,7 @@ export interface InventoryBillDoc extends Document {
   invoice_number?: string;
   order_status?: string;
   buyer?: { name?: string };
+  products?: { name?: string; unit?: string }[];
 }
 
 export class InventoryRepository {
@@ -257,7 +258,7 @@ export class InventoryRepository {
   static async findOpenAssignments(scope: TenantScope): Promise<OpenAssignmentDoc[]> {
     const assignmentsCol = getCollection<OpenAssignmentDoc>('material_assignments');
     return assignmentsCol
-      .find({ company_id: scope.companyId, status: 'open' })
+      .find({ company_id: scope.companyId, status: { $in: ['open', 'completing'] } })
       .sort({ assignment_date: -1 })
       .toArray();
   }

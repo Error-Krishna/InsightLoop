@@ -330,22 +330,6 @@ describe('Branch Coverage Target Exhaustion Suite', () => {
       const whs = await InventoryRepository.findWarehousesByIds(scope, [wh1._id.toString(), wh2._id]);
       expect(whs.length).toBe(2);
 
-      // WorkersRepository.syncFinishedInventory: empty name / 0 quantity do nothing
-      await WorkersRepository.syncFinishedInventory(scope, '', 10);
-      await WorkersRepository.syncFinishedInventory(scope, 'Valid Item', 0);
-
-      // syncFinishedInventory creates new finished item
-      const syncName = 'Synced Finished Coat';
-      await WorkersRepository.syncFinishedInventory(scope, syncName, 15);
-      const synced = await db.collection('inventory_items').findOne({ company_id: companyId, name: syncName });
-      expect(synced).toBeDefined();
-      expect(synced.quantity).toBe(15);
-
-      // syncFinishedInventory increments existing item
-      await WorkersRepository.syncFinishedInventory(scope, syncName, 10);
-      const synced2 = await db.collection('inventory_items').findOne({ company_id: companyId, name: syncName });
-      expect(synced2.quantity).toBe(25);
-
       // WorkersRepository aggregation summaries
       const w1 = await WorkersRepository.insertWorker(scope, { name: 'Worker Alpha', is_active: true });
       const sums = await WorkersRepository.aggregateWorkerAssignmentSummaries(scope);
@@ -822,11 +806,6 @@ describe('Branch Coverage Target Exhaustion Suite', () => {
       expect(await WorkersRepository.addBatchToAssignment(scope, dummyId, { quantity: 1 })).toBeNull();
       expect(await WorkersRepository.findPaymentById(scope, dummyId)).toBeNull();
       expect(await WorkersRepository.updatePayment(scope, dummyId, { paid: true })).toBeNull();
-
-      // WorkersRepository.syncFinishedInventory branches
-      await WorkersRepository.syncFinishedInventory(scope, '', 10);
-      await WorkersRepository.syncFinishedInventory(scope, 'Valid Item', 0);
-      await WorkersRepository.syncFinishedInventory(scope, 'Non-existent item name', 10);
 
       // InsightsRepository
       expect(await InsightsRepository.findInsightById(scope, dummyId)).toBeNull();

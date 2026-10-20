@@ -175,7 +175,7 @@ export interface BillDerivedStatus {
 export function calculateBillDerived(
   grandTotal: number,
   payments: BillPaymentItem[] = [],
-  _profitConfirmed = false,
+  profitConfirmed = false,
   _billType = 'kacha',
   shipmentConfirmed = false,
   assignments: { status: string }[] = [],
@@ -226,7 +226,7 @@ export function calculateBillDerived(
       : (nonCancelledAssignments.length > 0 && nonCancelledAssignments.every((a) => a.status === 'completed'));
 
   let order_status: OrderStatus;
-  if (fullyShipped && payment_status === 'paid') {
+  if (fullyShipped && payment_status === 'paid' && profitConfirmed) {
     order_status = 'closed';
   } else if (fullyShipped) {
     order_status = 'shipped';

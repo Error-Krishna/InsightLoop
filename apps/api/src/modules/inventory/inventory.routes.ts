@@ -25,7 +25,6 @@ inventoryRouter.get('/finished', asyncHandler(InventoryController.listFinished))
 inventoryRouter.put('/finished/:id', asyncHandler(InventoryController.updateFinished));
 
 // 5. In-Progress / Semi-finished (Live derived rows only)
-inventoryRouter.get('/semi-finished', asyncHandler(InventoryController.listSemiFinished));
 inventoryRouter.get('/semi-finished/live', asyncHandler(InventoryController.getLiveSemiFinished));
 
 // 6. Raw Materials Inventory

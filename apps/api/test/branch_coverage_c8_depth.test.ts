@@ -555,11 +555,6 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
       expect(pays).toEqual([]);
 
       await expect(WorkersRepository.deletePaymentsByWorker(scope, nonOid)).resolves.not.toThrow();
-
-      // syncFinishedInventory with empty or null name
-      await expect(WorkersRepository.syncFinishedInventory(scope, '', 10)).resolves.not.toThrow();
-      await expect(WorkersRepository.syncFinishedInventory(scope, null as any, 10)).resolves.not.toThrow();
-      await expect(WorkersRepository.syncFinishedInventory(scope, 'Some Item', 0)).resolves.not.toThrow();
     });
 
     it('covers WorkersService fallbacks, wage wastage, updateWorker fields, and listWorkers wastage', async () => {
