@@ -34,11 +34,27 @@ export interface ReadyToDeliverBatch {
 
 export interface BillLineProgress {
   product_name: string;
+  unit?: string;
   ordered: number;
   targeted: number;
   produced: number;
   shipped: number;
   ready_to_ship: number;
+}
+
+export interface StockMovement {
+  id: string;
+  company_id: string;
+  date: string;
+  type: "raw_issue" | "raw_return" | "production_in" | "shipment_out";
+  item_id: string | null;
+  item_name: string;
+  quantity: number;
+  bill_id: string | null;
+  assignment_id: string | null;
+  worker_id: string | null;
+  notes?: string;
+  created_at?: string;
 }
 
 export interface ShipmentItem {
@@ -153,7 +169,13 @@ export interface ProfitPreviewResponse {
   payment_fraction: number;
   suggested_profit: number;
   lines: {
-    item_name: string;
+    name?: string;
+    item_name?: string;
+    quantity?: number;
+    unit_cost?: number | null;
+    line_cost?: number;
     cost_known: boolean;
   }[];
 }
+
+

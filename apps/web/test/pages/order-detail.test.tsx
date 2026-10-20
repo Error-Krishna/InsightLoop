@@ -94,4 +94,62 @@ describe("OrderDetailPage - Lifecycle States", () => {
       expect(screen.getByText("Production")).toBeInTheDocument();
     });
   });
+
+  it("renders movement history and line unit in progress table", async () => {
+    vi.spyOn(api, "get").mockImplementation(async (url: string) => {
+      if (url.includes("/assignments/")) return { data: [] };
+      if (url.includes("/workers/"))
+        return {
+          data: [
+            { id: "w1", name: "Active Ramesh", is_active: true },
+            { id: "w2", name: "Inactive Suresh", is_active: false },
+          ],
+        };
+      if (url.includes("/inventory/movements"))
+        return {
+          data: [
+            {
+              id: "m1",
+              company_id: "c1",
+              date: "2026-03-01T10:00:00Z",
+              type: "raw_issue",
+              item_name: "Raw Silk",
+              quantity: 20,
+              worker_id: "w1",
+              notes: "Initial distribution",
+              created_at: "2026-03-01T10:00:00Z",
+            },
+          ],
+        };
+      if (url.includes("/inventory/raw/"))
+        return { data: [{ id: "r1", name: "Raw Silk", unit: "kg", quantity: 50 }] };
+      return {
+        data: {
+          id: "order-1",
+          invoice_number: "INV-2026-0002",
+          bill_type: "pakka",
+          buyer: { name: "Test Buyer" },
+          products: [{ name: "Handloom Saree", quantity: 5, rate: 2000, unit: "pieces" }],
+          grand_total: 10000,
+          created_at: new Date().toISOString(),
+        },
+      };
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/bills/order/order-1"]}>
+        <Routes>
+          <Route path="/bills/order/:id" element={<OrderDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Movement History")).toBeInTheDocument();
+      expect(screen.getByText("Raw Issue")).toBeInTheDocument();
+      expect(screen.getByText("Raw Silk")).toBeInTheDocument();
+      expect(screen.getByText("Worker: Active Ramesh")).toBeInTheDocument();
+      expect(screen.getByText("5 pieces")).toBeInTheDocument();
+    });
+  });
 });

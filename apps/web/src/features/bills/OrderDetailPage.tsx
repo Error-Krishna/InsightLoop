@@ -11,6 +11,7 @@ import {
   Users,
   X,
   BadgeCheck,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
@@ -22,12 +23,14 @@ import type {
   CostItem,
   InventoryItemRef,
   ShipmentRecord,
+  StockMovement,
   WorkerAssignment,
 } from "./types";
 
 interface WorkerRef {
   id: string;
   name: string;
+  is_active?: boolean;
 }
 
 export default function OrderDetailPage() {
@@ -37,6 +40,7 @@ export default function OrderDetailPage() {
   const [assignments, setAssignments] = useState<WorkerAssignment[]>([]);
   const [workers, setWorkers] = useState<WorkerRef[]>([]);
   const [rawItems, setRawItems] = useState<InventoryItemRef[]>([]);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingProfit, setConfirmingProfit] = useState(false);
 
@@ -44,16 +48,18 @@ export default function OrderDetailPage() {
     if (!id) return;
     setLoading(true);
     try {
-      const [billRes, assignmentsRes, workersRes, rawRes] = await Promise.all([
+      const [billRes, assignmentsRes, workersRes, rawRes, movementsRes] = await Promise.all([
         api.get<Bill>(`/bills/${id}/`),
         api.get<WorkerAssignment[]>(`/bills/${id}/assignments/`),
         api.get<WorkerRef[]>("/workers/"),
         api.get<InventoryItemRef[]>("/inventory/raw/"),
+        api.get<StockMovement[]>(`/inventory/movements?bill_id=${id}`),
       ]);
       setBill(billRes.data);
       setAssignments(assignmentsRes.data);
       setWorkers(workersRes.data);
       setRawItems(rawRes.data);
+      setMovements(movementsRes.data || []);
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       toast.error(detail ?? "Failed to load order");
@@ -96,6 +102,8 @@ export default function OrderDetailPage() {
       />
 
       <ShipmentSection bill={bill} onChanged={loadAll} />
+
+      <MovementHistorySection movements={movements} workers={workers} />
 
       <ProfitSection
         bill={bill}
@@ -237,7 +245,15 @@ function ProductionSection({ bill, assignments, workers, rawItems, onChanged }: 
   // Compute or extract line progress
   const lines: BillLineProgress[] =
     bill.lines && bill.lines.length > 0
-      ? bill.lines
+      ? bill.lines.map((l) => {
+          const matchingProd = (bill.products || []).find(
+            (p) => (p.name || "").trim().toLowerCase() === (l.product_name || "").trim().toLowerCase()
+          );
+          return {
+            ...l,
+            unit: l.unit || matchingProd?.unit || "pcs",
+          };
+        })
       : (bill.products || []).map((p) => {
           const matchingAss = assignments.filter(
             (a) =>
@@ -257,6 +273,7 @@ function ProductionSection({ bill, assignments, workers, rawItems, onChanged }: 
           }, 0);
           return {
             product_name: p.name,
+            unit: p.unit || "pcs",
             ordered: p.quantity,
             targeted,
             produced,
@@ -308,11 +325,11 @@ function ProductionSection({ bill, assignments, workers, rawItems, onChanged }: 
               return (
                 <tr key={idx} className="hover:bg-slate-50/50">
                   <td className="px-4 py-3 font-medium text-slate-900">{line.product_name}</td>
-                  <td className="px-4 py-3 text-slate-700">{line.ordered}</td>
-                  <td className="px-4 py-3 text-slate-700">{line.targeted}</td>
-                  <td className="px-4 py-3 font-semibold text-emerald-600">{line.produced}</td>
-                  <td className="px-4 py-3 text-slate-700">{line.shipped}</td>
-                  <td className="px-4 py-3 font-semibold text-blue-600">{line.ready_to_ship}</td>
+                  <td className="px-4 py-3 text-slate-700">{line.ordered} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3 text-slate-700">{line.targeted} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3 font-semibold text-emerald-600">{line.produced} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3 text-slate-700">{line.shipped} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3 font-semibold text-blue-600">{line.ready_to_ship} {line.unit || "pcs"}</td>
                   <td className="px-4 py-3">
                     <div className="w-36">
                       <div className="flex justify-between text-[10px] text-slate-500 mb-1">
@@ -737,8 +754,9 @@ function AssignWorkerModal({
   onClose,
   onAssigned,
 }: AssignWorkerModalProps) {
+  const activeWorkers = workers.filter((w) => w.is_active !== false);
   const [productName, setProductName] = useState(lines[0]?.product_name || "");
-  const [workerId, setWorkerId] = useState(workers[0]?.id || "");
+  const [workerId, setWorkerId] = useState(activeWorkers[0]?.id || "");
   const [rawItemId, setRawItemId] = useState(rawItems[0]?.id || "");
   const [targetQuantity, setTargetQuantity] = useState("");
   const [rawPerUnit, setRawPerUnit] = useState("1");
@@ -824,15 +842,19 @@ function AssignWorkerModal({
               <select
                 value={workerId}
                 onChange={(e) => setWorkerId(e.target.value)}
+                disabled={activeWorkers.length === 0}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
               >
-                <option value="">Select worker…</option>
-                {workers.map((w) => (
+                <option value="">{activeWorkers.length === 0 ? "No active workers" : "Select worker…"}</option>
+                {activeWorkers.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name}
                   </option>
                 ))}
               </select>
+              {activeWorkers.length === 0 && (
+                <p className="mt-1 text-xs text-rose-500">No active workers found. Please add or activate a worker first.</p>
+              )}
             </label>
           </div>
 
@@ -943,7 +965,7 @@ function AssignWorkerModal({
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || activeWorkers.length === 0}
               className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
             >
               {saving ? "Assigning…" : "Assign & Issue Raw"}
@@ -1337,5 +1359,86 @@ function CostLog({ title, total, entries, onAdd }: CostLogProps) {
         {(!entries || entries.length === 0) && <p className="text-xs text-slate-400">No entries yet.</p>}
       </div>
     </div>
+  );
+}
+
+function MovementHistorySection({
+  movements,
+  workers = [],
+}: {
+  movements: StockMovement[];
+  workers?: WorkerRef[];
+}) {
+  const typeLabels: Record<string, { label: string; tone: string }> = {
+    raw_issue: { label: "Raw Issue", tone: "bg-blue-50 text-blue-700 border-blue-200" },
+    raw_return: { label: "Raw Return", tone: "bg-amber-50 text-amber-700 border-amber-200" },
+    production_in: { label: "Production In", tone: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    shipment_out: { label: "Shipment Out", tone: "bg-purple-50 text-purple-700 border-purple-200" },
+  };
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <History className="h-4 w-4 text-slate-400" />
+          <h2 className="text-base font-semibold text-slate-900">Movement History</h2>
+        </div>
+        <span className="text-xs text-slate-500">
+          {movements.length} {movements.length === 1 ? "movement" : "movements"} recorded
+        </span>
+      </div>
+
+      {movements.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-400">
+          No stock movements recorded for this order yet.
+        </p>
+      ) : (
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-slate-100 bg-slate-50/70 text-xs font-medium uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Item</th>
+                <th className="px-4 py-3">Quantity</th>
+                <th className="px-4 py-3">Worker / Details</th>
+                <th className="px-4 py-3">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {movements.map((m) => {
+                const typeInfo = typeLabels[m.type] || {
+                  label: m.type,
+                  tone: "bg-slate-50 text-slate-700 border-slate-200",
+                };
+                const workerName = m.worker_id
+                  ? workers.find((w) => w.id === m.worker_id)?.name || m.worker_id
+                  : null;
+                return (
+                  <tr key={m.id} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                      {m.date ? new Date(m.date).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${typeInfo.tone}`}
+                      >
+                        {typeInfo.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{m.item_name}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{m.quantity}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {workerName ? `Worker: ${workerName}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{m.notes || "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
   );
 }
