@@ -515,9 +515,9 @@ async function main() {
     assert(lineB13?.shipped === 5 && lineB13?.ready_to_ship === 0, 'Line B 100% shipped');
 
     // -------------------------------------------------------------------------
-    // STEP 14: Pay bill in full. Verify bill order_status='closed'
+    // STEP 14: Pay bill in full. Verify bill order_status stays 'shipped' (pending profit confirmation)
     // -------------------------------------------------------------------------
-    logStep(14, 'Pay bill in full. Verify bill order_status="closed"');
+    logStep(14, 'Pay bill in full. Verify bill order_status stays "shipped" pending profit confirmation');
     const grandTotal = Number(billCheck13.body?.grand_total) || 15500;
     const payRes = await request(
       `/bills/${billId}/record-payment/`,
@@ -534,12 +534,12 @@ async function main() {
     assert(payRes.status === 201 || payRes.status === 200, `Full payment recorded (HTTP ${payRes.status})`);
 
     const billCheck14 = await request(`/bills/${billId}/`, {}, authToken);
-    assert(billCheck14.body?.order_status === 'closed', 'Bill order_status is closed');
+    assert(billCheck14.body?.order_status === 'shipped', 'Bill order_status remains shipped when fully paid but profit not confirmed');
 
     // -------------------------------------------------------------------------
-    // STEP 15: Confirm profit. Verify profit_confirmed=true
+    // STEP 15: Confirm profit. Verify profit_confirmed=true AND order_status='closed'
     // -------------------------------------------------------------------------
-    logStep(15, 'Confirm profit. Verify profit_confirmed=true');
+    logStep(15, 'Confirm profit. Verify profit_confirmed=true and order_status becomes "closed"');
     const confirmProfitRes = await request(
       `/bills/${billId}/confirm-profit/`,
       {
@@ -559,6 +559,7 @@ async function main() {
       'Bill profit_confirmed is true'
     );
     assert(Number(billCheck15.body?.profit_confirmed_amount) === 8000, 'Confirmed profit amount matches ₹8,000');
+    assert(billCheck15.body?.order_status === 'closed', 'Bill order_status transitions to closed after profit confirmed');
 
     // -------------------------------------------------------------------------
     // STEP 16: Verify ledger (`GET /inventory/movements?bill_id=...`)
@@ -604,8 +605,294 @@ async function main() {
     const totalShipped = shipmentOuts.reduce((sum, m) => sum + m.quantity, 0);
     assert(totalShipped === 15, 'Total units shipped out equals 15 pcs (all produced goods shipped)');
 
+    // -------------------------------------------------------------------------
+    // STEP 17: Edge and Failure Cases (Asserting HTTP 400 and Stock Invariants)
+    // -------------------------------------------------------------------------
+    logStep(17, 'Verifying 11 edge/failure cases and stock invariants');
+
+    // Setup helper data for failure cases
+    const failRawRes = await request(
+      '/inventory/raw/',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Failure Test Raw Fabric',
+          unit: 'm',
+          quantity: 50,
+          cost_price: 100,
+        }),
+      },
+      authToken
+    );
+    assert(failRawRes.status === 201, `Created raw material for failure tests (HTTP ${failRawRes.status})`);
+    const failRawId = failRawRes.body?.id;
+
+    const failWorkerRes = await request(
+      '/workers/',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Failure Test Worker',
+          phone: '9998887771',
+        }),
+      },
+      authToken
+    );
+    assert(failWorkerRes.status === 201, `Created worker for failure tests (HTTP ${failWorkerRes.status})`);
+    const failWorkerId = failWorkerRes.body?.id;
+
+    const failBillRes = await request(
+      '/bills/kacha/',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          buyer: { name: 'Edge Case Buyer' },
+          products: [{ name: 'Failure Cushion', quantity: 10, rate: 500, unit: 'pcs' }],
+        }),
+      },
+      authToken
+    );
+    assert(failBillRes.status === 201, `Created bill for failure tests (HTTP ${failBillRes.status})`);
+    const failBillId = failBillRes.body?.id;
+
+    // Failure 8: assign more than remaining unassigned -> 400
+    // Try to assign 12 when ordered is 10
+    const overAssignRes = await request(
+      `/workers/${failWorkerId}/materials/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          bill_id: failBillId,
+          material_name: 'Failure Cushion',
+          raw_item_id: failRawId,
+          quantity: 12,
+          raw_per_unit: 1,
+          issue_quantity: 12,
+        }),
+      },
+      authToken
+    );
+    assert(overAssignRes.status === 400, `Assigning > ordered rejects with HTTP 400 (got ${overAssignRes.status})`);
+    const rawCheckAfterOverAssign = await request('/inventory/raw/', {}, authToken);
+    const failRawItem1 = (rawCheckAfterOverAssign.body || []).find((i) => i.id === failRawId);
+    assert(failRawItem1?.quantity === 50, 'Raw stock unchanged at 50 m after failed assignment');
+
+    // Create valid assignment of 5 (5 remaining to assign)
+    const validAssRes = await request(
+      `/workers/${failWorkerId}/materials/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          bill_id: failBillId,
+          material_name: 'Failure Cushion',
+          raw_item_id: failRawId,
+          quantity: 5,
+          raw_per_unit: 2,
+          issue_quantity: 10,
+        }),
+      },
+      authToken
+    );
+    assert(validAssRes.status === 201, `Created valid assignment of 5 (HTTP ${validAssRes.status})`);
+    const failAssId = validAssRes.body?.id;
+
+    // Failure 3: raw issue above raw stock -> 400
+    // Stock is 40. Try to issue 1000.
+    const overIssueRes = await request(
+      `/workers/materials/${failAssId}/issues/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ quantity: 1000 }),
+      },
+      authToken
+    );
+    assert(overIssueRes.status === 400, `Raw issue exceeding stock rejects with HTTP 400 (got ${overIssueRes.status})`);
+    const rawCheckAfterOverIssue = await request('/inventory/raw/', {}, authToken);
+    const failRawItem2 = (rawCheckAfterOverIssue.body || []).find((i) => i.id === failRawId);
+    assert(failRawItem2?.quantity === 40, 'Raw stock unchanged at 40 m after failed issue');
+
+    // Failure 1: batch above target -> 400
+    // Target is 5. Try to produce 6.
+    const overBatchRes = await request(
+      `/workers/materials/${failAssId}/batches/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ quantity: 6 }),
+      },
+      authToken
+    );
+    assert(overBatchRes.status === 400, `Batch exceeding target rejects with HTTP 400 (got ${overBatchRes.status})`);
+    const finCheckAfterOverBatch = await request('/inventory/finished/', {}, authToken);
+    const failFinItem1 = (finCheckAfterOverBatch.body || []).find((i) => i.name.toLowerCase() === 'failure cushion');
+    assert((failFinItem1?.quantity || 0) === 0, 'Finished stock remains 0 after failed batch');
+
+    // Failure 6: delete bill with open assignments -> 400
+    const delBillRes = await request(`/bills/${failBillId}/`, { method: 'DELETE' }, authToken);
+    assert(delBillRes.status === 400, `Delete bill with open assignment rejects with HTTP 400 (got ${delBillRes.status})`);
+    const billStillExists = await request(`/bills/${failBillId}/`, {}, authToken);
+    assert(billStillExists.status === 200, 'Bill still exists after rejected delete');
+
+    // Failure 7: delete worker with open assignments -> 400
+    const delWorkerRes = await request(`/workers/${failWorkerId}/`, { method: 'DELETE' }, authToken);
+    assert(delWorkerRes.status === 400, `Delete worker with open assignment rejects with HTTP 400 (got ${delWorkerRes.status})`);
+    const workerStillExists = await request(`/workers/${failWorkerId}/`, {}, authToken);
+    assert(workerStillExists.status === 200, 'Worker still exists after rejected delete');
+
+    // Produce a valid batch of 2 on failAssId
+    const validBatchRes = await request(
+      `/workers/materials/${failAssId}/batches/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ quantity: 2 }),
+      },
+      authToken
+    );
+    assert(validBatchRes.status === 201 || validBatchRes.status === 200, `Produced 2 units (HTTP ${validBatchRes.status})`);
+    const finCheckAfterValidBatch = await request('/inventory/finished/', {}, authToken);
+    const failFinItem2 = (finCheckAfterValidBatch.body || []).find((i) => i.name.toLowerCase() === 'failure cushion');
+    assert(failFinItem2?.quantity === 2, 'Finished stock incremented to 2 pcs');
+
+    // Failure 2: shipment above produced minus shipped -> 400
+    // Ready to ship = 2. Try to ship 3.
+    const overShipRes = await request(
+      `/bills/${failBillId}/shipments/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          items: [{ product_name: 'Failure Cushion', quantity: 3 }],
+        }),
+      },
+      authToken
+    );
+    assert(overShipRes.status === 400, `Shipment > ready_to_ship rejects with HTTP 400 (got ${overShipRes.status})`);
+    const finCheckAfterOverShip = await request('/inventory/finished/', {}, authToken);
+    const failFinItem3 = (finCheckAfterOverShip.body || []).find((i) => i.name.toLowerCase() === 'failure cushion');
+    assert(failFinItem3?.quantity === 2, 'Finished stock remains 2 pcs after failed shipment');
+
+    // Failure 4: cancel with produced > 0 -> 400
+    const cancelWithProdRes = await request(`/workers/materials/${failAssId}/cancel/`, { method: 'PUT' }, authToken);
+    assert(cancelWithProdRes.status === 400, `Cancel assignment with produced > 0 rejects with HTTP 400 (got ${cancelWithProdRes.status})`);
+
+    // Failure 5: complete after cancel -> 400
+    // Create separate assignment with 0 produced, cancel it, then try to complete it
+    const cancelableAssRes = await request(
+      `/workers/${failWorkerId}/materials/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          bill_id: failBillId,
+          material_name: 'Failure Cushion',
+          raw_item_id: failRawId,
+          quantity: 2,
+          raw_per_unit: 1,
+          issue_quantity: 2,
+        }),
+      },
+      authToken
+    );
+    const cancelableId = cancelableAssRes.body?.id;
+    const cancelSuccessRes = await request(`/workers/materials/${cancelableId}/cancel/`, { method: 'PUT' }, authToken);
+    assert(cancelSuccessRes.status === 200, `Cancelled empty assignment (HTTP ${cancelSuccessRes.status})`);
+
+    const rawCheckBeforeComplete = await request('/inventory/raw/', {}, authToken);
+    const rawQtyBeforeComplete = (rawCheckBeforeComplete.body || []).find((i) => i.id === failRawId)?.quantity;
+
+    const completeCancelledRes = await request(
+      `/workers/materials/${cancelableId}/complete/`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ raw_returned_quantity: 2 }),
+      },
+      authToken
+    );
+    assert(completeCancelledRes.status === 400, `Complete after cancel rejects with HTTP 400 (got ${completeCancelledRes.status})`);
+    const rawCheckAfterComplete = await request('/inventory/raw/', {}, authToken);
+    const rawQtyAfterComplete = (rawCheckAfterComplete.body || []).find((i) => i.id === failRawId)?.quantity;
+    assert(rawQtyBeforeComplete === rawQtyAfterComplete, 'Raw stock did not change when attempting to complete cancelled assignment');
+
+    // Failure 9: parallel batches exceeding target -> 400
+    // Target is 5 on failAssId, already produced 2, remaining target = 3.
+    // Fire 2 parallel requests of 2 each (total 4 > 3). Exactly one must fail.
+    const [pBatch1, pBatch2] = await Promise.all([
+      request(`/workers/materials/${failAssId}/batches/`, { method: 'POST', body: JSON.stringify({ quantity: 2 }) }, authToken),
+      request(`/workers/materials/${failAssId}/batches/`, { method: 'POST', body: JSON.stringify({ quantity: 2 }) }, authToken),
+    ]);
+    const pBatchStatuses = [pBatch1.status, pBatch2.status].sort();
+    assert(
+      (pBatchStatuses[0] === 200 || pBatchStatuses[0] === 201) && pBatchStatuses[1] === 400,
+      `Parallel batches: exactly one succeeds and one rejected with HTTP 400 (statuses: ${pBatchStatuses.join(', ')})`
+    );
+    const finCheckAfterParallelBatch = await request('/inventory/finished/', {}, authToken);
+    const failFinItem4 = (finCheckAfterParallelBatch.body || []).find((i) => i.name.toLowerCase() === 'failure cushion');
+    assert(failFinItem4?.quantity === 4, 'Finished stock incremented to exactly 4 pcs (2 + 2 = 4, not 6)');
+
+    // Failure 10: parallel shipments exceeding stock -> 400
+    // Finished stock is 4, ready to ship is 4.
+    // Fire 2 parallel shipment requests of 3 each (total 6 > 4). Exactly one must fail.
+    const [pShip1, pShip2] = await Promise.all([
+      request(`/bills/${failBillId}/shipments/`, { method: 'POST', body: JSON.stringify({ items: [{ product_name: 'Failure Cushion', quantity: 3 }] }) }, authToken),
+      request(`/bills/${failBillId}/shipments/`, { method: 'POST', body: JSON.stringify({ items: [{ product_name: 'Failure Cushion', quantity: 3 }] }) }, authToken),
+    ]);
+    const pShipStatuses = [pShip1.status, pShip2.status].sort();
+    assert(
+      (pShipStatuses[0] === 200 || pShipStatuses[0] === 201) && pShipStatuses[1] === 400,
+      `Parallel shipments: exactly one succeeds and one rejected with HTTP 400 (statuses: ${pShipStatuses.join(', ')})`
+    );
+    const finCheckAfterParallelShip = await request('/inventory/finished/', {}, authToken);
+    const failFinItem5 = (finCheckAfterParallelShip.body || []).find((i) => i.name.toLowerCase() === 'failure cushion');
+    assert(failFinItem5?.quantity === 1, 'Finished stock decremented by exactly 3 pcs to 1 pc (4 - 3 = 1)');
+
+    // Failure 11: closed only after profit confirmed
+    // A bill with 2 units ordered: produced 2, shipped 2, paid in full -> remains "shipped".
+    // After profit is confirmed -> transitions to "closed".
+    const closeBillRes = await request(
+      '/bills/',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          products: [{ name: 'Close Cushion', quantity: 2, rate: 100 }],
+        }),
+      },
+      authToken
+    );
+    const closeBillId = closeBillRes.body?.id;
+    const closeAssRes = await request(
+      `/workers/${failWorkerId}/materials/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          bill_id: closeBillId,
+          material_name: 'Close Cushion',
+          raw_item_id: failRawId,
+          quantity: 2,
+          raw_per_unit: 1,
+          issue_quantity: 2,
+        }),
+      },
+      authToken
+    );
+    const closeAssId = closeAssRes.body?.id;
+    await request(`/workers/materials/${closeAssId}/batches/`, { method: 'POST', body: JSON.stringify({ quantity: 2 }) }, authToken);
+    await request(`/workers/materials/${closeAssId}/complete/`, { method: 'PUT', body: JSON.stringify({ raw_returned_quantity: 0 }) }, authToken);
+    await request(`/bills/${closeBillId}/shipments/`, { method: 'POST', body: JSON.stringify({ ship_all: true }) }, authToken);
+
+    const closeBillShipped = await request(`/bills/${closeBillId}/`, {}, authToken);
+    assert(closeBillShipped.body?.order_status === 'shipped', 'Order status is "shipped" after full shipment');
+
+    await request(
+      `/bills/${closeBillId}/record-payment/`,
+      { method: 'POST', body: JSON.stringify({ amount: Number(closeBillShipped.body?.grand_total) || 200 }) },
+      authToken
+    );
+    const closeBillPaid = await request(`/bills/${closeBillId}/`, {}, authToken);
+    assert(closeBillPaid.body?.order_status === 'shipped', 'Order status is "shipped" (not closed) when fully paid before profit confirmation');
+
+    await request(`/bills/${closeBillId}/confirm-profit/`, { method: 'POST', body: JSON.stringify({ confirmed_amount: 50 }) }, authToken);
+    const closeBillClosed = await request(`/bills/${closeBillId}/`, {}, authToken);
+    assert(closeBillClosed.body?.order_status === 'closed', 'Order status transitions to "closed" only after profit is confirmed');
+
     console.log('\n===============================================================');
-    console.log('✅ ALL 16 STEPS OF ORDER-FIRST WORKFLOW VERIFIED SUCCESSFULLY!');
+    console.log('✅ ALL 17 STEPS OF ORDER-FIRST WORKFLOW VERIFIED SUCCESSFULLY!');
     console.log('===============================================================');
   } finally {
     // Teardown test data and server
@@ -621,7 +908,7 @@ async function main() {
         await db.collection('companies').deleteMany({ company_id: companyId });
         await db.collection('users').deleteMany({ email: testUserEmail });
       } catch (cleanupErr) {
-        // SILENT-FALLBACK-REASON: Best-effort test cleanup
+        console.error('Test cleanup error (non-fatal):', cleanupErr);
       }
     }
 

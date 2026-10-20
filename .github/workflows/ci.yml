@@ -109,6 +109,12 @@ jobs:
           MONGODB_DB_NAME: "InsightLoop_test"
         run: node scripts/run_contract_suite.mjs --assert
 
+      - name: Run Order Flow E2E Integration Suite
+        env:
+          MONGODB_URI: "mongodb://localhost:27017/InsightLoop_test"
+          MONGODB_DB_NAME: "InsightLoop_test"
+        run: node scripts/e2e_order_flow.mjs
+
       - name: Deterministic Document Shape Check
         env:
           MONGODB_URI: "mongodb://localhost:27017/InsightLoop_test"

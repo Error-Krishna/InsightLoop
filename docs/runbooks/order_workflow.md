@@ -22,8 +22,8 @@ flowchart TD
     Order[Confirmed Order / Bill<br/>workflow: order_first] -.->|Directs Assignment| Worker
     Worker -->|Add Batch: Immediate Find/Create| Finished[3. Finished Inventory<br/>Stock Created by Production Only]
     Finished -->|Record Shipment: Conditional Decrement| Shipped[4. Shipped / Dispatched<br/>Decrements Finished Goods]
-    Shipped -->|Full Payment Recorded| Closed[5. Closed Order<br/>Order Shipped & Paid]
-    Closed -->|Audited Net Margin| Confirmed[6. Profit Confirmed<br/>Worker & Raw Costs Counted]
+    Shipped -->|Full Payment Recorded| ShippedPaid[5. Shipped & Fully Paid<br/>Requires Profit Audit]
+    ShippedPaid -->|Confirm Profit| Closed[6. Closed Order<br/>Audited Net Margin Finalized]
 ```
 
 ---
@@ -82,17 +82,22 @@ flowchart TD
 - The shipment record is appended to `bill.shipments`.
 - If some items remain unshipped, bill `order_status` becomes `partially_shipped`. When all ordered lines are 100% shipped, `order_status` becomes `shipped`.
 
-### 2.7 Stage 7: Payment & Order Closure (`closed`)
+### 2.7 Stage 7: Payment & Lifecycle Status (`shipped`)
 - Payments from the buyer are recorded via `POST /api/v1/bills/:id/record-payment`.
-- Once `order_status === 'shipped'` and the bill is paid in full ($\text{amount\_received} \ge \text{grand\_total}$), the order status automatically transitions to `closed`.
+- Once `order_status === 'shipped'` and the bill is paid in full ($\text{amount\_received} \ge \text{grand\_total}$), the order status remains `shipped`.
+- Under the order-first business rule, `closed` is reserved strictly for orders where all three conditions are met:
+  1. Fully shipped (`shipped >= ordered` for all lines)
+  2. Fully paid ($\text{amount\_received} \ge \text{grand\_total}$)
+  3. Profit audited and confirmed (`profit_confirmed: true`)
 
-### 2.8 Stage 8: Audited Profit Confirmation
+### 2.8 Stage 8: Audited Profit Confirmation & Closure (`closed`)
 - Profit preview (`GET /api/v1/bills/:id/profit-preview`) aggregates:
   - Real raw material costs:
     $$\sum (\text{raw\_issued} - \text{raw\_returned}) \times \text{price\_per\_unit}$$
   - Worker wages: from linked assignments and pay records.
   - Transportation costs and miscellaneous costs.
-- For `order_first` bills, confirming profit (`POST /api/v1/bills/:id/confirm-profit`) is guarded: the bill must be fully shipped (`order_status === 'shipped' || 'closed'`).
+- For `order_first` bills, confirming profit (`POST /api/v1/bills/:id/confirm-profit`) is guarded: the bill must be fully shipped (`order_status === 'shipped'`).
+- Upon confirming profit (`POST /api/v1/bills/:id/confirm-profit`), the order transitions to `closed`.
 
 ---
 
@@ -296,6 +301,35 @@ All routes require authentication header: `Authorization: Bearer <access_token>`
     }
   ]
   ```
+
+### 4.3 Live In-Progress WIP Tracking
+- **Route**: `GET /api/v1/inventory/semi-finished/live`
+- **Description**: Dynamically derives real-time production WIP from all open worker assignments (`status: 'open'`).
+- **Response** (HTTP 200):
+  ```json
+  [
+    {
+      "assignment_id": "6ad5fc37dd911eddc4078039",
+      "worker_id": "6ad5fc37dd911eddc4078035",
+      "worker_name": "Ramesh Kumar",
+      "bill_id": "6ad5fc37dd911eddc4078038",
+      "invoice_number": "INV-2026-001",
+      "product_name": "Silk Scarf A",
+      "unit": "pcs",
+      "raw_item_name": "Mulberry Silk Yarn",
+      "raw_unit": "meter",
+      "raw_issued": 20,
+      "raw_returned": 0,
+      "raw_with_worker": 8,
+      "target": 10,
+      "produced": 6,
+      "remaining_output": 4
+    }
+  ]
+  ```
+- **Derived Formulas**:
+  - `raw_with_worker` = $\max\left(0, \text{raw\_issued} - \text{raw\_returned} - \text{produced} \times \text{raw\_per\_unit}\right)$
+  - `remaining_output` = $\max\left(0, \text{target} - \text{produced}\right)$
 
 ---
 
