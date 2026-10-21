@@ -372,6 +372,30 @@ When dispatching a multi-item shipment:
 - Workers with existing material assignments cannot be deleted (`DELETE /api/v1/workers/:id` returns HTTP 400). This prevents orphaned raw material records or missing worker history.
 - Bills with active assignments cannot be deleted.
 
+### 5.5 Operator Recovery: Stuck Assignments (`completing` / `cancelling`)
+During assignment completion or cancellation, an atomic state marker (`completing` or `cancelling`) is placed on the document before stock is returned and ledger entries are written. In the rare event of an unrecoverable process crash (e.g. database disconnect during compensation logic) where an assignment remains stuck in `completing` or `cancelling`:
+
+1. **Inspect Stock & Ledger**:
+   - Check the `stock_movements` collection for any ledger records created for this `assignment_id` (`raw_return` or `production_in`).
+   - Verify whether raw material inventory was adjusted back to the warehouse.
+2. **Atlas / Mongosh Intervention**:
+   - If stock adjustments and movements completed before the crash, advance the assignment to its final state:
+     ```js
+     db.worker_assignments.updateOne(
+       { _id: ObjectId("<ASSIGNMENT_ID>"), status: "completing" },
+       { $set: { status: "completed", updated_at: new Date() } }
+     );
+     ```
+   - If stock adjustments were not performed or need to be retried, reset the assignment back to `open` so an operator can trigger completion via the UI / API:
+     ```js
+     db.worker_assignments.updateOne(
+       { _id: ObjectId("<ASSIGNMENT_ID>"), status: "completing" },
+       { $set: { status: "open", updated_at: new Date() } }
+     );
+     ```
+   - Follow the identical procedure for `cancelling` assignments (`status: "cancelled"` or reset to `status: "open"`).
+
+
 ---
 
 ## 6. Verification & Automated Quality Gates

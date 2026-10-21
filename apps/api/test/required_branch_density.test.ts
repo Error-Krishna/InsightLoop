@@ -485,7 +485,9 @@ describe('Required Branch Density & Edge Exhaustion Suite', () => {
       // 8. Delete worker validation
       await expect(WorkersService.deleteWorker(scope, 'bad-id')).rejects.toThrow(ValidationError);
       await expect(WorkersService.deleteWorker(scope, new ObjectId().toString())).rejects.toThrow(NotFoundError);
-      await WorkersService.deleteWorker(scope, testWorker.id);
+      await expect(WorkersService.deleteWorker(scope, testWorker.id)).rejects.toThrow('Worker has production history. Deactivate the worker instead.');
+      const cleanWorker = await WorkersService.createWorker(scope, { name: 'Clean Worker' });
+      await WorkersService.deleteWorker(scope, cleanWorker.id);
     });
   });
 

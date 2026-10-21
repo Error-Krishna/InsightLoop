@@ -89,8 +89,6 @@ export class WorkersService {
 
     let totalTargeted = 0;
     let totalProduced = 0;
-    let totalRawIssued = 0;
-    let totalRawReturned = 0;
     let openCount = 0;
 
     for (const a of nonCancelled) {
@@ -99,8 +97,6 @@ export class WorkersService {
         Number(a.produced_quantity) ||
         (Array.isArray(a.batches) ? a.batches.reduce((s, b) => s + (Number(b.quantity) || 0), 0) : 0);
       totalProduced += prod;
-      totalRawIssued += Number(a.raw_issued_quantity) || 0;
-      totalRawReturned += Number(a.raw_returned_quantity) || 0;
       if (a.status === 'open') openCount += 1;
     }
 
@@ -115,8 +111,6 @@ export class WorkersService {
       is_active: worker.is_active !== false,
       material_assigned: totalTargeted,
       material_delivered: totalProduced,
-      raw_issued: totalRawIssued,
-      raw_returned: totalRawReturned,
       pending_amount: roundPy(pendingAmount, 2),
       open_assignments: openCount,
       total_wasted: totalWasted,
@@ -131,45 +125,26 @@ export class WorkersService {
     if (Array.isArray(item.batches)) {
       for (const b of item.batches) deliveredQty += Number(b.quantity) || 0;
     }
-    const producedQty = Number(item.produced_quantity) || deliveredQty;
+    const producedQty = Math.max(Number(item.produced_quantity) || 0, deliveredQty);
     const qty = Number(item.quantity) || 0;
     const price = Number(item.price_per_unit) || 0;
-    const balanceQty = Math.max(0, qty - producedQty);
+    const balanceQty = Math.max(0, qty - deliveredQty);
     const totalValue = roundPy(qty * price, 2);
 
-    const rawIssued = Number(item.raw_issued_quantity) || 0;
-    const rawReturned = Number(item.raw_returned_quantity) || 0;
-    const rawNet = Math.max(0, rawIssued - rawReturned);
-    const rawPerUnit = Number(item.raw_per_unit) || 1;
-    const plannedRaw = roundPy(qty * rawPerUnit, 4);
-
     const workerId = (item.worker_id ?? (item.worker as { _id?: unknown })?._id ?? item.worker)?.toString();
+    const isOrderFirst = Boolean(
+      item.bill_id ||
+      item.raw_item_id ||
+      item.raw_issued_quantity !== undefined ||
+      (Array.isArray(item.raw_issues) && item.raw_issues.length > 0)
+    );
 
-    return {
+    const baseResult: Record<string, unknown> = {
       id: item._id.toString(),
       worker_id: workerId ?? null,
-      worker_name: (item.worker as { name?: string })?.name || _worker?.name || undefined,
-      bill_id: item.bill_id ?? null,
       material_name: item.material_name,
       quantity: qty,
       price_per_unit: price,
-      unit: item.unit ?? 'pcs',
-      raw_item_id: item.raw_item_id ?? null,
-      raw_item_name: item.raw_item_name ?? null,
-      raw_unit: item.raw_unit ?? 'pcs',
-      raw_per_unit: rawPerUnit,
-      raw_issues: (item.raw_issues ?? []).map((ri) => ({
-        issue_id: ri.issue_id,
-        quantity: Number(ri.quantity) || 0,
-        date: formatDjangoIso(ri.date),
-        notes: ri.notes ?? '',
-      })),
-      raw_issued_quantity: rawIssued,
-      raw_returned_quantity: rawReturned,
-      raw_net_used: rawNet,
-      planned_raw: plannedRaw,
-      produced_quantity: producedQty,
-      finished_item_id: item.finished_item_id ?? null,
       assignment_date: formatDjangoIso(item.assignment_date),
       notes: item.notes ?? '',
       batches: (item.batches ?? []).map((b) => ({
@@ -180,7 +155,7 @@ export class WorkersService {
         notes: b.notes ?? '',
         synced_to_inventory: Boolean(b.synced_to_inventory),
       })),
-      delivered_quantity: producedQty,
+      delivered_quantity: deliveredQty,
       balance_quantity: balanceQty,
       total_value: totalValue,
       status: (item.status === 'completing' || item.status === 'cancelling') ? 'open' : (item.status || 'open'),
@@ -189,10 +164,47 @@ export class WorkersService {
         item.wastage_quantity !== undefined && item.wastage_quantity !== null
           ? Number(item.wastage_quantity)
           : null,
-      over_returned: producedQty > qty,
+      over_returned: deliveredQty > qty,
+      bill_id: item.bill_id ?? null,
       wage_amount: Number(item.wage_amount) || 0,
       pay_record_id: item.pay_record_id ?? null,
     };
+
+    const workerName = (item.worker as { name?: string })?.name;
+    if (workerName) {
+      baseResult.worker_name = workerName;
+    }
+
+    if (isOrderFirst) {
+      const rawIssued = Number(item.raw_issued_quantity) || 0;
+      const rawReturned = Number(item.raw_returned_quantity) || 0;
+      const rawNet = Math.max(0, rawIssued - rawReturned);
+      const rawPerUnit = Number(item.raw_per_unit) || 1;
+      const plannedRaw = roundPy(qty * rawPerUnit, 4);
+
+      if (!baseResult.worker_name && _worker?.name) {
+        baseResult.worker_name = _worker.name;
+      }
+      baseResult.unit = item.unit ?? 'pcs';
+      baseResult.raw_item_id = item.raw_item_id ?? null;
+      baseResult.raw_item_name = item.raw_item_name ?? null;
+      baseResult.raw_unit = item.raw_unit ?? 'pcs';
+      baseResult.raw_per_unit = rawPerUnit;
+      baseResult.raw_issues = (item.raw_issues ?? []).map((ri) => ({
+        issue_id: ri.issue_id,
+        quantity: Number(ri.quantity) || 0,
+        date: formatDjangoIso(ri.date),
+        notes: ri.notes ?? '',
+      }));
+      baseResult.raw_issued_quantity = rawIssued;
+      baseResult.raw_returned_quantity = rawReturned;
+      baseResult.raw_net_used = rawNet;
+      baseResult.planned_raw = plannedRaw;
+      baseResult.produced_quantity = producedQty;
+      baseResult.finished_item_id = item.finished_item_id ?? null;
+    }
+
+    return baseResult;
   }
 
   private static serializePayment(item: PayRecordDoc, worker: WorkerDoc | { name?: string } | null = null) {
@@ -258,8 +270,6 @@ export class WorkersService {
         is_active: w.is_active !== false,
         material_assigned: Number(a?.material_assigned) || 0,
         material_delivered: Number(a?.material_delivered) || 0,
-        raw_issued: Number(a?.raw_issued) || 0,
-        raw_returned: Number(a?.raw_returned) || 0,
         pending_amount: roundPy(Number(p?.pending_amount) || 0, 2),
         open_assignments: Number(a?.open_assignments) || 0,
         total_wasted: totalWasted,
@@ -339,14 +349,13 @@ export class WorkersService {
     const existing = await WorkersRepository.findWorkerById(scope, id);
     if (!existing) throw new NotFoundError('Worker not found.');
 
-    // R11 Guard: Delete worker blocked (400) if the worker has any open assignment
-    const openAssignments = await WorkersRepository.findOpenAssignmentsByWorker(scope, id);
-    if (openAssignments.length > 0) {
-      throw new ValidationError('Cannot delete worker: worker has open material assignments.');
+    // Step 5B: Block deletion (HTTP 400) when worker has ANY assignment or pay record
+    const assignments = await WorkersRepository.findAssignmentsByWorker(scope, id);
+    const payments = await WorkersRepository.findPaymentsByWorker(scope, id);
+    if (assignments.length > 0 || payments.length > 0) {
+      throw new ValidationError('Worker has production history. Deactivate the worker instead.');
     }
 
-    await WorkersRepository.deleteAssignmentsByWorker(scope, id);
-    await WorkersRepository.deletePaymentsByWorker(scope, id);
     await WorkersRepository.deleteWorker(scope, id);
   }
 
@@ -525,7 +534,9 @@ export class WorkersService {
         );
       }
 
-      await WorkersRepository.linkBillWorkerAssignment(scope, data.bill_id, created._id.toString());
+      if (bill.workflow === 'order_first') {
+        await WorkersRepository.linkBillWorkerAssignment(scope, data.bill_id, created._id.toString());
+      }
       return this.serializeAssignment(created, worker);
     } catch (err) {
       if (issueQty > 0) {
@@ -686,9 +697,7 @@ export class WorkersService {
       throw new ValidationError('Output can never exceed the order, that would create stock without an order.');
     }
 
-    // R5: Increase Finished stock immediately (find-or-create)
-    let syncError: unknown = null;
-    let finishedItemId: string | null = null;
+    // R5 & Step 5A: Increase Finished stock safely: claim batch first, then add stock, unclaim on failure
     try {
       let finishedItem = null;
       if (updatedAssignment.finished_item_id && ObjectId.isValid(updatedAssignment.finished_item_id)) {
@@ -717,44 +726,37 @@ export class WorkersService {
         });
       }
 
-      finishedItemId = finishedItem._id.toString();
-      await InventoryRepository.adjustStockById(scope, finishedItemId, qty);
+      const finishedItemId = finishedItem._id.toString();
 
-      await InventoryRepository.insertStockMovement(scope, {
-        company_id: scope.companyId,
-        date: batchDateStr,
-        type: 'production_in',
-        item_id: finishedItemId,
-        item_name: finishedItem.name,
-        quantity: qty,
-        bill_id: updatedAssignment.bill_id ?? null,
-        assignment_id: assignmentId,
-        worker_id: updatedAssignment.worker_id ?? updatedAssignment.worker?.toString() ?? null,
-        notes: (data.notes ?? '').trim(),
-        created_at: new Date(),
-      });
+      // Step 5A: claim the batch with claimBatchSync (false to true) before adding stock
+      const claimed = await WorkersRepository.claimBatchSync(scope, assignmentId, batchId, finishedItemId);
+      if (claimed) {
+        try {
+          await InventoryRepository.adjustStockById(scope, finishedItemId, qty);
+
+          await InventoryRepository.insertStockMovement(scope, {
+            company_id: scope.companyId,
+            date: batchDateStr,
+            type: 'production_in',
+            item_id: finishedItemId,
+            item_name: finishedItem.name,
+            quantity: qty,
+            bill_id: updatedAssignment.bill_id ?? null,
+            assignment_id: assignmentId,
+            worker_id: updatedAssignment.worker_id ?? updatedAssignment.worker?.toString() ?? null,
+            notes: (data.notes ?? '').trim(),
+            created_at: new Date(),
+          });
+        } catch (stockErr) {
+          await WorkersRepository.unclaimBatchSync(scope, assignmentId, batchId);
+          throw stockErr;
+        }
+      }
     } catch (err) {
-      syncError = err;
       logger.warn(
         { err, assignmentId, batchId },
         'Failed to increment finished inventory for batch; left synced_to_inventory:false for completeAssignment catch-up'
       );
-    }
-
-    if (!syncError && finishedItemId) {
-      try {
-        await WorkersRepository.markBatchSynced(scope, assignmentId, batchId, finishedItemId);
-      } catch {
-        // Retry once
-        try {
-          await WorkersRepository.markBatchSynced(scope, assignmentId, batchId, finishedItemId);
-        } catch (retryErr) {
-          logger.error(
-            { err: retryErr, assignmentId, batchId },
-            'CRITICAL: markBatchSynced failed after finished stock was incremented'
-          );
-        }
-      }
     }
 
     const finalAssignment = await WorkersRepository.findAssignmentById(scope, assignmentId);
@@ -906,11 +908,13 @@ export class WorkersService {
       }
 
       // Step 5: Wastage and completion status
-      const producedQty =
-        Number(claimed.produced_quantity) ||
-        batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+      const batchSum = batches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+      const producedQty = Math.max(Number(claimed.produced_quantity) || 0, batchSum);
       const rawPerUnit = Number(claimed.raw_per_unit) || 1;
-      const wastageQty = Math.max(0, issuedQty - totalReturned - producedQty * rawPerUnit);
+      const expectedQty = Number(claimed.quantity) || 0;
+      const wastageQty = claimed.raw_item_id
+        ? Math.max(0, issuedQty - totalReturned - producedQty * rawPerUnit)
+        : Math.max(0, expectedQty - producedQty);
 
       const completedAt = new Date();
       await WorkersRepository.updateAssignment(scope, assignmentId, {

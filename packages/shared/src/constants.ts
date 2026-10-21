@@ -4,7 +4,7 @@ export type BillType = typeof BILL_TYPES[number];
 export const PAYMENT_STATUSES = ['unpaid', 'partial', 'paid', 'over_received'] as const;
 export type PaymentStatus = typeof PAYMENT_STATUSES[number];
 
-export const ORDER_STATUSES = ['confirmed', 'in_production', 'ready_to_ship', 'partially_shipped', 'shipped', 'closed'] as const;
+export const ORDER_STATUSES = ['draft', 'confirmed', 'in_production', 'ready_to_ship', 'partially_shipped', 'shipped', 'closed'] as const;
 export type OrderStatus = typeof ORDER_STATUSES[number];
 
 export const INVENTORY_ITEM_TYPES = ['finished', 'semi_finished', 'raw'] as const;

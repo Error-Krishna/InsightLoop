@@ -176,10 +176,11 @@ export function calculateBillDerived(
   grandTotal: number,
   payments: BillPaymentItem[] = [],
   profitConfirmed = false,
-  _billType = 'kacha',
+  billType = 'kacha',
   shipmentConfirmed = false,
   assignments: { status: string }[] = [],
-  lines: BillLineProgress[] = []
+  lines: BillLineProgress[] = [],
+  workflow?: string
 ): BillDerivedStatus {
   let amount_received = 0;
   for (const p of payments) {
@@ -211,6 +212,34 @@ export function calculateBillDerived(
 
   const over_received = amount_received > grandTotal;
 
+  // Legacy workflow derivation (workflow !== 'order_first')
+  if (workflow !== 'order_first') {
+    let order_status: OrderStatus;
+    if (profitConfirmed && payment_status === 'paid') {
+      order_status = 'closed';
+    } else if (shipmentConfirmed) {
+      order_status = 'shipped';
+    } else if (billType === 'kacha') {
+      order_status = 'draft';
+    } else if (assignments.length === 0) {
+      order_status = 'confirmed';
+    } else if (assignments.every((a) => a.status === 'completed')) {
+      order_status = 'ready_to_ship';
+    } else {
+      order_status = 'in_production';
+    }
+
+    return {
+      amount_received,
+      balance_due,
+      over_received,
+      payment_status,
+      payment_fraction,
+      order_status,
+    };
+  }
+
+  // Order-first workflow derivation (workflow === 'order_first')
   const nonCancelledAssignments = assignments.filter((a) => a.status !== 'cancelled');
   const hasNonCancelledAssignment = nonCancelledAssignments.length > 0;
 

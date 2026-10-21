@@ -148,7 +148,8 @@ export class BillsService {
       bill.bill_type ?? 'kacha',
       shipmentConfirmed,
       linkedAssignments.map((a: Document) => ({ status: String((a as { status?: unknown }).status ?? '') })),
-      lines
+      lines,
+      bill.workflow
     );
 
     let transportationCostTotal = 0;
@@ -179,11 +180,10 @@ export class BillsService {
     if (buyerRaw.gst_number !== undefined) buyer.gst_number = buyerRaw.gst_number;
     if (buyerRaw.phone !== undefined) buyer.phone = buyerRaw.phone;
 
-    return {
+    const baseResult: Record<string, unknown> = {
       id: billIdStr,
       company_id: bill.company_id,
       bill_type: bill.bill_type,
-      workflow: bill.workflow ?? (bill.workflow === undefined ? undefined : 'order_first'),
       buyer,
       products: (bill.products ?? []).map((p) => ({
         name: p.name,
@@ -193,17 +193,6 @@ export class BillsService {
         unit: p.unit ?? 'pcs',
         total: Number(p.total) || roundPy((Number(p.quantity) || 0) * (Number(p.rate) || 0), 2),
         inventory_item_id: p.inventory_item_id ?? null,
-      })),
-      lines,
-      shipments: shipments.map((s) => ({
-        shipment_id: s.shipment_id,
-        date: formatDjangoIso(s.date),
-        notes: s.notes ?? '',
-        items: (s.items ?? []).map((it) => ({
-          product_name: it.product_name,
-          quantity: Number(it.quantity) || 0,
-          finished_item_id: it.finished_item_id,
-        })),
       })),
       subtotal: Number(bill.subtotal) || 0,
       gst_percentage: Number(bill.gst_percentage) || 0,
@@ -255,10 +244,28 @@ export class BillsService {
       shipment_confirmed: shipmentConfirmed,
       shipment_confirmed_at: formatDjangoIso(shipmentConfirmedAt),
       order_status: derived.order_status,
-      status: derived.order_status,
       created_at: formatDjangoIso(bill.created_at),
       updated_at: formatDjangoIso(bill.updated_at),
     };
+
+    if (bill.workflow === 'order_first' || shipments.length > 0) {
+      if (bill.workflow === 'order_first') {
+        baseResult.workflow = 'order_first';
+        baseResult.lines = lines;
+      }
+      baseResult.shipments = shipments.map((s) => ({
+        shipment_id: s.shipment_id,
+        date: formatDjangoIso(s.date),
+        notes: s.notes ?? '',
+        items: (s.items ?? []).map((it) => ({
+          product_name: it.product_name,
+          quantity: Number(it.quantity) || 0,
+          finished_item_id: it.finished_item_id,
+        })),
+      }));
+    }
+
+    return baseResult;
   }
 
   private static async serializeBill(bill: BillDoc, scope: TenantScope) {

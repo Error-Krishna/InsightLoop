@@ -344,20 +344,17 @@ describe('Workers & Bills Deep Branch Coverage Suite', () => {
     const failedSyncBatch = await WorkersService.addBatch(scope, assignment.id, { quantity: 2 });
     expect(failedSyncBatch.batches?.[0].synced_to_inventory).toBe(false);
 
-    // 2. Simulate markBatchSynced first attempt failure, second attempt success
-    vi.spyOn(WorkersRepository, 'markBatchSynced')
-      .mockRejectedValueOnce(new Error('First attempt failed'))
-      .mockResolvedValueOnce({} as any);
+    // 2. Step 5A: Happy path claims batch sync (false -> true) before adding finished stock
+    const happyBatch = await WorkersService.addBatch(scope, assignment.id, { quantity: 1 });
+    const b2 = happyBatch.batches?.find((b) => b.quantity === 1);
+    expect(b2?.synced_to_inventory).toBe(true);
 
-    const retrySuccess = await WorkersService.addBatch(scope, assignment.id, { quantity: 1 });
-    expect(retrySuccess).toBeDefined();
-
-    // 3. Simulate markBatchSynced both attempts failure
-    vi.spyOn(WorkersRepository, 'markBatchSynced')
-      .mockRejectedValue(new Error('Permanent failure'));
-
-    const critFailed = await WorkersService.addBatch(scope, assignment.id, { quantity: 1 });
-    expect(critFailed).toBeDefined();
+    // 3. Completing the assignment catches up the unsynced batch (quantity 2) and does not double-sync the claimed batch
+    const completed = await WorkersService.completeAssignment(scope, assignment.id);
+    expect(completed.status).toBe('completed');
+    for (const b of completed.batches ?? []) {
+      expect(b.synced_to_inventory).toBe(true);
+    }
 
     vi.restoreAllMocks();
   });

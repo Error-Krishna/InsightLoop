@@ -77,7 +77,10 @@ describe('Mathematical Compatibility Engine', () => {
     expect(derived.amount_received).toBe(10000);
     expect(derived.balance_due).toBe(6874);
     expect(derived.payment_status).toBe('partial');
-    expect(derived.order_status).toBe('confirmed');
+    expect(derived.order_status).toBe('draft');
+
+    const derivedOrderFirst = calculateBillDerived(billTotals.grand_total, [{ amount: 10000 }], false, 'kacha', false, [], [], 'order_first');
+    expect(derivedOrderFirst.order_status).toBe('confirmed');
 
     const profit = calculateSuggestedProfit(10000, 8000, 16874);
     expect(profit.payment_fraction).toBe(0.5926);
@@ -96,110 +99,125 @@ describe('Mathematical Compatibility Engine', () => {
   });
 
   it('covers all order_status state machine transitions and derived defaults', () => {
-    // 1. Defaults when arguments omitted -> confirmed (no draft)
+    // 1. Legacy defaults when arguments omitted -> draft (kacha legacy default)
     const def = calculateBillDerived(1000);
-    expect(def.order_status).toBe('confirmed');
+    expect(def.order_status).toBe('draft');
     expect(def.payment_status).toBe('unpaid');
     expect(def.balance_due).toBe(1000);
 
-    // 2. profitConfirmed + paid + fullyShipped -> closed
-    const closed = calculateBillDerived(1000, [{ amount: 1000 }], true, 'pakka', true, []);
-    expect(closed.order_status).toBe('closed');
-    expect(closed.payment_status).toBe('paid');
+    // 2. Legacy: profitConfirmed + paid -> closed
+    const legacyClosed = calculateBillDerived(1000, [{ amount: 1000 }], true, 'pakka', false, []);
+    expect(legacyClosed.order_status).toBe('closed');
+    expect(legacyClosed.payment_status).toBe('paid');
 
-    // 2b. fully shipped + paid, but profit NOT confirmed -> shipped (not closed)
-    const paidShippedNotConfirmed = calculateBillDerived(1000, [{ amount: 1000 }], false, 'pakka', true, []);
-    expect(paidShippedNotConfirmed.order_status).toBe('shipped');
-    expect(paidShippedNotConfirmed.payment_status).toBe('paid');
+    // 3. Legacy: profitConfirmed + unpaid -> not closed (confirmed)
+    const legacyNotClosed = calculateBillDerived(1000, [{ amount: 500 }], true, 'pakka', false, []);
+    expect(legacyNotClosed.order_status).toBe('confirmed');
 
-    // 3. profitConfirmed + unpaid + shipped -> shipped (not closed)
-    const notClosed = calculateBillDerived(1000, [{ amount: 500 }], true, 'pakka', true, []);
-    expect(notClosed.order_status).toBe('shipped');
+    // 4. Legacy: shipmentConfirmed -> shipped
+    const legacyShipped = calculateBillDerived(1000, [], false, 'pakka', true, []);
+    expect(legacyShipped.order_status).toBe('shipped');
 
-    // 4. legacy shipmentConfirmed -> shipped
-    const shipped = calculateBillDerived(1000, [], false, 'pakka', true, []);
-    expect(shipped.order_status).toBe('shipped');
+    // 5. Legacy: kacha -> draft
+    const legacyKacha = calculateBillDerived(1000, [], false, 'kacha', false, []);
+    expect(legacyKacha.order_status).toBe('draft');
 
-    // 5. kacha with 0 assignments -> confirmed (kacha is a confirmed order too)
-    const kacha = calculateBillDerived(1000, [], false, 'kacha', false, []);
-    expect(kacha.order_status).toBe('confirmed');
+    // 6. Legacy: pakka with 0 assignments -> confirmed
+    const legacyConfirmed = calculateBillDerived(1000, [], false, 'pakka', false, []);
+    expect(legacyConfirmed.order_status).toBe('confirmed');
 
-    // 6. pakka with 0 assignments -> confirmed
-    const confirmed = calculateBillDerived(1000, [], false, 'pakka', false, []);
-    expect(confirmed.order_status).toBe('confirmed');
-
-    // 7. With line progress: fully shipped -> shipped
-    const lineShipped = calculateBillDerived(
-      1000,
-      [],
-      false,
-      'pakka',
-      false,
-      [],
-      [{ ordered: 10, produced: 10, shipped: 10 }]
-    );
-    expect(lineShipped.order_status).toBe('shipped');
-
-    // 8. With line progress: partially shipped -> partially_shipped
-    const linePartiallyShipped = calculateBillDerived(
-      1000,
-      [],
-      false,
-      'pakka',
-      false,
-      [],
-      [{ ordered: 10, produced: 10, shipped: 5 }]
-    );
-    expect(linePartiallyShipped.order_status).toBe('partially_shipped');
-
-    // 9. With line progress: ready to ship (produced >= ordered) -> ready_to_ship
-    const lineReady = calculateBillDerived(
-      1000,
-      [],
-      false,
-      'pakka',
-      false,
-      [{ status: 'open' }],
-      [{ ordered: 10, produced: 10, shipped: 0 }]
-    );
-    expect(lineReady.order_status).toBe('ready_to_ship');
-
-    // 10. Legacy fallback: all non-cancelled assignments completed -> ready_to_ship
-    const readyLegacy = calculateBillDerived(1000, [], false, 'pakka', false, [
+    // 7. Legacy: pakka with all assignments completed -> ready_to_ship
+    const legacyReady = calculateBillDerived(1000, [], false, 'pakka', false, [
       { status: 'completed' },
       { status: 'completed' },
     ]);
-    expect(readyLegacy.order_status).toBe('ready_to_ship');
+    expect(legacyReady.order_status).toBe('ready_to_ship');
 
-    // 11. In production: non-cancelled assignment exists and not ready to ship
-    const inProd1 = calculateBillDerived(1000, [], false, 'pakka', false, [
+    // 8. Legacy: pakka with incomplete assignment -> in_production
+    const legacyInProd = calculateBillDerived(1000, [], false, 'pakka', false, [
       { status: 'completed' },
       { status: 'open' },
     ]);
-    expect(inProd1.order_status).toBe('in_production');
+    expect(legacyInProd.order_status).toBe('in_production');
 
-    const inProd2 = calculateBillDerived(
+    // Order-First Workflow Tests (workflow === 'order_first'):
+    // 9. Order-first default -> confirmed (draft removed)
+    const ofDefault = calculateBillDerived(1000, [], false, 'kacha', false, [], [], 'order_first');
+    expect(ofDefault.order_status).toBe('confirmed');
+
+    // 10. Order-first: profitConfirmed + paid + fullyShipped -> closed
+    const ofClosed = calculateBillDerived(1000, [{ amount: 1000 }], true, 'pakka', true, [], [], 'order_first');
+    expect(ofClosed.order_status).toBe('closed');
+    expect(ofClosed.payment_status).toBe('paid');
+
+    // 11. Order-first: fully shipped + paid, but profit NOT confirmed -> shipped
+    const ofShipped = calculateBillDerived(1000, [{ amount: 1000 }], false, 'pakka', true, [], [], 'order_first');
+    expect(ofShipped.order_status).toBe('shipped');
+
+    // 12. Order-first with lines: fully shipped -> shipped
+    const ofLineShipped = calculateBillDerived(
+      1000,
+      [],
+      false,
+      'pakka',
+      false,
+      [],
+      [{ ordered: 10, produced: 10, shipped: 10 }],
+      'order_first'
+    );
+    expect(ofLineShipped.order_status).toBe('shipped');
+
+    // 13. Order-first with lines: partially shipped -> partially_shipped
+    const ofLinePartiallyShipped = calculateBillDerived(
+      1000,
+      [],
+      false,
+      'pakka',
+      false,
+      [],
+      [{ ordered: 10, produced: 10, shipped: 5 }],
+      'order_first'
+    );
+    expect(ofLinePartiallyShipped.order_status).toBe('partially_shipped');
+
+    // 14. Order-first with lines: ready to ship (produced >= ordered) -> ready_to_ship
+    const ofLineReady = calculateBillDerived(
       1000,
       [],
       false,
       'pakka',
       false,
       [{ status: 'open' }],
-      [{ ordered: 10, produced: 3, shipped: 0 }]
+      [{ ordered: 10, produced: 10, shipped: 0 }],
+      'order_first'
     );
-    expect(inProd2.order_status).toBe('in_production');
+    expect(ofLineReady.order_status).toBe('ready_to_ship');
 
-    // 12. Cancelled assignment ignored -> confirmed
-    const cancelledOnly = calculateBillDerived(1000, [], false, 'pakka', false, [
-      { status: 'cancelled' },
-    ]);
-    expect(cancelledOnly.order_status).toBe('confirmed');
+    // 15. Order-first with lines: in production
+    const ofLineInProd = calculateBillDerived(
+      1000,
+      [],
+      false,
+      'pakka',
+      false,
+      [{ status: 'open' }],
+      [{ ordered: 10, produced: 3, shipped: 0 }],
+      'order_first'
+    );
+    expect(ofLineInProd.order_status).toBe('in_production');
 
-    // 13. Explicit assertion on default parameters
-    const bareDefaults = calculateBillDerived(1000);
-    expect(bareDefaults.amount_received).toBe(0);
-    expect(bareDefaults.balance_due).toBe(1000);
-    expect(bareDefaults.order_status).toBe('confirmed');
+    // 16. Order-first: cancelled assignment only -> confirmed
+    const ofCancelledOnly = calculateBillDerived(
+      1000,
+      [],
+      false,
+      'pakka',
+      false,
+      [{ status: 'cancelled' }],
+      [],
+      'order_first'
+    );
+    expect(ofCancelledOnly.order_status).toBe('confirmed');
   });
 
   it('covers calculateBillTotals fallback fields and calculateSuggestedProfit boundaries', () => {

@@ -666,10 +666,10 @@ describe('Order-First Production Workflow (Raw -> In Progress -> Finished -> Shi
       issue_quantity: 6,
     });
 
-    // 1. Cannot delete worker with open assignments
+    // 1. Cannot delete worker with production history (Step 5B)
     await expect(
       WorkersService.deleteWorker(scope, worker.id)
-    ).rejects.toThrow('Cannot delete worker: worker has open material assignments.');
+    ).rejects.toThrow('Worker has production history. Deactivate the worker instead.');
 
     // 2. Cannot delete bill with non-cancelled assignments
     await expect(
@@ -683,16 +683,23 @@ describe('Order-First Production Workflow (Raw -> In Progress -> Finished -> Shi
       })
     ).rejects.toThrow('Cannot lower quantity for product "Wooden Stool" below 6 (already targeted/shipped).');
 
-    // Cancelling the assignment frees the worker and bill
+    // Cancelling the assignment frees the bill, but worker retains production history
     await WorkersService.cancelAssignment(scope, assignment.id);
 
     await BillsService.deleteBill(scope, bill.id);
     const billAfter = await BillsRepository.findBillById(scope, bill.id);
     expect(billAfter).toBeNull();
 
-    await WorkersService.deleteWorker(scope, worker.id);
-    const workerAfter = await WorkersRepository.findWorkerById(scope, worker.id);
-    expect(workerAfter).toBeNull();
+    // Worker still cannot be deleted because production history exists
+    await expect(
+      WorkersService.deleteWorker(scope, worker.id)
+    ).rejects.toThrow('Worker has production history. Deactivate the worker instead.');
+
+    // Clean worker without history can be deleted
+    const cleanWorker = await WorkersService.createWorker(scope, { name: 'Clean Worker' });
+    await WorkersService.deleteWorker(scope, cleanWorker.id);
+    const cleanWorkerAfter = await WorkersRepository.findWorkerById(scope, cleanWorker.id);
+    expect(cleanWorkerAfter).toBeNull();
   });
 
   it('Fix 1: completeAssignment must require status open', async () => {

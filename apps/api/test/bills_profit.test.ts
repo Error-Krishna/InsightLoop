@@ -208,4 +208,60 @@ describe('Bills Lifecycle, State Machine & Profit Transitions Suite', () => {
     expect(convertRes.body.payment_status).toBe('partial');
     expect(convertRes.body.order_status).toBe('shipped');
   });
+
+  it('maintains legacy closed status for legacy bills (workflow !== order_first) when fully paid and profit confirmed', async () => {
+    const user = await createTestUser();
+
+    // 1. Create a legacy pakka bill directly (no workflow field)
+    const createRes = await request(app)
+      .post('/api/v1/bills/')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        workflow: 'legacy',
+        bill_type: 'pakka',
+        buyer: {
+          name: 'Legacy Buyer Ltd',
+          phone: '9988776655',
+          gst_number: '29ABCDE1234F1Z5',
+        },
+        products: [
+          {
+            name: 'Legacy Desk',
+            quantity: 5,
+            rate: 2000,
+          },
+        ],
+        gst_percentage: 18,
+      });
+
+    expect(createRes.status).toBe(201);
+    const billId = createRes.body.id as string;
+    const grandTotal = createRes.body.grand_total as number;
+
+    // 2. Pay in full
+    const payRes = await request(app)
+      .post(`/api/v1/bills/${billId}/record-payment`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        amount: grandTotal,
+        notes: 'Full payment for legacy bill',
+      });
+    expect(payRes.status).toBe(201);
+    expect(payRes.body.payment_status).toBe('paid');
+
+    // 3. Confirm profit
+    const confirmRes = await request(app)
+      .post(`/api/v1/bills/${billId}/confirm-profit`)
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        confirmed_amount: 3000,
+      });
+    expect(confirmRes.status).toBe(200);
+    expect(confirmRes.body.profit_confirmed).toBe(true);
+
+    // 4. Assert order_status is 'closed' under legacy rules without line shipments
+    expect(confirmRes.body.order_status).toBe('closed');
+    expect(confirmRes.body.lines).toBeUndefined();
+    expect(confirmRes.body.shipments).toBeUndefined();
+  });
 });
