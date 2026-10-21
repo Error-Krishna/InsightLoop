@@ -55,7 +55,14 @@ export default function OrderDetailPage() {
         api.get<InventoryItemRef[]>("/inventory/raw/"),
         api.get<StockMovement[]>(`/inventory/movements?bill_id=${id}`),
       ]);
-      setBill(billRes.data);
+      // API returns each line as `name`; the page reads `product_name`. Normalize once here.
+      setBill({
+        ...billRes.data,
+        lines: (billRes.data.lines || []).map((l) => ({
+          ...l,
+          product_name: l.product_name || l.name || "",
+        })),
+      });
       setAssignments(assignmentsRes.data);
       setWorkers(workersRes.data);
       setRawItems(rawRes.data);

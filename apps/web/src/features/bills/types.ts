@@ -34,6 +34,8 @@ export interface ReadyToDeliverBatch {
 
 export interface BillLineProgress {
   product_name: string;
+  /** The API sends the product as `name`; the order page copies it into product_name. */
+  name?: string;
   unit?: string;
   ordered: number;
   targeted: number;
