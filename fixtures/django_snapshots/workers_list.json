@@ -17,8 +17,6 @@
       "is_active": true,
       "material_assigned": 20,
       "material_delivered": 10,
-      "raw_issued": 0,
-      "raw_returned": 0,
       "pending_amount": 0,
       "open_assignments": 1,
       "total_wasted": 0,

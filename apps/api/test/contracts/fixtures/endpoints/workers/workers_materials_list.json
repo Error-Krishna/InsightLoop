@@ -1,6 +1,6 @@
 {
   "status": 200,
-  "contentType": "application/json",
+  "contentType": "application/json; charset=utf-8",
   "body": [
     {
       "assignment_date": "<ISO_TIMESTAMP>",
@@ -9,7 +9,8 @@
         {
           "date": "<ISO_TIMESTAMP>",
           "notes": "First chunk",
-          "quantity": 10
+          "quantity": 10,
+          "synced_to_inventory": false
         }
       ],
       "bill_id": null,

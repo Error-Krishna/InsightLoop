@@ -1,6 +1,6 @@
 {
   "status": 201,
-  "contentType": "application/json",
+  "contentType": "application/json; charset=utf-8",
   "body": {
     "amount_received": 7000,
     "balance_due": 2500,
@@ -56,18 +56,24 @@
     "profit_confirmed_amount": null,
     "profit_confirmed_at": null,
     "profit_suggested_amount": 2578.95,
-    "ready_to_deliver": [
-      {
-        "date": "<ISO_TIMESTAMP>",
-        "inventory_item_id": "<OBJECT_ID>",
-        "item_name": "Finished Desk",
-        "notes": "Ready for loading",
-        "quantity": 1
-      }
-    ],
-    "ready_to_deliver_quantity": 1,
+    "ready_to_deliver": [],
+    "ready_to_deliver_quantity": 0,
     "shipment_confirmed": false,
     "shipment_confirmed_at": null,
+    "shipments": [
+      {
+        "date": "<ISO_TIMESTAMP>",
+        "items": [
+          {
+            "finished_item_id": "<OBJECT_ID>",
+            "product_name": "Finished Desk",
+            "quantity": 1
+          }
+        ],
+        "notes": "First shipment dispatch",
+        "shipment_id": "<OBJECT_ID>"
+      }
+    ],
     "subtotal": 10000,
     "transportation_cost_total": 450,
     "transportation_costs": [

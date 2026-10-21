@@ -1,5 +1,9 @@
 {
-  "status": 204,
-  "contentType": "",
-  "body": null
+  "status": 404,
+  "contentType": "application/json; charset=utf-8",
+  "body": {
+    "code": "NOT_FOUND",
+    "detail": "Not found.",
+    "requestId": "<UUID>"
+  }
 }

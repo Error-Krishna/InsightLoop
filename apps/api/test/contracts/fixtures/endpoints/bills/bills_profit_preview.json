@@ -1,6 +1,6 @@
 {
   "status": 200,
-  "contentType": "application/json",
+  "contentType": "application/json; charset=utf-8",
   "body": {
     "cost_basis_full": 6000,
     "cost_basis_scaled": 4421.05,
@@ -10,6 +10,7 @@
       "transportation_cost": 0,
       "worker_cost": 0
     },
+    "has_open_assignments": false,
     "lines": [
       {
         "cost_known": true,
