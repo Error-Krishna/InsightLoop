@@ -102,6 +102,8 @@ export async function ensureIndexes(database: Db): Promise<void> {
   await database.collection('material_assignments').createIndex({ company_id: 1, worker: 1 });
   await database.collection('material_assignments').createIndex({ company_id: 1, worker_id: 1 });
   await database.collection('material_assignments').createIndex({ company_id: 1, bill_id: 1, status: 1 });
+  await database.collection('material_assignments').createIndex({ company_id: 1, bill_id: 1 });
+  await database.collection('stock_movements').createIndex({ company_id: 1, bill_id: 1, date: -1 });
   await database.collection('pay_records').createIndex({ company_id: 1, worker: 1 });
   await database.collection('pay_records').createIndex({ company_id: 1, worker_id: 1 });
   await database.collection('pay_records').createIndex({ company_id: 1, date: 1 });

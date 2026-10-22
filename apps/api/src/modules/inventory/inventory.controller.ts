@@ -44,12 +44,6 @@ export class InventoryController {
     res.status(200).json(items);
   }
 
-  static async createFinished(req: Request, res: Response): Promise<void> {
-    const scope: TenantScope = { companyId: req.companyId! };
-    const item = await InventoryService.createItem(scope, 'finished', req.body as ItemInput);
-    res.status(201).json(item);
-  }
-
   static async updateFinished(req: Request, res: Response): Promise<void> {
     const scope: TenantScope = { companyId: req.companyId! };
     const id = req.params.id as string;
@@ -57,44 +51,19 @@ export class InventoryController {
     res.status(200).json(item);
   }
 
-  static async deleteFinished(req: Request, res: Response): Promise<void> {
-    const scope: TenantScope = { companyId: req.companyId! };
-    const id = req.params.id as string;
-    await InventoryService.deleteItem(scope, 'finished', id);
-    res.status(204).send();
-  }
-
-  // Semi-finished
+  // Semi-finished / In-Progress (Live only)
   static async getLiveSemiFinished(req: Request, res: Response): Promise<void> {
     const scope: TenantScope = { companyId: req.companyId! };
     const result = await InventoryService.getLiveSemiFinished(scope);
     res.status(200).json(result);
   }
 
-  static async listSemiFinished(req: Request, res: Response): Promise<void> {
+  // Stock Movements Ledger (Read-only)
+  static async listMovements(req: Request, res: Response): Promise<void> {
     const scope: TenantScope = { companyId: req.companyId! };
-    const items = await InventoryService.listItems(scope, 'semi_finished');
-    res.status(200).json(items);
-  }
-
-  static async createSemiFinished(req: Request, res: Response): Promise<void> {
-    const scope: TenantScope = { companyId: req.companyId! };
-    const item = await InventoryService.createItem(scope, 'semi_finished', req.body as ItemInput);
-    res.status(201).json(item);
-  }
-
-  static async updateSemiFinished(req: Request, res: Response): Promise<void> {
-    const scope: TenantScope = { companyId: req.companyId! };
-    const id = req.params.id as string;
-    const item = await InventoryService.updateItem(scope, 'semi_finished', id, req.body as ItemInput);
-    res.status(200).json(item);
-  }
-
-  static async deleteSemiFinished(req: Request, res: Response): Promise<void> {
-    const scope: TenantScope = { companyId: req.companyId! };
-    const id = req.params.id as string;
-    await InventoryService.deleteItem(scope, 'semi_finished', id);
-    res.status(204).send();
+    const billId = typeof req.query.bill_id === 'string' ? req.query.bill_id : undefined;
+    const movements = await InventoryService.listMovements(scope, billId);
+    res.status(200).json(movements);
   }
 
   // Raw

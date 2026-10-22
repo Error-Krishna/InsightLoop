@@ -32,11 +32,26 @@ describe('Workers Idempotent Complete & Kill-Resume Suite', () => {
     });
 
     const itemsCol = getCollection('inventory_items');
+    const rawItemId = new ObjectId();
     await itemsCol.insertOne({
+      _id: rawItemId,
       company_id: user.companyId,
-      name: 'Silk Yarn Raw',
-      type: 'finished',
-      quantity: 0,
+      name: 'Silk Raw',
+      type: 'raw',
+      quantity: 500,
+      cost_price: 15,
+      unit: 'm',
+      created_at: new Date(),
+    });
+
+    const billId = new ObjectId();
+    await getCollection('bills').insertOne({
+      _id: billId,
+      company_id: user.companyId,
+      invoice_number: 'INV-TEST-001',
+      workflow: 'order_first',
+      buyer: { name: 'Test Buyer' },
+      products: [{ name: 'Silk Saree', quantity: 100, rate: 50, unit: 'pcs' }],
       created_at: new Date(),
     });
 
@@ -45,8 +60,11 @@ describe('Workers Idempotent Complete & Kill-Resume Suite', () => {
       .post(`/api/v1/workers/${workerId.toString()}/materials/`)
       .set('Authorization', `Bearer ${user.token}`)
       .send({
-        material_name: 'Silk Yarn Raw',
+        bill_id: billId.toString(),
+        material_name: 'Silk Saree',
         quantity: 100,
+        raw_item_id: rawItemId.toString(),
+        raw_per_unit: 1,
         price_per_unit: 15,
         wage_amount: 500,
       });
@@ -77,7 +95,7 @@ describe('Workers Idempotent Complete & Kill-Resume Suite', () => {
     // Verify inventory received exactly 90 units
     const item = await itemsCol.findOne({
       company_id: user.companyId,
-      name: 'Silk Yarn Raw',
+      name: 'Silk Saree',
     });
 
     expect(item).toBeDefined();
@@ -116,7 +134,7 @@ describe('Workers Idempotent Complete & Kill-Resume Suite', () => {
       quantity: 50,
       price_per_unit: 20,
       wage_amount: 300,
-      batches: [{ quantity: 50, date: new Date().toISOString() }],
+      batches: [{ batch_id: 'b-1', quantity: 50, synced_to_inventory: true, date: new Date().toISOString() }],
       synced_to_inventory: true, // Step 1 was executed before kill
       pay_record_id: null,       // Step 2 was interrupted
       status: 'open',

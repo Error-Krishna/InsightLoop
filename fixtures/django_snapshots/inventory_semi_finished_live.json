@@ -6,26 +6,6 @@
   "method": "GET",
   "status": 200,
   "body": {
-    "manual_items": [
-      {
-        "id": "670d8a000000000000000021",
-        "name": "Desk Frame",
-        "unit": "pcs",
-        "type": "semi_finished",
-        "selling_price": 2000,
-        "cost_price": 1200,
-        "quantity": 30,
-        "reorder_level": 5,
-        "warehouse_id": "670d8a000000000000000010",
-        "warehouse_name": "Central Warehouse",
-        "image_url": null,
-        "sku": "SKU-00002",
-        "status": "In Stock",
-        "created_at": "2026-04-07T21:00:00",
-        "updated_at": "2026-04-07T21:00:00",
-        "source": "manual"
-      }
-    ],
     "in_production": [
       {
         "id": "assignment:670d8a000000000000000040",
@@ -41,6 +21,17 @@
         "location_label": "With Ramesh Carpenter",
         "worker_id": "670d8a000000000000000030",
         "worker_name": "Ramesh Carpenter",
+        "bill_id": null,
+        "invoice_number": "",
+        "product_name": "Desk Assembly",
+        "raw_item_name": "Raw",
+        "raw_unit": "pcs",
+        "raw_issued": 0,
+        "raw_returned": 0,
+        "raw_with_worker": 0,
+        "target": 20,
+        "produced": 10,
+        "remaining_output": 10,
         "order": null,
         "assignment_date": "2026-10-04T21:00:00"
       }

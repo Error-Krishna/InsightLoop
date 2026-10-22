@@ -17,20 +17,17 @@ inventoryRouter.delete('/warehouses/:id', asyncHandler(InventoryController.delet
 inventoryRouter.get('/meta/warehouse-summary', asyncHandler(InventoryController.getWarehouseSummary));
 inventoryRouter.get('/warehouse-summary', asyncHandler(InventoryController.getWarehouseSummary));
 
-// 3. Finished Inventory
+// 3. Stock Movements (Ledger)
+inventoryRouter.get('/movements', asyncHandler(InventoryController.listMovements));
+
+// 4. Finished Inventory (Read and Metadata Update only)
 inventoryRouter.get('/finished', asyncHandler(InventoryController.listFinished));
-inventoryRouter.post('/finished', asyncHandler(InventoryController.createFinished));
 inventoryRouter.put('/finished/:id', asyncHandler(InventoryController.updateFinished));
-inventoryRouter.delete('/finished/:id', asyncHandler(InventoryController.deleteFinished));
 
-// 4. Semi-finished Inventory (including /live)
+// 5. In-Progress / Semi-finished (Live derived rows only)
 inventoryRouter.get('/semi-finished/live', asyncHandler(InventoryController.getLiveSemiFinished));
-inventoryRouter.get('/semi-finished', asyncHandler(InventoryController.listSemiFinished));
-inventoryRouter.post('/semi-finished', asyncHandler(InventoryController.createSemiFinished));
-inventoryRouter.put('/semi-finished/:id', asyncHandler(InventoryController.updateSemiFinished));
-inventoryRouter.delete('/semi-finished/:id', asyncHandler(InventoryController.deleteSemiFinished));
 
-// 5. Raw Materials Inventory
+// 6. Raw Materials Inventory
 inventoryRouter.get('/raw', asyncHandler(InventoryController.listRaw));
 inventoryRouter.post('/raw', asyncHandler(InventoryController.createRaw));
 inventoryRouter.put('/raw/:id', asyncHandler(InventoryController.updateRaw));

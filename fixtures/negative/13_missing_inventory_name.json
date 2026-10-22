@@ -1,7 +1,7 @@
 {
   "id": "13_missing_inventory_name",
   "description": "Inventory item missing required name",
-  "endpoint": "/api/v1/inventory/finished",
+  "endpoint": "/api/v1/inventory/raw",
   "method": "POST",
   "payload": {
     "name": "   ",

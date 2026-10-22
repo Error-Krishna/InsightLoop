@@ -1,7 +1,6 @@
 import { ObjectId, type Document, type Filter } from 'mongodb';
 import { getCollection } from '../../db/mongo.js';
 import type { TenantScope } from '../../types/tenant.js';
-import { InventoryRepository } from '../inventory/inventory.repository.js';
 
 export interface WorkerDoc extends Document {
   _id: ObjectId;
@@ -27,7 +26,7 @@ export interface MaterialAssignmentDoc extends Document {
   quantity: number;
   price_per_unit?: number;
   unit?: string;
-  status: string;
+  status: 'open' | 'completed' | 'cancelled' | 'completing' | 'cancelling';
   wage_amount?: number;
   pay_record_id?: string | null;
   synced_to_inventory?: boolean;
@@ -35,12 +34,28 @@ export interface MaterialAssignmentDoc extends Document {
   assignment_date?: Date;
   completed_at?: Date | null;
   wastage_quantity?: number | null;
+  raw_item_id?: string | null;
+  raw_item_name?: string;
+  raw_unit?: string;
+  raw_per_unit?: number;
+  raw_issues?: {
+    issue_id: string;
+    quantity: number;
+    date: Date | string;
+    notes?: string;
+  }[];
+  raw_issued_quantity?: number;
+  raw_returned_quantity?: number;
+  produced_quantity?: number;
+  finished_item_id?: string | null;
   batches?: {
+    batch_id?: string;
     batch_number?: string;
     quantity: number;
     delivered_at?: Date;
     date?: string | Date;
     notes?: string;
+    synced_to_inventory?: boolean;
   }[];
   created_at?: Date;
   updated_at?: Date;
@@ -147,6 +162,199 @@ export class WorkersRepository {
     return col.findOne({ _id: objId, company_id: scope.companyId });
   }
 
+  static async findOpenAssignmentsByWorker(scope: TenantScope, workerId: string): Promise<MaterialAssignmentDoc[]> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = ObjectId.isValid(workerId) ? new ObjectId(workerId) : workerId;
+    return col
+      .find({
+        company_id: scope.companyId,
+        status: { $in: ['open', 'completing'] },
+        $or: [{ worker_id: workerId }, { 'worker._id': objId }, { worker: objId }],
+      })
+      .toArray();
+  }
+
+  static async findActiveAssignmentsForBill(scope: TenantScope, billId: string): Promise<MaterialAssignmentDoc[]> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    return col
+      .find({
+        company_id: scope.companyId,
+        bill_id: billId,
+        status: { $ne: 'cancelled' },
+      })
+      .toArray();
+  }
+
+  static async addRawIssue(
+    scope: TenantScope,
+    id: ObjectId | string,
+    issue: Document,
+    qty: number
+  ): Promise<MaterialAssignmentDoc | null> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    return col.findOneAndUpdate(
+      { _id: objId, company_id: scope.companyId, status: 'open' },
+      {
+        $push: { raw_issues: issue } as Document,
+        $inc: { raw_issued_quantity: qty },
+        $set: { updated_at: new Date() },
+      },
+      { returnDocument: 'after' }
+    );
+  }
+
+  static async addBatchWithRaceCheck(
+    scope: TenantScope,
+    id: ObjectId | string,
+    batch: Document,
+    targetQty: number,
+    qty: number
+  ): Promise<MaterialAssignmentDoc | null> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    return col.findOneAndUpdate(
+      {
+        _id: objId,
+        company_id: scope.companyId,
+        status: 'open',
+        $expr: {
+          $lte: [{ $add: [{ $ifNull: ['$produced_quantity', 0] }, qty] }, targetQty],
+        },
+      },
+      {
+        $push: { batches: batch } as Document,
+        $inc: { produced_quantity: qty },
+        $set: { updated_at: new Date() },
+      },
+      { returnDocument: 'after' }
+    );
+  }
+
+  static async markBatchSynced(
+    scope: TenantScope,
+    id: ObjectId | string,
+    batchId: string,
+    finishedItemId?: string
+  ): Promise<void> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    const setFields: Record<string, unknown> = {
+      'batches.$[elem].synced_to_inventory': true,
+      updated_at: new Date(),
+    };
+    if (finishedItemId) {
+      setFields.finished_item_id = finishedItemId;
+    }
+    await col.updateOne(
+      { _id: objId, company_id: scope.companyId },
+      { $set: setFields },
+      { arrayFilters: [{ 'elem.batch_id': batchId }] }
+    );
+  }
+
+  static async claimCompletingAssignment(
+    scope: TenantScope,
+    id: ObjectId | string,
+    rawReturnedQuantity: number
+  ): Promise<MaterialAssignmentDoc | null> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    return col.findOneAndUpdate(
+      { _id: objId, company_id: scope.companyId, status: 'open' },
+      {
+        $set: {
+          status: 'completing' as unknown as 'open',
+          raw_returned_quantity: rawReturnedQuantity,
+          updated_at: new Date(),
+        },
+      },
+      { returnDocument: 'after' }
+    );
+  }
+
+  static async claimCancellingAssignment(
+    scope: TenantScope,
+    id: ObjectId | string,
+    rawReturnedQuantity: number
+  ): Promise<MaterialAssignmentDoc | null> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    return col.findOneAndUpdate(
+      { _id: objId, company_id: scope.companyId, status: 'open' },
+      {
+        $set: {
+          status: 'cancelling' as unknown as 'open',
+          raw_returned_quantity: rawReturnedQuantity,
+          updated_at: new Date(),
+        },
+      },
+      { returnDocument: 'after' }
+    );
+  }
+
+  static async claimBatchSync(
+    scope: TenantScope,
+    id: ObjectId | string,
+    batchId: string,
+    finishedItemId?: string | null
+  ): Promise<boolean> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    const setFields: Record<string, unknown> = {
+      'batches.$[elem].synced_to_inventory': true,
+      updated_at: new Date(),
+    };
+    if (finishedItemId) {
+      setFields.finished_item_id = finishedItemId;
+    }
+    const res = await col.findOneAndUpdate(
+      {
+        _id: objId,
+        company_id: scope.companyId,
+        batches: {
+          $elemMatch: {
+            batch_id: batchId,
+            synced_to_inventory: false,
+          },
+        },
+      },
+      {
+        $set: setFields,
+      },
+      {
+        arrayFilters: [{ 'elem.batch_id': batchId, 'elem.synced_to_inventory': false }],
+        returnDocument: 'after',
+      }
+    );
+    return res !== null;
+  }
+
+  static async unclaimBatchSync(
+    scope: TenantScope,
+    id: ObjectId | string,
+    batchId: string
+  ): Promise<void> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    await col.updateOne(
+      { _id: objId, company_id: scope.companyId },
+      {
+        $set: {
+          'batches.$[elem].synced_to_inventory': false,
+          updated_at: new Date(),
+        },
+      },
+      { arrayFilters: [{ 'elem.batch_id': batchId }] }
+    );
+  }
+
+  static async deleteAssignmentById(scope: TenantScope, id: ObjectId | string): Promise<void> {
+    const col = getCollection<MaterialAssignmentDoc>('material_assignments');
+    const objId = typeof id === 'string' ? new ObjectId(id) : id;
+    await col.deleteOne({ _id: objId, company_id: scope.companyId });
+  }
+
   static async deleteAssignmentsByWorker(scope: TenantScope, workerId: string): Promise<void> {
     const col = getCollection<MaterialAssignmentDoc>('material_assignments');
     const objId = ObjectId.isValid(workerId) ? new ObjectId(workerId) : workerId;
@@ -202,40 +410,6 @@ export class WorkersRepository {
     });
   }
 
-  static async syncFinishedInventory(scope: TenantScope, materialName: string, quantity: number): Promise<void> {
-    const itemsCol = getCollection('inventory_items');
-    const name = (materialName ?? '').trim();
-    if (!name || quantity <= 0) return;
-    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const existing = await itemsCol.findOne({
-      company_id: scope.companyId,
-      type: 'finished',
-      // eslint-disable-next-line security/detect-non-literal-regexp -- reason: escapedName is sanitized with regex escaping
-      name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
-    });
-
-    if (existing) {
-      await itemsCol.updateOne(
-        { _id: existing._id, company_id: scope.companyId },
-        { $inc: { quantity } }
-      );
-    } else {
-      const sku = await InventoryRepository.getNextSku(scope);
-      await itemsCol.insertOne({
-        company_id: scope.companyId,
-        type: 'finished',
-        name,
-        unit: 'pcs',
-        quantity,
-        sku,
-        selling_price: 0,
-        cost_price: 0,
-        created_at: new Date(),
-        updated_at: new Date(),
-      });
-    }
-  }
-
   static async linkBillWorkerAssignment(scope: TenantScope, billId: string, assignmentId: string): Promise<void> {
     const billsCol = getCollection('bills');
     await billsCol.updateOne(
@@ -251,7 +425,10 @@ export class WorkersRepository {
 
   static async aggregateWorkerAssignmentSummaries(scope: TenantScope, workerIds?: ObjectId[]): Promise<Document[]> {
     const col = getCollection('material_assignments');
-    const match: Record<string, unknown> = { company_id: scope.companyId };
+    const match: Record<string, unknown> = {
+      company_id: scope.companyId,
+      status: { $ne: 'cancelled' },
+    };
     if (workerIds && workerIds.length > 0) {
       match.worker = { $in: workerIds };
     }
@@ -263,15 +440,22 @@ export class WorkersRepository {
           material_assigned: { $sum: { $ifNull: ['$quantity', 0] } },
           material_delivered: {
             $sum: {
-              $reduce: {
-                input: { $ifNull: ['$batches', []] },
-                initialValue: 0,
-                in: { $add: ['$$value', { $ifNull: ['$$this.quantity', 0] }] },
-              },
+              $ifNull: [
+                '$produced_quantity',
+                {
+                  $reduce: {
+                    input: { $ifNull: ['$batches', []] },
+                    initialValue: 0,
+                    in: { $add: ['$$value', { $ifNull: ['$$this.quantity', 0] }] },
+                  },
+                },
+              ],
             },
           },
+          raw_issued: { $sum: { $ifNull: ['$raw_issued_quantity', 0] } },
+          raw_returned: { $sum: { $ifNull: ['$raw_returned_quantity', 0] } },
           open_assignments: {
-            $sum: { $cond: [{ $eq: ['$status', 'open'] }, 1, 0] },
+            $sum: { $cond: [{ $in: ['$status', ['open', 'completing']] }, 1, 0] },
           },
           total_assigned_completed: {
             $sum: { $cond: [{ $eq: ['$status', 'completed'] }, { $ifNull: ['$quantity', 0] }, 0] },

@@ -1,6 +1,6 @@
 {
   "status": 201,
-  "contentType": "application/json",
+  "contentType": "application/json; charset=utf-8",
   "body": {
     "assignment_date": "<ISO_TIMESTAMP>",
     "balance_quantity": 5,
@@ -8,12 +8,16 @@
       {
         "date": "<ISO_TIMESTAMP>",
         "notes": "First chunk",
-        "quantity": 10
+        "quantity": 10,
+        "synced_to_inventory": false
       },
       {
+        "batch_id": "<OBJECT_ID>",
+        "batch_number": "B-2",
         "date": "<ISO_TIMESTAMP>",
         "notes": "Delivered batch of 5",
-        "quantity": 5
+        "quantity": 5,
+        "synced_to_inventory": true
       }
     ],
     "bill_id": null,

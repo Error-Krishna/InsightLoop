@@ -1,0 +1,43 @@
+{
+  "status": 200,
+  "contentType": "application/json; charset=utf-8",
+  "body": {
+    "assignment_date": "<ISO_TIMESTAMP>",
+    "balance_quantity": 1,
+    "batches": [],
+    "bill_id": "<OBJECT_ID>",
+    "completed_at": null,
+    "delivered_quantity": 0,
+    "finished_item_id": null,
+    "id": "<OBJECT_ID>",
+    "material_name": "Finished Desk",
+    "notes": "Assignment to cancel",
+    "over_returned": false,
+    "pay_record_id": null,
+    "planned_raw": 1,
+    "price_per_unit": 40,
+    "produced_quantity": 0,
+    "quantity": 1,
+    "raw_issued_quantity": 1,
+    "raw_issues": [
+      {
+        "date": "<ISO_TIMESTAMP>",
+        "issue_id": "<OBJECT_ID>",
+        "notes": "Assignment to cancel",
+        "quantity": 1
+      }
+    ],
+    "raw_item_id": "<OBJECT_ID>",
+    "raw_item_name": "Oak Timber",
+    "raw_net_used": 0,
+    "raw_per_unit": 1,
+    "raw_returned_quantity": 1,
+    "raw_unit": "kg",
+    "status": "cancelled",
+    "total_value": 40,
+    "unit": "pcs",
+    "wage_amount": 0,
+    "wastage_quantity": null,
+    "worker_id": "<OBJECT_ID>"
+  }
+}

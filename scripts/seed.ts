@@ -58,6 +58,7 @@ export async function seed(targetUri = uri, targetDbName = dbName) {
     'user',
     'company',
     'counters',
+    'stock_movements',
   ];
   for (const c of collections) {
     try {

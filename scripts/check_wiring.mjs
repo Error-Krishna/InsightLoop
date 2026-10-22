@@ -105,9 +105,9 @@ for (const filePath of webSrcFiles) {
       webApiCalls.push({ method, url: normalizedUrl.replace('${billType}', 'kacha'), file: filePath });
       continue;
     }
-    // Special handling for ${itemType} -> finished, semi-finished, raw
+    // Special handling for ${itemType} -> finished, raw
     if (normalizedUrl.includes('${itemType}')) {
-      for (const t of ['finished', 'semi-finished', 'raw']) {
+      for (const t of ['finished', 'raw']) {
         webApiCalls.push({
           method,
           url: normalizedUrl.replace('${itemType}', t).replace(/\$\{[^}]+\}/g, 'param123'),

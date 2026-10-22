@@ -1,6 +1,6 @@
 {
   "status": 201,
-  "contentType": "application/json",
+  "contentType": "application/json; charset=utf-8",
   "body": {
     "amount_received": 0,
     "balance_due": 5000,
@@ -19,16 +19,27 @@
     "gst_percentage": 0,
     "id": "<OBJECT_ID>",
     "invoice_number": "INV-2026-00003",
+    "lines": [
+      {
+        "name": "Finished Desk",
+        "ordered": 1,
+        "produced": 0,
+        "ready_to_ship": 0,
+        "shipped": 0,
+        "targeted": 0,
+        "unit": "pcs"
+      }
+    ],
     "misc_cost_total": 0,
     "misc_costs": [],
-    "order_status": "draft",
+    "order_status": "confirmed",
     "over_received": false,
     "payment_status": "unpaid",
     "payments": [],
     "products": [
       {
         "description": "",
-        "inventory_item_id": "<OBJECT_ID>",
+        "inventory_item_id": null,
         "name": "Finished Desk",
         "quantity": 1,
         "rate": 5200,
@@ -44,11 +55,13 @@
     "ready_to_deliver_quantity": 0,
     "shipment_confirmed": false,
     "shipment_confirmed_at": null,
+    "shipments": [],
     "subtotal": 5200,
     "transportation_cost_total": 0,
     "transportation_costs": [],
     "updated_at": "<ISO_TIMESTAMP>",
     "worker_assignment_ids": [],
-    "worker_cost_total": 0
+    "worker_cost_total": 0,
+    "workflow": "order_first"
   }
 }

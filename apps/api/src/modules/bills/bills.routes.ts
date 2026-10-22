@@ -30,8 +30,7 @@ billsRouter.post('/:id/confirm-profit', asyncHandler(BillsController.confirmProf
 billsRouter.post('/:id/reopen-profit', asyncHandler(BillsController.reopenProfit));
 billsRouter.post('/:id/transportation-cost', asyncHandler(BillsController.addTransportationCost));
 billsRouter.post('/:id/misc-cost', asyncHandler(BillsController.addMiscCost));
-billsRouter.post('/:id/ready-to-deliver', asyncHandler(BillsController.addReadyToDeliver));
-billsRouter.post('/:id/confirm-shipment', asyncHandler(BillsController.confirmShipment));
+billsRouter.post('/:id/shipments', asyncHandler(BillsController.createShipment));
 billsRouter.get('/:id/assignments', asyncHandler(BillsController.getBillAssignments));
 billsRouter.get('/:id/pdf', asyncHandler(BillsController.getBillPdf));
 billsRouter.post('/:id/share-whatsapp', asyncHandler(BillsController.shareWhatsApp));

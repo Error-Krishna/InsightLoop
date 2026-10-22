@@ -242,6 +242,7 @@ async function main() {
     warehouseId: null,
     workerId: null,
     assignmentId: null,
+    tempAssignmentId: null,
     payRecordId: null,
     insightId: null,
   };
@@ -419,7 +420,7 @@ async function main() {
   }, stats);
 
   await runTest('finished_update', 'inventory', async () => {
-    return request('PUT', `/api/v1/inventory/finished/${state.tempFinishedItemId}/`, {
+    return request('PUT', `/api/v1/inventory/finished/${state.finishedItemId}/`, {
       headers: authHeaderA(),
       body: {
         name: 'Deluxe Dining Table',
@@ -434,13 +435,7 @@ async function main() {
   }, stats);
 
   await runTest('finished_delete', 'inventory', async () => {
-    return request('DELETE', `/api/v1/inventory/finished/${state.tempFinishedItemId}/`, {
-      headers: authHeaderA(),
-    });
-  }, stats);
-
-  await runTest('semi_finished_list', 'inventory', async () => {
-    return request('GET', '/api/v1/inventory/semi-finished/', {
+    return request('DELETE', `/api/v1/inventory/finished/${state.finishedItemId}/`, {
       headers: authHeaderA(),
     });
   }, stats);
@@ -453,6 +448,12 @@ async function main() {
 
   await runTest('raw_list', 'inventory', async () => {
     return request('GET', '/api/v1/inventory/raw/', {
+      headers: authHeaderA(),
+    });
+  }, stats);
+
+  await runTest('inventory_movements', 'inventory', async () => {
+    return request('GET', '/api/v1/inventory/movements/', {
       headers: authHeaderA(),
     });
   }, stats);
@@ -501,20 +502,68 @@ async function main() {
   }, stats);
 
   await runTest('workers_materials_create', 'workers', async () => {
-    return request('POST', `/api/v1/workers/${state.workerId}/materials/`, {
+    const res = await request('POST', `/api/v1/workers/${state.workerId}/materials/`, {
       headers: authHeaderA(),
       body: {
-        material_name: 'Chair Framing',
-        quantity: 15,
+        bill_id: '670d8a000000000000000050',
+        material_name: 'Finished Desk',
+        quantity: 1,
+        raw_item_id: '670d8a000000000000000022',
         price_per_unit: 40.0,
+        wage_amount: 600.0,
         date: '2026-10-10T00:00:00',
         notes: 'Pre-cut wooden parts',
-        wage_amount: 600.0,
+      },
+    });
+    if (res.data?.id) {
+      state.tempAssignmentId = res.data.id;
+    }
+    return res;
+  }, stats);
+
+  await runTest('workers_materials_issue', 'workers', async () => {
+    return request('POST', `/api/v1/workers/materials/${state.tempAssignmentId}/issues/`, {
+      headers: authHeaderA(),
+      body: {
+        quantity: 1,
+        notes: 'Additional raw materials issued',
+      },
+    });
+  }, stats);
+
+  await runTest('workers_materials_cancel', 'workers', async () => {
+    const assign2Res = await request('POST', `/api/v1/workers/${state.workerId}/materials/`, {
+      headers: authHeaderA(),
+      body: {
+        bill_id: '670d8a000000000000000050',
+        material_name: 'Finished Desk',
+        quantity: 1,
+        raw_item_id: '670d8a000000000000000022',
+        price_per_unit: 40.0,
+        notes: 'Assignment to cancel',
+      },
+    });
+    const cancelId = assign2Res.data?.id;
+    return request('PUT', `/api/v1/workers/materials/${cancelId}/cancel/`, {
+      headers: authHeaderA(),
+      body: {
+        raw_returned_quantity: 1,
+        notes: 'Cancelled before production',
       },
     });
   }, stats);
 
   await runTest('workers_batches_create', 'workers', async () => {
+    if (state.tempAssignmentId) {
+      await request('POST', `/api/v1/workers/materials/${state.tempAssignmentId}/batches/`, {
+        headers: authHeaderA(),
+        body: {
+          quantity: 1,
+          notes: 'Finished 1 desk',
+        },
+      });
+    }
+
     return request('POST', `/api/v1/workers/materials/${state.assignmentId}/batches/`, {
       headers: authHeaderA(),
       body: {
@@ -691,20 +740,13 @@ async function main() {
     });
   }, stats);
 
-  await runTest('bills_ready_to_deliver', 'bills', async () => {
-    return request('POST', `/api/v1/bills/${state.kachaBillId}/ready-to-deliver/`, {
+  await runTest('bills_shipments_create', 'bills', async () => {
+    return request('POST', `/api/v1/bills/${state.kachaBillId}/shipments/`, {
       headers: authHeaderA(),
       body: {
-        inventory_item_id: state.finishedItemId,
-        quantity: 1.0,
-        notes: 'Ready for loading',
+        items: [{ product_name: 'Finished Desk', quantity: 1 }],
+        notes: 'First shipment dispatch',
       },
-    });
-  }, stats);
-
-  await runTest('bills_confirm_shipment', 'bills', async () => {
-    return request('POST', `/api/v1/bills/${state.kachaBillId}/confirm-shipment/`, {
-      headers: authHeaderA(),
     });
   }, stats);
 

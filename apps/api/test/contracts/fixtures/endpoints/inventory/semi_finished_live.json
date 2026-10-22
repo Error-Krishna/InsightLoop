@@ -1,6 +1,6 @@
 {
   "status": 200,
-  "contentType": "application/json",
+  "contentType": "application/json; charset=utf-8",
   "body": {
     "in_production": [
       {
@@ -8,37 +8,28 @@
         "assignment_date": "<ISO_TIMESTAMP>",
         "assignment_id": "<OBJECT_ID>",
         "balance_quantity": 10,
+        "bill_id": null,
         "delivered_quantity": 10,
         "id": "assignment:<OBJECT_ID>",
+        "invoice_number": "",
         "location_label": "With Ramesh Carpenter",
         "name": "Desk Assembly",
         "order": null,
+        "produced": 10,
+        "product_name": "Desk Assembly",
         "quantity": 10,
+        "raw_issued": 0,
+        "raw_item_name": "Raw",
+        "raw_returned": 0,
+        "raw_unit": "pcs",
+        "raw_with_worker": 0,
+        "remaining_output": 10,
         "source": "assignment",
+        "target": 20,
         "type": "semi_finished",
         "unit": "pcs",
         "worker_id": "<OBJECT_ID>",
         "worker_name": "Ramesh Carpenter"
-      }
-    ],
-    "manual_items": [
-      {
-        "cost_price": 1200,
-        "created_at": "<ISO_TIMESTAMP>",
-        "id": "<OBJECT_ID>",
-        "image_url": null,
-        "name": "Desk Frame",
-        "quantity": 30,
-        "reorder_level": 5,
-        "selling_price": 2000,
-        "sku": "SKU-00002",
-        "source": "manual",
-        "status": "In Stock",
-        "type": "semi_finished",
-        "unit": "pcs",
-        "updated_at": "<ISO_TIMESTAMP>",
-        "warehouse_id": "<OBJECT_ID>",
-        "warehouse_name": "Central Warehouse"
       }
     ]
   }

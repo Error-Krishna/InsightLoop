@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, FileText, CheckCircle, PackagePlus, X } from "lucide-react";
+import { Plus, Trash2, FileText, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
@@ -37,7 +37,6 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
   });
   const [saving, setSaving] = useState(false);
   const [inventoryItems, setInventoryItems] = useState<InventoryItemRef[]>([]);
-  const [quickAddIndex, setQuickAddIndex] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const subtotal = useMemo(
@@ -51,12 +50,11 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
 
   async function loadInventory() {
     try {
-      const [finished, semiFinished, raw] = await Promise.all([
+      const [finished, raw] = await Promise.all([
         api.get<InventoryItemRef[]>("/inventory/finished/"),
-        api.get<InventoryItemRef[]>("/inventory/semi-finished/"),
         api.get<InventoryItemRef[]>("/inventory/raw/"),
       ]);
-      setInventoryItems([...finished.data, ...semiFinished.data, ...raw.data]);
+      setInventoryItems([...finished.data, ...raw.data]);
     } catch {
       // non-blocking -- billing must still work even if inventory can't load
     }
@@ -83,31 +81,11 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
               name: item.name,
               rate: item.selling_price ?? p.rate,
               unit: item.unit || p.unit,
-              inventory_item_id: item.id,
+              inventory_item_id: null,
             }
           : p,
       ),
     }));
-  }
-
-  function clearInventoryLink(index: number) {
-    setForm((c) => ({
-      ...c,
-      products: c.products.map((p, i) => (i === index ? { ...p, inventory_item_id: null } : p)),
-    }));
-  }
-
-  function matchingInventoryItem(name: string): InventoryItemRef | null {
-    const trimmed = (name || "").trim().toLowerCase();
-    if (!trimmed) return null;
-    return inventoryItems.find((item) => item.name.trim().toLowerCase() === trimmed) || null;
-  }
-
-  function handleItemAdded(index: number, item: InventoryItemRef) {
-    setInventoryItems((c) => [...c, item]);
-    selectInventoryItem(index, item);
-    setQuickAddIndex(null);
-    toast.success(`${item.name} added to inventory`);
   }
 
   function addProduct() {
@@ -126,14 +104,32 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
       toast.error("Buyer name is required");
       return;
     }
-    if (form.products.every((p) => !p.name.trim())) {
+    const validProducts = form.products.filter((p) => p.name.trim());
+    if (validProducts.length === 0) {
       toast.error("Add at least one product");
       return;
     }
+
+    // Duplicate product name validation (case-insensitive, trimmed)
+    const productNames = validProducts.map((p) => p.name.trim().toLowerCase());
+    if (new Set(productNames).size !== productNames.length) {
+      toast.error("Duplicate product names inside the same bill are not allowed");
+      return;
+    }
+
     setSaving(true);
     try {
-      await api.post(`/bills/${billType}/`, form);
-      toast.success(`${isPakka ? "Pakka" : "Kacha"} bill saved successfully`);
+      await api.post(`/bills/${billType}/`, {
+        ...form,
+        workflow: "order_first",
+        products: validProducts.map((p) => ({
+          ...p,
+          quantity: Number(p.quantity) || 1,
+          rate: Number(p.rate) || 0,
+          inventory_item_id: null,
+        })),
+      });
+      toast.success("Order confirmed; inventory will not move until raw materials are assigned.");
       setForm({
         buyer_name: "",
         buyer_address: "",
@@ -157,6 +153,9 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         {/* Builder */}
         <Card className="p-6">
+          <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-blue-800">
+            <strong>Make-to-order workflow:</strong> Creating this bill confirms the order. Inventory will not move until raw materials are assigned to workers.
+          </div>
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -254,76 +253,48 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
             </div>
 
             <div className="space-y-2">
-              {form.products.map((product, i) => {
-                const linkedItem = product.inventory_item_id
-                  ? inventoryItems.find((item) => item.id === product.inventory_item_id)
-                  : null;
-                const matched = matchingInventoryItem(product.name);
-                const showAddToInventory =
-                  !product.inventory_item_id && product.name.trim() && !matched;
-                return (
-                  <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                    <div className="grid gap-2 lg:grid-cols-[2fr_1fr_1fr_80px_36px]">
-                      <ProductNameField
-                        value={product.name}
-                        inventoryItems={inventoryItems}
-                        onChange={(v) => {
-                          updateProduct(i, "name", v);
-                          if (product.inventory_item_id) clearInventoryLink(i);
-                        }}
-                        onSelectItem={(item) => selectInventoryItem(i, item)}
-                      />
-                      <FieldInput
-                        label="Qty"
-                        hideLabel
-                        type="number"
-                        value={String(product.quantity)}
-                        onChange={(v) => updateProduct(i, "quantity", Number(v) || 0)}
-                        placeholder="1"
-                      />
-                      <FieldInput
-                        label="Rate"
-                        hideLabel
-                        type="number"
-                        value={String(product.rate)}
-                        onChange={(v) => updateProduct(i, "rate", Number(v) || 0)}
-                        placeholder="0.00"
-                      />
-                      <FieldInput
-                        label="Unit"
-                        hideLabel
-                        value={product.unit}
-                        onChange={(v) => updateProduct(i, "unit", v)}
-                        placeholder="pcs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeProduct(i)}
-                        className="flex items-center justify-center rounded-lg border border-rose-200 p-2 text-rose-400 transition hover:bg-rose-50 lg:mt-0"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    {linkedItem && (
-                      <p className="mt-2 px-1 text-xs text-emerald-600">
-                        Linked to inventory · {linkedItem.quantity} {linkedItem.unit} in stock
-                      </p>
-                    )}
-
-                    {showAddToInventory && (
-                      <button
-                        type="button"
-                        onClick={() => setQuickAddIndex(i)}
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-blue-200 bg-blue-50/60 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
-                      >
-                        <PackagePlus className="h-3.5 w-3.5" />
-                        Add "{product.name.trim()}" to inventory
-                      </button>
-                    )}
+              {form.products.map((product, i) => (
+                <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="grid gap-2 lg:grid-cols-[2fr_1fr_1fr_80px_36px]">
+                    <ProductNameField
+                      value={product.name}
+                      inventoryItems={inventoryItems}
+                      onChange={(v) => updateProduct(i, "name", v)}
+                      onSelectItem={(item) => selectInventoryItem(i, item)}
+                    />
+                    <FieldInput
+                      label="Qty"
+                      hideLabel
+                      type="number"
+                      value={String(product.quantity)}
+                      onChange={(v) => updateProduct(i, "quantity", Number(v) || 0)}
+                      placeholder="1"
+                    />
+                    <FieldInput
+                      label="Rate"
+                      hideLabel
+                      type="number"
+                      value={String(product.rate)}
+                      onChange={(v) => updateProduct(i, "rate", Number(v) || 0)}
+                      placeholder="0.00"
+                    />
+                    <FieldInput
+                      label="Unit"
+                      hideLabel
+                      value={product.unit}
+                      onChange={(v) => updateProduct(i, "unit", v)}
+                      placeholder="pcs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeProduct(i)}
+                      className="flex items-center justify-center rounded-lg border border-rose-200 p-2 text-rose-400 transition hover:bg-rose-50 lg:mt-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         </Card>
@@ -379,15 +350,6 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
       </div>
 
       <BillManager billType={billType} refreshKey={refreshKey} onChanged={() => setRefreshKey((k) => k + 1)} />
-
-      {quickAddIndex !== null && (
-        <QuickAddInventoryModal
-          initialName={form.products[quickAddIndex]?.name.trim() || ""}
-          initialQuantity={form.products[quickAddIndex]?.quantity || 0}
-          onClose={() => setQuickAddIndex(null)}
-          onAdded={(item) => handleItemAdded(quickAddIndex, item)}
-        />
-      )}
     </div>
   );
 }
@@ -464,117 +426,6 @@ function ProductNameField({ value, inventoryItems, onChange, onSelectItem }: Pro
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-interface QuickAddInventoryModalProps {
-  initialName: string;
-  initialQuantity?: number;
-  onClose: () => void;
-  onAdded: (item: InventoryItemRef) => void;
-}
-
-function QuickAddInventoryModal({ initialName, initialQuantity = 0, onClose, onAdded }: QuickAddInventoryModalProps) {
-  const [name, setName] = useState(initialName);
-  const [unit, setUnit] = useState("pcs");
-  const [sellingPrice, setSellingPrice] = useState<number | string>(0);
-  const [quantity, setQuantity] = useState<number | string>(initialQuantity);
-  const [itemType, setItemType] = useState("finished");
-  const [saving, setSaving] = useState(false);
-
-  async function handleSave() {
-    if (!name.trim()) {
-      toast.error("Item name is required");
-      return;
-    }
-    setSaving(true);
-    try {
-      const { data } = await api.post<InventoryItemRef>(`/inventory/${itemType}/`, {
-        name: name.trim(),
-        unit,
-        selling_price: Number(sellingPrice) || 0,
-        quantity: Number(quantity) || 0,
-      });
-      onAdded(data);
-    } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail ?? "Failed to add item to inventory");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Add to inventory</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 transition hover:text-slate-600">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <FieldInput label="Item name" value={name} onChange={setName} placeholder="Jute bag - large" />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                <span>Type</span>
-                <select
-                  value={itemType}
-                  onChange={(e) => setItemType(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="finished">Finished good</option>
-                  <option value="semi-finished">Work in progress</option>
-                  <option value="raw">Raw material</option>
-                </select>
-              </label>
-            </div>
-            <FieldInput label="Unit" value={unit} onChange={setUnit} placeholder="pcs" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <FieldInput
-              label="Selling price (₹)"
-              type="number"
-              value={String(sellingPrice)}
-              onChange={setSellingPrice}
-              placeholder="0.00"
-            />
-            <FieldInput
-              label="Opening stock"
-              type="number"
-              value={String(quantity)}
-              onChange={setQuantity}
-              placeholder="0"
-            />
-          </div>
-          {Number(initialQuantity) > 0 && (
-            <p className="-mt-1 text-xs text-slate-400">
-              Pre-filled with the {initialQuantity} you're billing — adjust if your real stock is different.
-            </p>
-          )}
-        </div>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-60"
-          >
-            {saving ? "Adding…" : "Add item"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

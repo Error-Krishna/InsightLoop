@@ -4,6 +4,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { setupTestDb, teardownTestDb, createTestUser } from './testHelper.js';
+import { InventoryService } from '../src/modules/inventory/inventory.service.js';
 import { WorkersService } from '../src/modules/workers/workers.service.js';
 import { BillsService } from '../src/modules/bills/bills.service.ts';
 
@@ -40,36 +41,52 @@ describe('Negative Fixtures Suite (Python-Free Safety Net 4: Schema & Input Reje
     });
     workerId = worker.id;
 
-    // 2. Create an open assignment
-    const openAssign = await WorkersService.createMaterial(scope, workerId, {
-      material_name: 'Raw Cotton',
-      quantity: 100,
-      price_per_unit: 15,
+    // 2. Create raw item
+    const rawItem = await InventoryService.createItem(scope, 'raw', {
+      name: 'Raw Cotton',
+      unit: 'm',
+      quantity: 1000,
+      cost_price: 15,
     });
-    assignmentId = openAssign.id;
 
-    // 3. Create a completed assignment
-    const toComplete = await WorkersService.createMaterial(scope, workerId, {
-      material_name: 'Raw Silk',
-      quantity: 50,
-      price_per_unit: 25,
-    });
-    await WorkersService.completeAssignment(scope, toComplete.id);
-    completedAssignmentId = toComplete.id;
-
-    // 4. Create a kacha bill (without ready-to-deliver batches)
+    // 3. Create a kacha bill
     const kacha = await BillsService.createBill(scope, 'kacha', {
       buyer: { name: 'Kacha Buyer' },
       products: [{ name: 'Fabric', quantity: 10, rate: 100 }],
     });
     kachaBillId = kacha.id;
 
-    // 5. Create a pakka bill
+    // 4. Create a pakka bill
     const pakka = await BillsService.createBill(scope, 'pakka', {
       buyer: { name: 'Pakka Buyer', gst_number: '29ABCDE1234F1Z5' },
       products: [{ name: 'Linen', quantity: 5, rate: 200 }],
     });
     pakkaBillId = pakka.id;
+
+    // 5. Create an open assignment
+    const openAssign = await WorkersService.createMaterial(scope, workerId, {
+      bill_id: kachaBillId,
+      material_name: 'Fabric',
+      quantity: 5,
+      raw_item_id: rawItem.id,
+      raw_per_unit: 1,
+      wage_amount: 50,
+      price_per_unit: 15,
+    });
+    assignmentId = openAssign.id;
+
+    // 6. Create a completed assignment
+    const toComplete = await WorkersService.createMaterial(scope, workerId, {
+      bill_id: pakkaBillId,
+      material_name: 'Linen',
+      quantity: 2,
+      raw_item_id: rawItem.id,
+      raw_per_unit: 1,
+      wage_amount: 25,
+      price_per_unit: 25,
+    });
+    await WorkersService.completeAssignment(scope, toComplete.id);
+    completedAssignmentId = toComplete.id;
 
     const fixturesDir = path.resolve(__dirname, '../../../fixtures/negative');
     const indexPath = path.join(fixturesDir, 'index.json');

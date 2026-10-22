@@ -64,6 +64,17 @@ export interface BillDoc extends Document {
     date?: string | Date;
     notes?: string;
   }[];
+  workflow?: 'order_first';
+  shipments?: {
+    shipment_id: string;
+    date?: string | Date;
+    notes?: string;
+    items: {
+      product_name: string;
+      quantity: number;
+      finished_item_id: string;
+    }[];
+  }[];
   worker_assignment_ids?: string[];
   created_at?: Date;
   updated_at?: Date;

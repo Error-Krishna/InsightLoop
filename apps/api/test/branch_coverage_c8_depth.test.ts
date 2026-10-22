@@ -69,6 +69,7 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
       // 2. Request 2.5 quantity -> fractional formatting in createBill error message
       await expect(
         BillsService.createBill(scope, 'kacha', {
+          workflow: 'legacy' as any,
           buyer: { name: 'Test Buyer' },
           products: [{ name: 'Fractional Item', quantity: 2.5, rate: 100, inventory_item_id: item.id }],
         })
@@ -167,6 +168,7 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
       const inc1 = await InventoryService.createItem(scope, 'finished', { name: 'Inc 1', quantity: 20, selling_price: 10 });
       const inc2 = await InventoryService.createItem(scope, 'finished', { name: 'Inc 2', quantity: 20, selling_price: 10 });
       const billMulti = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Multi Inc Buyer' },
         products: [
           { name: 'Inc 1', quantity: 2, rate: 10, inventory_item_id: inc1.id },
@@ -248,6 +250,7 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
         selling_price: 100,
       });
       const kachaWithStock = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Race Buyer' },
         products: [{ name: 'Stock Race Item', quantity: 2, rate: 100, inventory_item_id: invItem.id }],
       });
@@ -323,6 +326,7 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
 
     it('covers recordPayment, profit preview, costs, shipment and delivery edge cases', async () => {
       const bill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Payment Buyer' },
         products: [{ name: 'Product', quantity: 1, rate: 500 }],
       });
@@ -349,6 +353,7 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
         cost_price: 150,
       });
       const unlinkedBill = await BillsService.createBill(scope, 'kacha', {
+        workflow: 'legacy' as any,
         buyer: { name: 'Unlinked Buyer' },
         products: [
           { name: 'No Item ID', quantity: 2, rate: 200 },
@@ -404,71 +409,59 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
       await expect(BillsService.addMiscCost(scope, bill.id, { amount: 10 })).rejects.toThrow('Bill not found.');
       spyMNull.mockRestore();
 
-      // 5. addReadyToDeliver validation branches
-      const deliverableItem = await InventoryService.createItem(scope, 'finished', {
-        name: 'Deliverable Finished Good',
-        quantity: 20,
-        selling_price: 100,
-      });
+      // 5. createShipment validation branches
+      await expect(
+        BillsService.createShipment(scope, 'invalid-id', { items: [] })
+      ).rejects.toThrow('Invalid bill id.');
 
       await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: 'invalid-id', quantity: 5 })
-      ).rejects.toThrow('Valid inventory_item_id required.');
-
-      await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: new ObjectId().toString(), quantity: 5 })
-      ).rejects.toThrow('Inventory item not found.');
-
-      await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: deliverableItem.id, quantity: 0 })
-      ).rejects.toThrow('Quantity must be positive.');
-
-      const rtd = await BillsService.addReadyToDeliver(scope, bill.id, {
-        inventory_item_id: deliverableItem.id,
-        quantity: 5,
-        notes: 'Batch 1 ready',
-      });
-      expect(rtd.ready_to_deliver.length).toBe(1);
-
-      // addReadyToDeliver null update handling
-      const spyRtdNull = vi.spyOn(BillsRepository, 'updateBillRaw').mockResolvedValueOnce(null);
-      await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: deliverableItem.id, quantity: 2 })
+        BillsService.createShipment(scope, new ObjectId().toString(), { items: [] })
       ).rejects.toThrow('Bill not found.');
-      spyRtdNull.mockRestore();
 
-      // 6. confirmShipment flow and branches
-      const shipped = await BillsService.confirmShipment(scope, bill.id);
-      expect(shipped.shipment_confirmed).toBe(true);
-
-      // Already shipped bill cannot add ready to deliver or confirm shipment again
       await expect(
-        BillsService.addReadyToDeliver(scope, bill.id, { inventory_item_id: deliverableItem.id, quantity: 1 })
-      ).rejects.toThrow('This order has already been marked shipped.');
+        BillsService.createShipment(scope, bill.id, { items: [] })
+      ).rejects.toThrow('No items specified to ship.');
 
-      await expect(BillsService.confirmShipment(scope, bill.id)).rejects.toThrow(
-        'This order is already marked shipped.'
-      );
+      await expect(
+        BillsService.createShipment(scope, bill.id, { items: [{ product_name: 'Non Existent', quantity: 1 }] })
+      ).rejects.toThrow('Product "Non Existent" is not part of this order.');
 
-      // Shipment without ready-to-deliver batches throws error
-      const freshBill = await BillsService.createBill(scope, 'kacha', {
-        buyer: { name: 'Fresh Order' },
-        products: [{ name: 'Dummy', quantity: 1, rate: 50 }],
+      await expect(
+        BillsService.createShipment(scope, bill.id, { items: [{ product_name: 'Product', quantity: 0 }] })
+      ).rejects.toThrow('Quantity for "Product" must be a positive integer.');
+
+      await expect(
+        BillsService.createShipment(scope, bill.id, { items: [{ product_name: 'Product', quantity: 5 }] })
+      ).rejects.toThrow('Cannot ship 5 of "Product": only 0 ready to ship.');
+
+      await expect(
+        BillsService.createShipment(scope, bill.id, { ship_all: true })
+      ).rejects.toThrow('No products are ready to ship.');
+
+      // 6. createShipment success flow
+      const shipWorker = await WorkersService.createWorker(scope, { name: 'Shipment Worker' });
+      const rawShip = await InventoryRepository.insertItem(scope, {
+        name: 'Ship Raw',
+        unit: 'pcs',
+        type: 'raw',
+        quantity: 10,
+        cost_price: 10,
+        sku: 'SKU-SHIP-RAW-' + Date.now(),
+        created_at: new Date(),
       });
-      await expect(BillsService.confirmShipment(scope, freshBill.id)).rejects.toThrow(
-        'No ready-to-deliver batches recorded for this order yet.'
-      );
-
-      // confirmShipment null update handling
-      const freshWithRtd = await BillsService.addReadyToDeliver(scope, freshBill.id, {
-        inventory_item_id: deliverableItem.id,
-        quantity: 2,
+      const shipAssign = await WorkersService.createMaterial(scope, shipWorker.id, {
+        bill_id: bill.id,
+        raw_item_id: rawShip._id.toString(),
+        material_name: 'Product',
+        quantity: 1,
+        price_per_unit: 10,
       });
-      expect(freshWithRtd.ready_to_deliver.length).toBe(1);
+      await WorkersService.addBatch(scope, shipAssign.id, { quantity: 1 });
 
-      const spyShipNull = vi.spyOn(BillsRepository, 'updateBill').mockResolvedValueOnce(null);
-      await expect(BillsService.confirmShipment(scope, freshBill.id)).rejects.toThrow('Bill not found.');
-      spyShipNull.mockRestore();
+      const shipped = await BillsService.createShipment(scope, bill.id, {
+        items: [{ product_name: 'Product', quantity: 1 }],
+      });
+      expect(shipped.shipments.length).toBe(1);
 
       // 7. PDF and WhatsApp sharing methods
       const pdf = await BillsService.getBillPdf(scope, bill.id);
@@ -489,31 +482,30 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
     });
 
     it('covers getBillAssignments and worker pay calculation fallbacks', async () => {
-      // Create worker and assignment with batches and null bill_id
+      // Create bill and raw item first
+      const bill = await BillsService.createBill(scope, 'kacha', {
+        buyer: { name: 'Assignment Buyer' },
+        products: [{ name: 'Timber Board', quantity: 10, rate: 100 }],
+      });
+      const rawTimber = await InventoryRepository.insertItem(scope, {
+        name: 'Timber Raw',
+        unit: 'pcs',
+        type: 'raw',
+        quantity: 50,
+        cost_price: 10,
+        sku: 'SKU-TIMBER-' + Date.now(),
+        created_at: new Date(),
+      });
       const worker = await WorkersService.createWorker(scope, { name: 'Batch Worker' });
       const assign = await WorkersService.createMaterial(scope, worker.id, {
+        bill_id: bill.id,
+        raw_item_id: rawTimber._id.toString(),
         material_name: 'Timber Board',
         quantity: 10,
         price_per_unit: 20,
       });
 
-      // Add batch with fractional quantity
-      await WorkersService.addBatch(scope, assign.id, {
-        quantity: 3.5,
-        notes: 'Fractional batch',
-      });
-
-      // Add second batch causing over_returned: true (3.5 + 8.5 = 12.0 > 10.0)
-      await WorkersService.addBatch(scope, assign.id, {
-        quantity: 8.5,
-        notes: 'Over returned batch',
-      });
-
-      // Link assignment to a bill in database
-      const bill = await BillsService.createBill(scope, 'kacha', {
-        buyer: { name: 'Assignment Buyer' },
-        products: [{ name: 'Dummy Product', quantity: 1, rate: 100 }],
-      });
+      // Update batches directly in mongo to test over_returned calculation
       await db.collection('material_assignments').updateOne(
         { _id: new ObjectId(assign.id) },
         {
@@ -522,6 +514,10 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
             status: 'completed',
             wage_amount: 150,
             wastage_quantity: 1.5,
+            batches: [
+              { quantity: 3.5, notes: 'Fractional batch' },
+              { quantity: 8.5, notes: 'Over returned batch' },
+            ],
           },
         }
       );
@@ -559,11 +555,6 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
       expect(pays).toEqual([]);
 
       await expect(WorkersRepository.deletePaymentsByWorker(scope, nonOid)).resolves.not.toThrow();
-
-      // syncFinishedInventory with empty or null name
-      await expect(WorkersRepository.syncFinishedInventory(scope, '', 10)).resolves.not.toThrow();
-      await expect(WorkersRepository.syncFinishedInventory(scope, null as any, 10)).resolves.not.toThrow();
-      await expect(WorkersRepository.syncFinishedInventory(scope, 'Some Item', 0)).resolves.not.toThrow();
     });
 
     it('covers WorkersService fallbacks, wage wastage, updateWorker fields, and listWorkers wastage', async () => {
@@ -590,14 +581,30 @@ describe('Branch Coverage C8 Depth Suite (High-Margin Resilience)', () => {
       expect(updated.is_active).toBe(false);
 
       // Material assignment with wastage to trigger listWorkers wastageRate > 0
+      await WorkersService.updateWorker(scope, worker.id, { is_active: true });
+      const rawComp = await InventoryRepository.insertItem(scope, {
+        name: 'Component Raw',
+        unit: 'pcs',
+        type: 'raw',
+        quantity: 50,
+        cost_price: 5,
+        sku: 'SKU-COMP-' + Date.now(),
+        created_at: new Date(),
+      });
+      const compBill = await BillsService.createBill(scope, 'kacha', {
+        buyer_name: 'Comp Buyer',
+        products: [{ name: 'Component A', quantity: 10, rate: 20 }],
+      });
       const assign = await WorkersService.createMaterial(scope, worker.id, {
+        bill_id: compBill.id,
+        raw_item_id: rawComp._id.toString(),
         material_name: 'Component A',
         quantity: 10,
         price_per_unit: 10,
       });
 
       await WorkersService.addBatch(scope, assign.id, { quantity: 8 });
-      await WorkersService.completeAssignment(scope, assign.id, 2); // 2 units wasted
+      await WorkersService.completeAssignment(scope, assign.id, { raw_returned_quantity: 0 }); // 2 units wasted (10 - 8 = 2)
 
       const detail = await WorkersService.getWorker(scope, worker.id);
       expect(detail.id).toBe(worker.id);

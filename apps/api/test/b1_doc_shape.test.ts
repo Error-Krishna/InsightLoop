@@ -15,9 +15,12 @@ const hasDjango = fs.existsSync(pythonBin) && fs.existsSync(path.join(rootDir, '
 describe('B1: Document Shape & MongoEngine Strictness', () => {
   const scope: TenantScope = { companyId: 'test-b1-company-' + Date.now() };
   let workerId: string;
+  let billId: string;
+  let rawItemId: string;
 
   beforeAll(async () => {
     await connectMongo();
+    const db = getDb();
     const worker = await WorkersRepository.insertWorker(scope, {
       name: 'B1 Worker Test',
       phone: '9999999999',
@@ -26,6 +29,32 @@ describe('B1: Document Shape & MongoEngine Strictness', () => {
       is_active: true,
     });
     workerId = worker._id.toString();
+
+    const rawItem = await db.collection('inventory_items').insertOne({
+      company_id: scope.companyId,
+      name: 'B1 Raw Material',
+      type: 'raw',
+      quantity: 1000,
+      cost_price: 10,
+      unit: 'kg',
+      created_at: new Date(),
+    });
+    rawItemId = rawItem.insertedId.toString();
+
+    const bill = await db.collection('bills').insertOne({
+      company_id: scope.companyId,
+      invoice_number: 'INV-B1-001',
+      workflow: 'order_first',
+      buyer: { name: 'B1 Buyer' },
+      products: [
+        { name: 'Pine Wood', quantity: 100, rate: 50, unit: 'pcs' },
+        { name: 'Oak Planks', quantity: 100, rate: 50, unit: 'pcs' },
+        { name: 'Raw Cotton', quantity: 100, rate: 50, unit: 'pcs' },
+        { name: 'Raw Silk', quantity: 100, rate: 100, unit: 'pcs' },
+      ],
+      created_at: new Date(),
+    });
+    billId = bill.insertedId.toString();
   });
 
   afterAll(async () => {
@@ -56,6 +85,8 @@ describe('B1: Document Shape & MongoEngine Strictness', () => {
 
   it('MaterialAssignment document written to MongoDB has worker as ObjectId and NO worker_id field', async () => {
     const created = await WorkersService.createMaterial(scope, workerId, {
+      bill_id: billId,
+      raw_item_id: rawItemId,
       material_name: 'Pine Wood',
       quantity: 5,
       price_per_unit: 12.5,
@@ -150,6 +181,8 @@ print('DJANGO_PAY_LOAD_OK')
 
     // 2. MaterialAssignment
     const assignment = await WorkersService.createMaterial(scope, worker._id.toString(), {
+      bill_id: billId,
+      raw_item_id: rawItemId,
       material_name: 'Oak Planks',
       quantity: 15,
       price_per_unit: 20.0,
@@ -342,6 +375,8 @@ print('DJANGO_DUAL_STACK_ALL_PASSED')
     });
 
     const assign1 = await WorkersService.createMaterial(scope, worker._id.toString(), {
+      bill_id: billId,
+      raw_item_id: rawItemId,
       material_name: 'Raw Cotton',
       quantity: 10,
       price_per_unit: 50,
@@ -349,6 +384,8 @@ print('DJANGO_DUAL_STACK_ALL_PASSED')
     });
 
     const assign2 = await WorkersService.createMaterial(scope, worker._id.toString(), {
+      bill_id: billId,
+      raw_item_id: rawItemId,
       material_name: 'Raw Silk',
       quantity: 10,
       price_per_unit: 100,

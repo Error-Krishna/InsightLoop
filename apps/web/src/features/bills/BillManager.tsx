@@ -365,14 +365,37 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
                           <ArrowRightLeft className="h-3.5 w-3.5" />
                         </ActionButton>
                       )}
-                      {bill.payment_status === "paid" && !bill.profit_confirmed && (
-                        <ActionButton
-                          title="Confirm profit for this consignment"
-                          onClick={() => setConfirmingBill(bill)}
-                          tone="green"
-                        >
-                          <BadgeCheck className="h-3.5 w-3.5" />
-                        </ActionButton>
+                      {!bill.profit_confirmed && (
+                        bill.workflow === "order_first" ? (
+                          (bill.order_status === "shipped" || bill.order_status === "closed") ? (
+                            <ActionButton
+                              title="Confirm profit for this consignment"
+                              onClick={() => setConfirmingBill(bill)}
+                              tone="green"
+                            >
+                              <BadgeCheck className="h-3.5 w-3.5" />
+                            </ActionButton>
+                          ) : (
+                            <ActionButton
+                              title="Profit can be confirmed once all items are shipped"
+                              onClick={() => undefined}
+                              disabled
+                              tone="slate"
+                            >
+                              <BadgeCheck className="h-3.5 w-3.5" />
+                            </ActionButton>
+                          )
+                        ) : (
+                          bill.payment_status === "paid" && (
+                            <ActionButton
+                              title="Confirm profit for this consignment"
+                              onClick={() => setConfirmingBill(bill)}
+                              tone="green"
+                            >
+                              <BadgeCheck className="h-3.5 w-3.5" />
+                            </ActionButton>
+                          )
+                        )
                       )}
                       <ActionButton
                         title="Delete bill"
@@ -923,13 +946,13 @@ function RecordPaymentModal({ bill, onClose, onUpdated }: RecordPaymentModalProp
   );
 }
 
-interface ProfitConfirmationModalProps {
+export interface ProfitConfirmationModalProps {
   bill: Bill;
   onClose: () => void;
   onConfirmed: (bill: Bill) => void;
 }
 
-function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmationModalProps) {
+export function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmationModalProps) {
   const [loading, setLoading] = useState(true);
   const [suggestion, setSuggestion] = useState<ProfitPreviewResponse | null>(null);
   const [override, setOverride] = useState("");
@@ -1021,6 +1044,31 @@ function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmat
                 <span>₹{suggestion.suggested_profit.toLocaleString("en-IN")}</span>
               </div>
             </div>
+
+            {suggestion.lines && suggestion.lines.length > 0 && (
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                <p className="font-semibold text-slate-700 mb-2">Material Cost Breakdown</p>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                  {suggestion.lines.map((l, idx) => {
+                    const lineName = l.name || l.item_name || "Item";
+                    return (
+                      <div key={idx} className="flex items-center justify-between text-slate-600">
+                        <span className="truncate max-w-[240px]">{lineName}</span>
+                        {l.cost_known ? (
+                          <span className="font-medium text-slate-900">
+                            ₹{Number(l.line_cost ?? 0).toLocaleString("en-IN")}
+                          </span>
+                        ) : (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                            Cost unknown
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {suggestion.lines.some((l) => !l.cost_known) && (
               <p className="mt-3 text-xs text-amber-600">

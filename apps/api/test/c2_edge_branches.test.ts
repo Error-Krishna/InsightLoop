@@ -266,11 +266,22 @@ describe('C2: Maximum Branch Density Suite', () => {
         joining_date: '2026-01-01',
       });
 
+      const rawItem = await db.collection('inventory_items').insertOne({
+        company_id: companyId,
+        sku: 'SKU-SILK-' + Date.now(),
+        type: 'raw',
+        name: 'Silk Thread',
+        quantity: 100,
+        unit: 'kg',
+        cost_price: 50,
+      });
+
       const billId = new ObjectId();
       await db.collection('bills').insertOne({
         _id: billId,
         company_id: companyId,
         invoice_number: 'INV-B1-01',
+        products: [{ name: 'Silk Weave', quantity: 20, rate: 100 }],
       });
 
       await expect(
@@ -296,6 +307,7 @@ describe('C2: Maximum Branch Density Suite', () => {
         quantity: 20,
         price_per_unit: 50,
         bill_id: billId.toString(),
+        raw_item_id: rawItem.insertedId.toString(),
       });
       expect(mat.bill_id).toBe(billId.toString());
 

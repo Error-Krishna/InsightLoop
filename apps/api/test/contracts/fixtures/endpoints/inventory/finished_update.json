@@ -1,21 +1,9 @@
 {
-  "status": 200,
-  "contentType": "application/json",
+  "status": 400,
+  "contentType": "application/json; charset=utf-8",
   "body": {
-    "cost_price": 8500,
-    "created_at": "<ISO_TIMESTAMP>",
-    "id": "<OBJECT_ID>",
-    "image_url": null,
-    "name": "Deluxe Dining Table",
-    "quantity": 12,
-    "reorder_level": 4,
-    "selling_price": 13500,
-    "sku": "SKU-00004",
-    "status": "In Stock",
-    "type": "finished",
-    "unit": "pcs",
-    "updated_at": "<ISO_TIMESTAMP>",
-    "warehouse_id": "<OBJECT_ID>",
-    "warehouse_name": "Central Warehouse"
+    "code": "APP_ERROR",
+    "detail": "Finished stock changes only through production and shipments.",
+    "requestId": "<UUID>"
   }
 }
