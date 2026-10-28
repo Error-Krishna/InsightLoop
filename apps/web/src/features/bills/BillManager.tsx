@@ -198,15 +198,17 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
     <Card className="overflow-hidden">
       <div className="border-b border-slate-100 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-slate-900">
+          <h2 className="text-base font-bold tracking-tight text-slate-900">
             All {billType === "pakka" ? "Pakka" : "Kacha"} Bills
-            <span className="ml-2 text-sm font-normal text-slate-400">({filteredSortedBills.length})</span>
+            <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+              {filteredSortedBills.length}
+            </span>
           </h2>
           <div className="flex items-center gap-2">
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="rounded-xl border border-slate-200/80 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -218,14 +220,14 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
         </div>
 
         {/* Search + filters */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="mt-4 flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[240px] flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search invoice #, buyer name, phone, or GST no."
-              className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-full border border-slate-200/80 bg-slate-50/70 py-2 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:bg-white focus:ring-4 focus:ring-[#4F6BF5]/10"
             />
           </div>
           <input
@@ -233,33 +235,33 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
             value={minAmount}
             onChange={(e) => setMinAmount(e.target.value)}
             placeholder="Min ₹"
-            className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-24 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
           />
           <input
             type="number"
             value={maxAmount}
             onChange={(e) => setMaxAmount(e.target.value)}
             placeholder="Max ₹"
-            className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-24 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
           />
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-sm text-slate-600 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
           />
-          <span className="text-sm text-slate-400">to</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">to</span>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-sm text-slate-600 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
           />
           {filtersActive && (
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-500 shadow-2xs transition hover:bg-slate-50 hover:text-slate-700"
             >
               <X className="h-3.5 w-3.5" />
               Clear
@@ -269,64 +271,64 @@ export default function BillManager({ billType, refreshKey, onChanged }: BillMan
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-sm text-slate-400">Loading bills…</div>
+        <div className="p-8 text-center text-sm font-medium text-slate-400">Loading bills…</div>
       ) : filteredSortedBills.length === 0 ? (
-        <div className="p-8 text-center text-sm text-slate-400">
+        <div className="p-8 text-center text-sm font-medium text-slate-400">
           {bills.length === 0 ? "No bills yet. Create one above." : "No bills match the current search/filters."}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-400">
-                <th className="px-5 py-3">Invoice</th>
-                <th className="px-5 py-3">Buyer</th>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Order Status</th>
-                <th className="px-5 py-3 text-right">Amount</th>
-                <th className="px-5 py-3">Payment</th>
-                <th className="px-5 py-3">Profit</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+              <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <th className="px-5 py-3.5">Invoice</th>
+                <th className="px-5 py-3.5">Buyer</th>
+                <th className="px-5 py-3.5">Date</th>
+                <th className="px-5 py-3.5">Order Status</th>
+                <th className="px-5 py-3.5 text-right">Amount</th>
+                <th className="px-5 py-3.5">Payment</th>
+                <th className="px-5 py-3.5">Profit</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-100/70">
               {filteredSortedBills.map((bill) => (
-                <tr key={bill.id} className="hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-5 py-3.5 font-medium text-slate-900">
+                <tr key={bill.id} className="transition-colors hover:bg-slate-50/70">
+                  <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-900">
                     <button
                       type="button"
                       onClick={() => navigate(`/bills/order/${bill.id}`)}
-                      className="hover:underline"
+                      className="text-[#4F6BF5] hover:underline font-semibold"
                     >
                       {bill.invoice_number}
                     </button>
                   </td>
-                  <td className="px-5 py-3.5">
-                    <p className="font-medium text-slate-800">{bill.buyer?.name || "—"}</p>
-                    {bill.buyer?.phone && <p className="text-xs text-slate-400">{bill.buyer.phone}</p>}
+                  <td className="px-5 py-4">
+                    <p className="font-semibold text-slate-800">{bill.buyer?.name || "—"}</p>
+                    {bill.buyer?.phone && <p className="text-xs text-slate-400 font-medium">{bill.buyer.phone}</p>}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 text-slate-500">
+                  <td className="whitespace-nowrap px-5 py-4 text-xs font-medium text-slate-500">
                     {bill.created_at ? new Date(bill.created_at).toLocaleDateString("en-IN") : "—"}
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-4">
                     <OrderStatusBadge status={bill.order_status} />
                   </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 text-right font-semibold text-slate-900">
+                  <td className="whitespace-nowrap px-5 py-4 text-right font-bold text-slate-900">
                     ₹{Number(bill.grand_total || 0).toLocaleString("en-IN")}
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-4">
                     <PaymentStatusBadge bill={bill} />
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-4">
                     {bill.profit_confirmed ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-150 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                         <BadgeCheck className="h-3 w-3" /> ₹{Number(bill.profit_confirmed_amount || 0).toLocaleString("en-IN")}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400">Not confirmed</span>
+                      <span className="text-xs font-medium text-slate-400">Not confirmed</span>
                     )}
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1.5">
                       <ActionButton
                         title="View order details"
@@ -450,10 +452,10 @@ interface ActionButtonProps {
 
 function ActionButton({ title, onClick, disabled, tone = "slate", children }: ActionButtonProps) {
   const toneClasses = {
-    slate: "border-slate-200 text-slate-500 hover:bg-slate-50",
+    slate: "border-slate-200/80 text-slate-500 hover:bg-slate-50 hover:text-slate-800",
     emerald: "border-emerald-200 text-emerald-600 hover:bg-emerald-50",
-    green: "border-green-200 text-green-600 hover:bg-green-50",
-    blue: "border-blue-200 text-blue-600 hover:bg-blue-50",
+    green: "border-emerald-200 text-emerald-600 hover:bg-emerald-50",
+    blue: "border-indigo-200 text-[#4F6BF5] hover:bg-indigo-50",
     rose: "border-rose-200 text-rose-500 hover:bg-rose-50",
   };
   return (
@@ -462,7 +464,7 @@ function ActionButton({ title, onClick, disabled, tone = "slate", children }: Ac
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-8 w-8 items-center justify-center rounded-lg border transition disabled:opacity-50 ${toneClasses[tone]}`}
+      className={`flex h-8 w-8 items-center justify-center rounded-xl border bg-white shadow-2xs transition-all disabled:opacity-50 ${toneClasses[tone]}`}
     >
       {children}
     </button>
@@ -472,9 +474,9 @@ function ActionButton({ title, onClick, disabled, tone = "slate", children }: Ac
 function PaymentStatusBadge({ bill }: { bill: Bill }) {
   const status = bill.payment_status || "unpaid";
   const styles: Record<string, string> = {
-    paid: "bg-emerald-50 text-emerald-700",
-    partial: "bg-amber-50 text-amber-700",
-    unpaid: "bg-slate-100 text-slate-500",
+    paid: "border border-emerald-150 bg-emerald-50 text-emerald-700",
+    partial: "border border-amber-150 bg-amber-50 text-amber-700",
+    unpaid: "border border-slate-200 bg-slate-100 text-slate-500",
   };
   const labels: Record<string, string> = {
     paid: "Paid in full",
@@ -482,7 +484,7 @@ function PaymentStatusBadge({ bill }: { bill: Bill }) {
     unpaid: "Unpaid",
   };
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${styles[status]}`}>
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles[status]}`}>
       {labels[status]}
     </span>
   );
@@ -490,12 +492,12 @@ function PaymentStatusBadge({ bill }: { bill: Bill }) {
 
 export function OrderStatusBadge({ status }: { status?: string }) {
   const styles: Record<string, string> = {
-    draft: "bg-slate-100 text-slate-500",
-    confirmed: "bg-blue-50 text-blue-600",
-    in_production: "bg-amber-50 text-amber-700",
-    ready_to_ship: "bg-purple-50 text-purple-700",
-    shipped: "bg-teal-50 text-teal-700",
-    closed: "bg-emerald-50 text-emerald-700",
+    draft: "border border-slate-200 bg-slate-100 text-slate-600",
+    confirmed: "border border-indigo-150 bg-indigo-50 text-[#4F6BF5]",
+    in_production: "border border-amber-150 bg-amber-50 text-amber-700",
+    ready_to_ship: "border border-purple-150 bg-purple-50 text-purple-700",
+    shipped: "border border-teal-150 bg-teal-50 text-teal-700",
+    closed: "border border-emerald-150 bg-emerald-50 text-emerald-700",
   };
   const labels: Record<string, string> = {
     draft: "Draft",
@@ -507,7 +509,7 @@ export function OrderStatusBadge({ status }: { status?: string }) {
   };
   const key = status || "draft";
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${styles[key] || styles.draft}`}>
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles[key] || styles.draft}`}>
       {labels[key] || key}
     </span>
   );
@@ -583,11 +585,11 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Edit Bill · {bill.invoice_number}</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 transition hover:text-slate-600">
+          <h3 className="text-base font-bold tracking-tight text-slate-900">Edit Bill · {bill.invoice_number}</h3>
+          <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -605,7 +607,7 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
                   <select
                     value={form.gst_percentage}
                     onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
-                    className="mt-1 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                   >
                     {GST_RATES.map((r) => (
                       <option key={r} value={r}>{r}%</option>
@@ -620,14 +622,14 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
 
         <div className="mt-5">
           <div className="mb-2 flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-slate-700">Products</h4>
-            <button type="button" onClick={addProduct} className="text-xs font-medium text-blue-600 hover:underline">
+            <h4 className="text-sm font-bold text-slate-800">Products</h4>
+            <button type="button" onClick={addProduct} className="text-xs font-semibold text-[#4F6BF5] hover:underline">
               + Add row
             </button>
           </div>
           <div className="space-y-2">
             {form.products.map((product, i) => (
-              <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_32px] gap-2">
+              <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_36px] gap-2">
                 <ModalInput hideLabel value={product.name} onChange={(v) => updateProduct(i, "name", v)} placeholder="Product name" />
                 <ModalInput hideLabel type="number" value={String(product.quantity)} onChange={(v) => updateProduct(i, "quantity", Number(v) || 0)} placeholder="Qty" />
                 <ModalInput hideLabel type="number" value={String(product.rate)} onChange={(v) => updateProduct(i, "rate", Number(v) || 0)} placeholder="Rate" />
@@ -635,7 +637,7 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
                 <button
                   type="button"
                   onClick={() => removeProduct(i)}
-                  className="flex items-center justify-center rounded-lg border border-rose-200 text-rose-400 transition hover:bg-rose-50"
+                  className="flex items-center justify-center rounded-xl border border-rose-150 bg-white text-rose-500 shadow-2xs transition hover:bg-rose-50"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -644,38 +646,38 @@ function EditBillModal({ bill, billType, onClose, onSaved }: EditBillModalProps)
           </div>
         </div>
 
-        <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm">
-          <div className="flex justify-between text-slate-600">
+        <div className="mt-5 rounded-2xl border border-slate-100 bg-[#f4f7fb] p-4 text-sm">
+          <div className="flex justify-between text-slate-600 font-medium">
             <span>Subtotal</span>
-            <span>₹{subtotal.toFixed(2)}</span>
+            <span className="text-slate-900 font-semibold">₹{subtotal.toFixed(2)}</span>
           </div>
           {discount > 0 && (
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-slate-600 font-medium mt-1">
               <span>Discount</span>
-              <span>-₹{discount.toFixed(2)}</span>
+              <span className="text-rose-500 font-semibold">-₹{discount.toFixed(2)}</span>
             </div>
           )}
           {isPakka && (
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-slate-600 font-medium mt-1">
               <span>GST ({form.gst_percentage}%)</span>
-              <span>₹{gstAmount.toFixed(2)}</span>
+              <span className="text-slate-900 font-semibold">₹{gstAmount.toFixed(2)}</span>
             </div>
           )}
-          <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900">
+          <div className="mt-3 flex justify-between border-t border-slate-200 pt-2.5 font-bold text-slate-900">
             <span>Grand Total</span>
-            <span>₹{grandTotal.toFixed(2)}</span>
+            <span className="text-base text-slate-900">₹{grandTotal.toFixed(2)}</span>
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+        <div className="mt-6 flex justify-end gap-2.5">
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50">
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-60"
+            className="rounded-xl bg-[#4F6BF5] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition-all hover:bg-[#435CE6] disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save Changes"}
           </button>
@@ -717,15 +719,15 @@ function ConvertToPakkaModal({ bill, onClose, onConverted }: ConvertToPakkaModal
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Convert to Pakka Bill</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 transition hover:text-slate-600">
+          <h3 className="text-base font-bold tracking-tight text-slate-900">Convert to Pakka Bill</h3>
+          <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mb-4 text-sm text-slate-500">
+        <p className="mb-4 text-xs font-medium text-slate-500">
           Invoice <strong>{bill.invoice_number}</strong> will become a GST-compliant tax invoice with a new
           invoice number. This cannot be undone.
         </p>
@@ -743,7 +745,7 @@ function ConvertToPakkaModal({ bill, onClose, onConverted }: ConvertToPakkaModal
               <select
                 value={gstPercentage}
                 onChange={(e) => setGstPercentage(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
               >
                 {GST_RATES.map((r) => (
                   <option key={r} value={r}>{r}%</option>
@@ -753,15 +755,15 @@ function ConvertToPakkaModal({ bill, onClose, onConverted }: ConvertToPakkaModal
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+        <div className="mt-6 flex justify-end gap-2.5">
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50">
             Cancel
           </button>
           <button
             type="button"
             onClick={handleConvert}
             disabled={converting}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-60"
+            className="rounded-xl bg-[#4F6BF5] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition-all hover:bg-[#435CE6] disabled:opacity-60"
           >
             {converting ? "Converting…" : "Convert to Pakka"}
           </button>
@@ -789,7 +791,7 @@ function ModalInput({ label, hideLabel = false, value, onChange, type = "text", 
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
       />
     </div>
   );
@@ -838,109 +840,76 @@ function RecordPaymentModal({ bill, onClose, onUpdated }: RecordPaymentModalProp
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Record Payment · {bill.invoice_number}</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 transition hover:text-slate-600">
+          <h3 className="text-base font-bold tracking-tight text-slate-900">Record Payment · {bill.invoice_number}</h3>
+          <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mb-4 text-sm text-slate-500">{bill.buyer?.name || "Customer"}</p>
+        <p className="mb-4 text-xs font-medium text-slate-500">{bill.buyer?.name || "Customer"}</p>
 
-        <div className="mb-4 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center text-sm">
+        <div className="mb-4 grid grid-cols-3 gap-2 rounded-2xl border border-slate-100 bg-[#f4f7fb] p-3 text-center text-sm">
           <div>
-            <p className="text-xs text-slate-400">Total</p>
-            <p className="font-semibold text-slate-900">₹{Number(bill.grand_total || 0).toLocaleString("en-IN")}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total</p>
+            <p className="font-bold text-slate-900">₹{Number(bill.grand_total || 0).toLocaleString("en-IN")}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Received</p>
-            <p className="font-semibold text-emerald-600">₹{Number(bill.amount_received || 0).toLocaleString("en-IN")}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Received</p>
+            <p className="font-bold text-emerald-600">₹{Number(bill.amount_received || 0).toLocaleString("en-IN")}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Balance Due</p>
-            <p className="font-semibold text-amber-600">₹{Number(bill.balance_due || 0).toLocaleString("en-IN")}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Balance</p>
+            <p className="font-bold text-amber-600">₹{Number(bill.balance_due || 0).toLocaleString("en-IN")}</p>
           </div>
         </div>
 
-        {bill.over_received && (
-          <p className="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600">
-            More has been recorded as received than the bill total — double check the entries below.
-          </p>
-        )}
-
-        {bill.payment_status === "paid" ? (
-          <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-            This bill is fully paid.{!bill.profit_confirmed && " You can now confirm profit for it from the bill list."}
-          </p>
-        ) : (
-          <form onSubmit={handleAdd} className="mb-4 flex flex-wrap items-end gap-2 rounded-lg bg-blue-50/50 p-3">
-            <div className="w-28">
-              <label className="text-xs font-medium text-slate-600">
-                <span>Amount (₹)</span>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder={`up to ${bill.balance_due || 0}`}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
-            <div className="w-36">
-              <label className="text-xs font-medium text-slate-600">
-                <span>Date</span>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
-            <div className="min-w-[120px] flex-1">
-              <label className="text-xs font-medium text-slate-600">
-                <span>Notes (optional)</span>
-                <input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. cash, UPI"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
-            >
-              {saving ? "Recording…" : "Record"}
-            </button>
-          </form>
-        )}
-
-        <h4 className="mb-2 text-sm font-semibold text-slate-700">Payment History</h4>
-        {payments.length === 0 ? (
-          <p className="text-sm text-slate-400">No payments recorded yet.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {payments.map((payment, index) => (
-              <div key={index} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                <span className="font-medium text-slate-700">₹{Number(payment.amount || 0).toLocaleString("en-IN")}</span>
-                <span className="text-xs text-slate-400">
-                  {payment.date ? String(payment.date).slice(0, 10) : ""}
-                  {payment.notes ? ` · ${payment.notes}` : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-end">
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-            Close
+        <form onSubmit={handleAdd} className="space-y-3">
+          <ModalInput
+            label="Payment Amount (₹) *"
+            type="number"
+            value={amount}
+            onChange={setAmount}
+            placeholder={`Max ₹${Number(bill.balance_due || 0).toFixed(2)}`}
+          />
+          <ModalInput
+            label="Payment Date"
+            type="date"
+            value={date}
+            onChange={setDate}
+          />
+          <ModalInput
+            label="Notes / Reference"
+            value={notes}
+            onChange={setNotes}
+            placeholder="e.g. UPI / Cheque #12345"
+          />
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded-xl bg-[#4F6BF5] py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition-all hover:bg-[#435CE6] disabled:opacity-60"
+          >
+            {saving ? "Recording…" : "Add Payment"}
           </button>
-        </div>
+        </form>
+
+        {payments.length > 0 && (
+          <div className="mt-5 border-t border-slate-150 pt-4">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Previous Payments</h4>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {payments.map((p, i) => (
+                <div key={i} className="flex items-center justify-between rounded-xl border border-slate-100 bg-[#f8fafc] px-3 py-2 text-xs">
+                  <div>
+                    <span className="font-bold text-emerald-600">₹{Number(p.amount || 0).toLocaleString("en-IN")}</span>
+                    {p.notes && <span className="ml-2 font-medium text-slate-500">· {p.notes}</span>}
+                  </div>
+                  <span className="text-slate-400 font-medium">{p.date ? new Date(p.date).toLocaleDateString("en-IN") : "—"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -949,42 +918,39 @@ function RecordPaymentModal({ bill, onClose, onUpdated }: RecordPaymentModalProp
 export interface ProfitConfirmationModalProps {
   bill: Bill;
   onClose: () => void;
-  onConfirmed: (bill: Bill) => void;
+  onConfirmed: (updatedBill: Bill) => void;
 }
 
 export function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitConfirmationModalProps) {
-  const [loading, setLoading] = useState(true);
   const [suggestion, setSuggestion] = useState<ProfitPreviewResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [override, setOverride] = useState("");
   const [useOverride, setUseOverride] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    async function loadPreview() {
-      setLoading(true);
+    async function loadSuggestion() {
       try {
         const { data } = await api.get<ProfitPreviewResponse>(`/bills/${bill.id}/profit-preview/`);
-        if (!cancelled) setSuggestion(data);
-      } catch (err: unknown) {
-        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-        if (!cancelled) toast.error(detail ?? "Failed to compute profit preview");
+        setSuggestion(data);
+      } catch {
+        toast.error("Failed to load profit preview");
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
-    void loadPreview();
-    return () => {
-      cancelled = true;
-    };
+    void loadSuggestion();
   }, [bill.id]);
 
   async function handleConfirm() {
     setConfirming(true);
     try {
-      const payload = useOverride && override !== "" ? { confirmed_amount: Number(override) } : {};
+      const payload: { confirmed_profit?: number } = {};
+      if (useOverride && override !== "") {
+        payload.confirmed_profit = Number(override);
+      }
       const { data } = await api.post<Bill>(`/bills/${bill.id}/confirm-profit/`, payload);
-      toast.success("Profit confirmed for this consignment");
+      toast.success("Profit confirmed");
       onConfirmed(data);
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -995,71 +961,71 @@ export function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitCo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-        <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Confirm Profit · {bill.invoice_number}</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 transition hover:text-slate-600">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-base font-bold tracking-tight text-slate-900">Confirm Profit · {bill.invoice_number}</h3>
+          <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mb-4 text-sm text-slate-500">
+        <p className="mb-4 text-xs font-medium text-slate-500 leading-relaxed">
           This consignment is fully paid. Review the suggested profit below — you can adjust it if something about
           this sale (damage, a special arrangement) isn't reflected in the numbers.
         </p>
 
         {loading ? (
-          <p className="py-6 text-center text-sm text-slate-400">Calculating…</p>
+          <p className="py-6 text-center text-sm font-medium text-slate-400">Calculating…</p>
         ) : suggestion ? (
           <>
-            <div className="space-y-1.5 rounded-xl bg-slate-50 p-4 text-sm">
-              <div className="flex justify-between text-slate-600">
+            <div className="space-y-2 rounded-2xl border border-slate-100 bg-[#f4f7fb] p-4 text-sm">
+              <div className="flex justify-between text-slate-600 font-medium">
                 <span>Revenue collected</span>
-                <span className="font-medium text-slate-900">₹{suggestion.revenue_collected.toLocaleString("en-IN")}</span>
+                <span className="font-bold text-slate-900">₹{suggestion.revenue_collected.toLocaleString("en-IN")}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-slate-600 font-medium">
                 <span>Material cost</span>
-                <span className="font-medium text-slate-900">-₹{suggestion.cost_breakdown.material_cost.toLocaleString("en-IN")}</span>
+                <span className="font-semibold text-slate-800">-₹{suggestion.cost_breakdown.material_cost.toLocaleString("en-IN")}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-slate-600 font-medium">
                 <span>Worker (production) cost</span>
-                <span className="font-medium text-slate-900">-₹{suggestion.cost_breakdown.worker_cost.toLocaleString("en-IN")}</span>
+                <span className="font-semibold text-slate-800">-₹{suggestion.cost_breakdown.worker_cost.toLocaleString("en-IN")}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-slate-600 font-medium">
                 <span>Transportation cost</span>
-                <span className="font-medium text-slate-900">-₹{suggestion.cost_breakdown.transportation_cost.toLocaleString("en-IN")}</span>
+                <span className="font-semibold text-slate-800">-₹{suggestion.cost_breakdown.transportation_cost.toLocaleString("en-IN")}</span>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-slate-600 font-medium">
                 <span>Miscellaneous cost</span>
-                <span className="font-medium text-slate-900">-₹{suggestion.cost_breakdown.misc_cost.toLocaleString("en-IN")}</span>
+                <span className="font-semibold text-slate-800">-₹{suggestion.cost_breakdown.misc_cost.toLocaleString("en-IN")}</span>
               </div>
               {suggestion.payment_fraction < 1 && (
-                <div className="flex justify-between text-xs text-amber-600">
+                <div className="flex justify-between text-xs font-medium text-amber-700 bg-amber-50 rounded-xl p-2 border border-amber-100">
                   <span>Only {Math.round(suggestion.payment_fraction * 100)}% of this bill is paid, so costs above are scaled to match</span>
                   <span>×{suggestion.payment_fraction.toFixed(2)}</span>
                 </div>
               )}
-              <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900">
-                <span>Suggested profit</span>
-                <span>₹{suggestion.suggested_profit.toLocaleString("en-IN")}</span>
+              <div className="mt-3 flex justify-between border-t border-slate-200 pt-2.5 font-bold text-slate-900">
+                <span className="text-slate-800">Suggested profit</span>
+                <span className="text-base text-emerald-600">₹{suggestion.suggested_profit.toLocaleString("en-IN")}</span>
               </div>
             </div>
 
             {suggestion.lines && suggestion.lines.length > 0 && (
-              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
-                <p className="font-semibold text-slate-700 mb-2">Material Cost Breakdown</p>
+              <div className="mt-3 rounded-2xl border border-slate-150 bg-white p-3.5 text-xs shadow-2xs">
+                <p className="font-bold text-slate-800 mb-2">Material Cost Breakdown</p>
                 <div className="space-y-1.5 max-h-36 overflow-y-auto">
                   {suggestion.lines.map((l, idx) => {
                     const lineName = l.name || l.item_name || "Item";
                     return (
                       <div key={idx} className="flex items-center justify-between text-slate-600">
-                        <span className="truncate max-w-[240px]">{lineName}</span>
+                        <span className="truncate max-w-[240px] font-medium">{lineName}</span>
                         {l.cost_known ? (
-                          <span className="font-medium text-slate-900">
+                          <span className="font-bold text-slate-900">
                             ₹{Number(l.line_cost ?? 0).toLocaleString("en-IN")}
                           </span>
                         ) : (
-                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
                             Cost unknown
                           </span>
                         )}
@@ -1071,15 +1037,20 @@ export function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitCo
             )}
 
             {suggestion.lines.some((l) => !l.cost_known) && (
-              <p className="mt-3 text-xs text-amber-600">
+              <p className="mt-3 text-xs font-medium text-amber-600 leading-relaxed">
                 Some items on this bill aren't linked to inventory, so their material cost isn't known — they're
                 counted as full profit. Link them to inventory next time for a more accurate figure.
               </p>
             )}
 
             <div className="mt-4">
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" checked={useOverride} onChange={(e) => setUseOverride(e.target.checked)} />
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useOverride}
+                  onChange={(e) => setUseOverride(e.target.checked)}
+                  className="rounded text-[#4F6BF5] focus:ring-[#4F6BF5]"
+                />
                 Enter a different profit amount instead
               </label>
               {useOverride && (
@@ -1088,24 +1059,28 @@ export function ProfitConfirmationModal({ bill, onClose, onConfirmed }: ProfitCo
                   value={override}
                   onChange={(e) => setOverride(e.target.value)}
                   placeholder={`e.g. ${suggestion.suggested_profit}`}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                 />
               )}
             </div>
           </>
         ) : (
-          <p className="py-6 text-center text-sm text-rose-500">Could not load profit preview.</p>
+          <p className="py-6 text-center text-sm font-medium text-rose-500">Could not load profit preview.</p>
         )}
 
-        <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+        <div className="mt-6 flex justify-end gap-2.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50"
+          >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={confirming || loading || !suggestion}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-60"
+            className="rounded-xl bg-[#4F6BF5] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition-all hover:bg-[#435CE6] disabled:opacity-60"
           >
             {confirming ? "Confirming…" : "Confirm Profit"}
           </button>

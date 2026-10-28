@@ -59,43 +59,45 @@ export default function SemiFinishedInventoryPage() {
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-slate-400" />
-          <h2 className="text-base font-semibold text-slate-900">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-[#4F6BF5]">
+            <Package className="h-4 w-4" />
+          </div>
+          <h2 className="text-base font-bold tracking-tight text-slate-900">
             In Production (derived from open worker assignments, read only)
           </h2>
-          <span className="ml-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">
+          <span className="ml-1 rounded-full border border-indigo-150 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-[#4F6BF5]">
             {inProduction.length}
           </span>
         </div>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-xs font-medium text-slate-400">
           Live from open worker assignments — this updates automatically as work is assigned and completed, it isn't
           something you edit here directly.
         </p>
 
         {loading ? (
-          <p className="mt-4 text-sm text-slate-400">Loading…</p>
+          <p className="mt-6 text-sm font-medium text-slate-400 text-center py-8">Loading…</p>
         ) : inProduction.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-400">Nothing currently in production.</p>
+          <p className="mt-6 text-sm font-medium text-slate-400 text-center py-8">Nothing currently in production.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-6 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-100 bg-slate-50/70 text-xs font-medium uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Worker</th>
-                  <th className="px-4 py-3">Order</th>
-                  <th className="px-4 py-3">Product</th>
-                  <th className="px-4 py-3">Unit</th>
-                  <th className="px-4 py-3">Raw Material</th>
-                  <th className="px-4 py-3 text-right">Raw Issued</th>
-                  <th className="px-4 py-3 text-right">Raw Returned</th>
-                  <th className="px-4 py-3 text-right">Raw With Worker</th>
-                  <th className="px-4 py-3 text-right">Target Output</th>
-                  <th className="px-4 py-3 text-right">Produced</th>
-                  <th className="px-4 py-3 text-right">Remaining Output</th>
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-3.5">Worker</th>
+                  <th className="px-4 py-3.5">Order</th>
+                  <th className="px-4 py-3.5">Product</th>
+                  <th className="px-4 py-3.5">Unit</th>
+                  <th className="px-4 py-3.5">Raw Material</th>
+                  <th className="px-4 py-3.5 text-right">Raw Issued</th>
+                  <th className="px-4 py-3.5 text-right">Raw Returned</th>
+                  <th className="px-4 py-3.5 text-right">Raw With Worker</th>
+                  <th className="px-4 py-3.5 text-right">Target Output</th>
+                  <th className="px-4 py-3.5 text-right">Produced</th>
+                  <th className="px-4 py-3.5 text-right">Remaining Output</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100/70">
                 {inProduction.map((row) => {
                   const billId = row.bill_id || row.order?.bill_id;
                   const invoiceNumber = row.invoice_number || row.order?.invoice_number || "";
@@ -112,43 +114,43 @@ export default function SemiFinishedInventoryPage() {
                   const workerName = row.worker_name || row.location_label || "Unassigned";
 
                   return (
-                    <tr key={row.assignment_id || row.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3 font-medium text-slate-900">{workerName}</td>
-                      <td className="px-4 py-3">
+                    <tr key={row.assignment_id || row.id} className="transition-colors hover:bg-slate-50/70">
+                      <td className="px-4 py-3.5 font-bold text-slate-900">{workerName}</td>
+                      <td className="px-4 py-3.5">
                         {billId && invoiceNumber ? (
                           <button
                             type="button"
                             onClick={() => navigate(`/bills/order/${billId}`)}
-                            className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50/60 px-2.5 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-100/60"
+                            className="inline-flex items-center rounded-full border border-indigo-150 bg-indigo-50/80 px-3 py-1 text-xs font-semibold text-[#4F6BF5] transition hover:bg-indigo-100/80"
                           >
                             Order {invoiceNumber}
                           </button>
                         ) : invoiceNumber ? (
-                          <span className="text-slate-600">{invoiceNumber}</span>
+                          <span className="text-slate-600 font-medium">{invoiceNumber}</span>
                         ) : (
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-900">{productName}</td>
-                      <td className="px-4 py-3 text-slate-600">{unit}</td>
-                      <td className="px-4 py-3 text-slate-700">{rawItemName}</td>
-                      <td className="px-4 py-3 text-right text-slate-700">
+                      <td className="px-4 py-3.5 font-semibold text-slate-900">{productName}</td>
+                      <td className="px-4 py-3.5 text-slate-500 font-medium">{unit}</td>
+                      <td className="px-4 py-3.5 text-slate-700 font-medium">{rawItemName}</td>
+                      <td className="px-4 py-3.5 text-right font-medium text-slate-700">
                         {rawIssued} <span className="text-xs text-slate-400">{rawUnit}</span>
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-700">
+                      <td className="px-4 py-3.5 text-right font-medium text-slate-700">
                         {rawReturned} <span className="text-xs text-slate-400">{rawUnit}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-amber-600">
-                        {rawWithWorker} <span className="text-xs text-slate-400">{rawUnit}</span>
+                      <td className="px-4 py-3.5 text-right font-bold text-amber-600">
+                        {rawWithWorker} <span className="text-xs text-amber-500 font-medium">{rawUnit}</span>
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-700">
+                      <td className="px-4 py-3.5 text-right font-medium text-slate-700">
                         {target} <span className="text-xs text-slate-400">{unit}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-emerald-600">
-                        {produced} <span className="text-xs text-slate-400">{unit}</span>
+                      <td className="px-4 py-3.5 text-right font-bold text-emerald-600">
+                        {produced} <span className="text-xs text-emerald-500 font-medium">{unit}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-blue-600">
-                        {remaining} <span className="text-xs text-slate-400">{unit}</span>
+                      <td className="px-4 py-3.5 text-right font-bold text-[#4F6BF5]">
+                        {remaining} <span className="text-xs text-indigo-400 font-medium">{unit}</span>
                       </td>
                     </tr>
                   );

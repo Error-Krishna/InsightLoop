@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
+import { Activity, IndianRupee, ReceiptText, Users } from "lucide-react";
 import { buildWsUrl } from "../../lib/ws";
 import Card from "../../components/Card";
 import MetricCard from "../../components/MetricCard";
@@ -73,7 +74,9 @@ const EMPTY_DATA: DashboardState = {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex h-48 items-center justify-center text-sm text-slate-400">{message}</div>
+    <div className="flex h-48 items-center justify-center text-sm font-medium text-slate-400">
+      {message}
+    </div>
   );
 }
 
@@ -81,14 +84,27 @@ function StatusBadge({ status }: { status: string }) {
   const isPaid = status === "Paid";
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-        isPaid ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+      className={`inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold ${
+        isPaid
+          ? "border border-emerald-150 bg-emerald-50 text-emerald-600"
+          : "border border-amber-150 bg-amber-50 text-amber-600"
       }`}
     >
       {status}
     </span>
   );
 }
+
+const customTooltipStyle = {
+  backgroundColor: "#ffffff",
+  borderRadius: "14px",
+  border: "1px solid #e2e8f0",
+  boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.08)",
+  padding: "8px 12px",
+  fontSize: "12px",
+  fontWeight: "500",
+  color: "#0f172a",
+};
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardState>(EMPTY_DATA);
@@ -192,27 +208,32 @@ export default function DashboardPage() {
           value={`₹${Number(data.summary?.total_revenue || 0).toLocaleString("en-IN")}`}
           trend={data.summary?.revenue_change}
           data={profitSeries}
+          color="#4F6BF5"
+          icon={<IndianRupee className="h-4 w-4 text-[#4F6BF5]" />}
         />
         <MetricCard
           title="Total Profit"
           value={`₹${Number(data.summary?.total_profit || 0).toLocaleString("en-IN")}`}
           trend={data.summary?.profit_change}
           data={profitSeries}
-          color="#14b8a6"
+          color="#10B981"
+          icon={<Activity className="h-4 w-4 text-emerald-500" />}
         />
         <MetricCard
           title="Active Workers"
           value={Number(data.summary?.active_workers || 0).toLocaleString()}
           trend={data.summary?.workers_change}
           data={data.workers.map((w, i) => ({ value: w.amount || i + 1 }))}
-          color="#8b5cf6"
+          color="#8B5CF6"
+          icon={<Users className="h-4 w-4 text-purple-500" />}
         />
         <MetricCard
           title="Bills This Month"
           value={Number(data.billsCount || 0).toLocaleString()}
           trend={12.4}
           data={revenueSeries.map((r) => ({ value: r.revenue || 0 }))}
-          color="#f59e0b"
+          color="#F59E0B"
+          icon={<ReceiptText className="h-4 w-4 text-amber-500" />}
         />
       </div>
 
@@ -220,20 +241,59 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Revenue vs Expenses */}
         <Card className="p-6">
-          <h2 className="mb-1 text-base font-semibold text-slate-900">Revenue vs Expenses</h2>
-          <p className="mb-6 text-xs text-slate-400">Monthly comparison over last 6 months</p>
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">Revenue vs Expenses</h2>
+              <p className="text-xs font-medium text-slate-400">Monthly comparison over last 6 months</p>
+            </div>
+            <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#4F6BF5]" /> Revenue
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#FB923C]" /> Expenses
+              </span>
+            </div>
+          </div>
           {revenueSeries.length === 0 ? (
             <EmptyState message="No revenue data yet. Upload sales data to see charts." />
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={revenueSeries}>
-                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, ""]} />
-                  <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f97316" strokeWidth={2.5} dot={false} />
+                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    contentStyle={customTooltipStyle}
+                    formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, ""]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    name="Revenue"
+                    stroke="#4F6BF5"
+                    strokeWidth={2.5}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="expenses"
+                    name="Expenses"
+                    stroke="#FB923C"
+                    strokeWidth={2.5}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -242,8 +302,15 @@ export default function DashboardPage() {
 
         {/* Profit Trends */}
         <Card className="p-6">
-          <h2 className="mb-1 text-base font-semibold text-slate-900">Profit Trends</h2>
-          <p className="mb-6 text-xs text-slate-400">Net profit over time</p>
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">Profit Trends</h2>
+              <p className="text-xs font-medium text-slate-400">Net profit over time</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Net Profit
+            </div>
+          </div>
           {profitSeries.length === 0 ? (
             <EmptyState message="No profit data available yet." />
           ) : (
@@ -252,15 +319,34 @@ export default function DashboardPage() {
                 <AreaChart data={profitSeries}>
                   <defs>
                     <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, "Profit"]} />
-                  <Area type="monotone" dataKey="value" stroke="#14b8a6" fill="url(#profitGrad)" strokeWidth={2.5} />
+                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    contentStyle={customTooltipStyle}
+                    formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, "Profit"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#10B981"
+                    fill="url(#profitGrad)"
+                    strokeWidth={2.5}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -270,32 +356,38 @@ export default function DashboardPage() {
         {/* Worker Payments Table */}
         <Card className="overflow-hidden">
           <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Worker Payments</h2>
-            <p className="text-xs text-slate-400">Recent payment records</p>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Worker Payments</h2>
+            <p className="text-xs font-medium text-slate-400">Recent payment records</p>
           </div>
           {data.workers.length === 0 ? (
             <EmptyState message="No worker payment records found." />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50">
-                  <tr>
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/70">
                     {["Worker", "Month", "Amount", "Status"].map((col) => (
-                      <th key={col} className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      <th
+                        key={col}
+                        className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400"
+                      >
                         {col}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100/80">
                   {data.workers.map((worker, i) => (
-                    <tr key={`${worker.name}-${i}`} className="transition hover:bg-slate-50">
-                      <td className="px-6 py-3.5 font-medium text-slate-900">{worker.name}</td>
-                      <td className="px-6 py-3.5 text-slate-500">{worker.month}</td>
-                      <td className="px-6 py-3.5 font-medium text-slate-900">
+                    <tr
+                      key={`${worker.name}-${i}`}
+                      className="transition-colors hover:bg-slate-50/70"
+                    >
+                      <td className="px-6 py-4 font-semibold text-slate-900">{worker.name}</td>
+                      <td className="px-6 py-4 text-slate-500 font-medium">{worker.month}</td>
+                      <td className="px-6 py-4 font-semibold text-slate-900">
                         ₹{Number(worker.amount || 0).toLocaleString("en-IN")}
                       </td>
-                      <td className="px-6 py-3.5">
+                      <td className="px-6 py-4">
                         <StatusBadge status={worker.status} />
                       </td>
                     </tr>
@@ -308,8 +400,10 @@ export default function DashboardPage() {
 
         {/* Top Workers Bar Chart */}
         <Card className="p-6">
-          <h2 className="mb-1 text-base font-semibold text-slate-900">Top Workers by Payout</h2>
-          <p className="mb-6 text-xs text-slate-400">Highest-paid workers overall</p>
+          <div className="mb-6">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Top Workers by Payout</h2>
+            <p className="text-xs font-medium text-slate-400">Highest-paid workers overall</p>
+          </div>
           {data.topWorkers.length === 0 ? (
             <EmptyState message="No worker payout data available." />
           ) : (
@@ -319,14 +413,29 @@ export default function DashboardPage() {
                   <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" horizontal={false} />
                   <XAxis
                     type="number"
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
                   />
-                  <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <Tooltip formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, "Payout"]} />
-                  <Bar dataKey="total_payout" fill="#2563eb" radius={[0, 6, 6, 0]} maxBarSize={28} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={110}
+                    tick={{ fontSize: 11, fill: "#475569" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={customTooltipStyle}
+                    formatter={(v: unknown) => [`₹${Number(v).toLocaleString("en-IN")}`, "Payout"]}
+                  />
+                  <Bar
+                    dataKey="total_payout"
+                    fill="#4F6BF5"
+                    radius={[0, 8, 8, 0]}
+                    maxBarSize={24}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

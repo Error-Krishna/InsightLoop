@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, FileText, CheckCircle } from "lucide-react";
+import { Plus, Trash2, FileText, CheckCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import Card from "../../components/Card";
 import api from "../../lib/api";
@@ -153,15 +153,19 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         {/* Builder */}
         <Card className="p-6">
-          <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-blue-800">
-            <strong>Make-to-order workflow:</strong> Creating this bill confirms the order. Inventory will not move until raw materials are assigned to workers.
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-xs font-medium text-indigo-950">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#4F6BF5]" />
+            <div>
+              <strong className="font-semibold text-indigo-900">Make-to-order workflow:</strong> Creating this bill confirms the order. Inventory will not move until raw materials are assigned to workers.
+            </div>
           </div>
+
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
                 {isPakka ? "Pakka" : "Kacha"} Bill
               </h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-xs font-medium text-slate-400">
                 {isPakka ? "GST-compliant invoice" : "Informal invoice"}
               </p>
             </div>
@@ -169,7 +173,7 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
               type="button"
               onClick={saveBill}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#4F6BF5] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition-all hover:bg-[#435CE6] disabled:opacity-60"
             >
               <CheckCircle className="h-4 w-4" />
               {saving ? "Saving…" : "Save Bill"}
@@ -210,7 +214,7 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
                     <select
                       value={form.gst_percentage}
                       onChange={(e) => setForm((c) => ({ ...c, gst_percentage: Number(e.target.value) }))}
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                     >
                       {GST_RATES.map((r) => (
                         <option key={r} value={r}>{r}%</option>
@@ -232,19 +236,19 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
           {/* Products */}
           <div className="mt-8">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">Products</h3>
+              <h3 className="text-sm font-bold text-slate-800">Products</h3>
               <button
                 type="button"
                 onClick={addProduct}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5 text-[#4F6BF5]" />
                 Add Row
               </button>
             </div>
 
             {/* Header */}
-            <div className="mb-2 hidden grid-cols-[2fr_1fr_1fr_80px_36px] gap-2 px-1 text-xs font-medium uppercase tracking-wide text-slate-400 lg:grid">
+            <div className="mb-2 hidden grid-cols-[2fr_1fr_1fr_80px_36px] gap-2 px-1 text-xs font-semibold uppercase tracking-wider text-slate-400 lg:grid">
               <span>Product</span>
               <span>Qty</span>
               <span>Rate (₹)</span>
@@ -252,9 +256,9 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
               <span />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {form.products.map((product, i) => (
-                <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <div key={i} className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-3 transition-colors hover:border-slate-200">
                   <div className="grid gap-2 lg:grid-cols-[2fr_1fr_1fr_80px_36px]">
                     <ProductNameField
                       value={product.name}
@@ -288,7 +292,7 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
                     <button
                       type="button"
                       onClick={() => removeProduct(i)}
-                      className="flex items-center justify-center rounded-lg border border-rose-200 p-2 text-rose-400 transition hover:bg-rose-50 lg:mt-0"
+                      className="flex items-center justify-center rounded-xl border border-rose-150 bg-white p-2 text-rose-500 shadow-2xs transition hover:bg-rose-50 lg:mt-0"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -303,31 +307,33 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
         <div className="space-y-6">
           <Card className="p-6">
             <div className="mb-4 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-slate-400" />
-              <h2 className="text-base font-semibold text-slate-900">Live Preview</h2>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-[#4F6BF5]">
+                <FileText className="h-4 w-4" />
+              </div>
+              <h2 className="text-base font-bold tracking-tight text-slate-900">Live Preview</h2>
             </div>
 
             <div className="space-y-4 text-sm">
               {/* Buyer block */}
-              <div className="rounded-xl bg-slate-50 p-4">
+              <div className="rounded-2xl border border-slate-100 bg-[#f4f7fb] p-4">
                 <p className="font-semibold text-slate-900">{form.buyer_name || "Buyer name"}</p>
-                <p className="mt-0.5 text-xs text-slate-500">{form.buyer_address || "Address will appear here"}</p>
+                <p className="mt-0.5 text-xs text-slate-500 font-medium">{form.buyer_address || "Address will appear here"}</p>
                 {isPakka && form.gst_number && (
-                  <p className="mt-1 text-xs text-slate-500">GST: {form.gst_number}</p>
+                  <p className="mt-1 text-xs font-semibold text-indigo-600">GST: {form.gst_number}</p>
                 )}
               </div>
 
               {/* Line items */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {form.products.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-lg border border-slate-100 px-4 py-2.5">
+                  <div key={i} className="flex items-center justify-between rounded-xl border border-slate-100/90 bg-white px-4 py-2.5 shadow-2xs">
                     <div>
-                      <p className="font-medium text-slate-900">{p.name || `Item ${i + 1}`}</p>
+                      <p className="font-semibold text-slate-900">{p.name || `Item ${i + 1}`}</p>
                       <p className="text-xs text-slate-400">
                         {p.quantity} {p.unit} × ₹{p.rate}
                       </p>
                     </div>
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-bold text-slate-900">
                       ₹{(Number(p.quantity || 0) * Number(p.rate || 0)).toFixed(2)}
                     </p>
                   </div>
@@ -335,13 +341,13 @@ export default function BillBuilder({ billType }: BillBuilderProps) {
               </div>
 
               {/* Totals */}
-              <div className="space-y-1.5 rounded-xl bg-slate-900 p-4 text-white">
+              <div className="space-y-2 rounded-2xl bg-slate-900 p-5 text-white shadow-md">
                 <SummaryRow label="Subtotal" value={subtotal} />
                 {discount > 0 && <SummaryRow label="Discount" value={discount} />}
                 {isPakka && <SummaryRow label={`GST (${form.gst_percentage}%)`} value={gstAmount} />}
-                <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2.5 font-semibold">
-                  <span>Grand Total</span>
-                  <span className="text-lg">₹{grandTotal.toFixed(2)}</span>
+                <div className="mt-2.5 flex items-center justify-between border-t border-white/10 pt-3 font-bold">
+                  <span className="text-slate-200">Grand Total</span>
+                  <span className="text-xl text-white">₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -372,7 +378,7 @@ function FieldInput({ label, hideLabel = false, value, onChange, type = "text", 
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
       />
     </div>
   );
@@ -407,10 +413,10 @@ function ProductNameField({ value, inventoryItems, onChange, onSelectItem }: Pro
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
       />
       {showDropdown && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
           {suggestions.map((item) => (
             <button
               key={item.id}
@@ -418,8 +424,8 @@ function ProductNameField({ value, inventoryItems, onChange, onSelectItem }: Pro
               onMouseDown={() => onSelectItem(item)}
               className="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm transition hover:bg-slate-50"
             >
-              <span className="font-medium text-slate-800">{item.name}</span>
-              <span className="text-xs text-slate-400">
+              <span className="font-semibold text-slate-800">{item.name}</span>
+              <span className="text-xs text-slate-400 font-medium">
                 {item.quantity} {item.unit} · ₹{item.selling_price}
               </span>
             </button>
@@ -434,7 +440,7 @@ function SummaryRow({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center justify-between text-sm text-slate-300">
       <span>{label}</span>
-      <span>₹{Number(value || 0).toFixed(2)}</span>
+      <span className="font-medium text-white">₹{Number(value || 0).toFixed(2)}</span>
     </div>
   );
 }

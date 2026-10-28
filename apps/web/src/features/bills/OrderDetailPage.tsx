@@ -81,10 +81,10 @@ export default function OrderDetailPage() {
   }, [id]);
 
   if (loading) {
-    return <div className="p-8 text-center text-sm text-slate-400">Loading order…</div>;
+    return <div className="p-8 text-center text-sm font-medium text-slate-400">Loading order…</div>;
   }
   if (!bill) {
-    return <div className="p-8 text-center text-sm text-rose-500">Order not found.</div>;
+    return <div className="p-8 text-center text-sm font-medium text-rose-500">Order not found.</div>;
   }
 
   return (
@@ -92,7 +92,7 @@ export default function OrderDetailPage() {
       <button
         type="button"
         onClick={() => navigate(`/bills/${bill.bill_type}`)}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-[#4F6BF5]"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to {bill.bill_type === "pakka" ? "Pakka" : "Kacha"} Bills
@@ -177,14 +177,14 @@ function OrderHeader({ bill }: { bill: Bill }) {
     <Card className="p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-slate-900">{bill.invoice_number}</h1>
-            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">{bill.invoice_number}</h1>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-slate-600">
               {bill.bill_type}
             </span>
             <OrderStatusBadge status={bill.order_status} />
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm font-medium text-slate-500">
             {bill.buyer?.name || "—"} {bill.buyer?.phone && `· ${bill.buyer.phone}`}
           </p>
         </div>
@@ -193,7 +193,7 @@ function OrderHeader({ bill }: { bill: Bill }) {
             type="button"
             onClick={downloadPdf}
             disabled={downloading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" />
             PDF
@@ -202,7 +202,7 @@ function OrderHeader({ bill }: { bill: Bill }) {
             type="button"
             onClick={shareWhatsapp}
             disabled={sharing}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700 shadow-2xs transition hover:bg-emerald-100/60 disabled:opacity-50"
           >
             <MessageCircle className="h-3.5 w-3.5" />
             WhatsApp
@@ -210,7 +210,7 @@ function OrderHeader({ bill }: { bill: Bill }) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MiniStat label="Grand Total" value={`₹${Number(bill.grand_total || 0).toLocaleString("en-IN")}`} />
         <MiniStat label="Received" value={`₹${Number(bill.amount_received || 0).toLocaleString("en-IN")}`} tone="emerald" />
         <MiniStat label="Balance Due" value={`₹${Number(bill.balance_due || 0).toLocaleString("en-IN")}`} tone="amber" />
@@ -231,9 +231,9 @@ function MiniStat({ label, value, tone = "slate" }: { label: string; value: stri
     amber: "text-amber-600",
   };
   return (
-    <div className="rounded-xl bg-slate-50 p-3">
-      <p className="text-xs text-slate-400">{label}</p>
-      <p className={`mt-1 text-base font-semibold ${toneClasses[tone]}`}>{value}</p>
+    <div className="rounded-2xl border border-slate-100 bg-[#f4f7fb] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className={`mt-1.5 text-lg font-bold tracking-tight ${toneClasses[tone]}`}>{value}</p>
     </div>
   );
 }
@@ -292,18 +292,20 @@ function ProductionSection({ bill, assignments, workers, rawItems, onChanged }: 
   return (
     <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-slate-400" />
-          <h2 className="text-base font-semibold text-slate-900">Production</h2>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-[#4F6BF5]">
+            <Users className="h-4 w-4" />
+          </div>
+          <h2 className="text-base font-bold tracking-tight text-slate-900">Production</h2>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-sm text-slate-500">
-            Worker cost: <span className="font-semibold text-slate-900">₹{Number(bill.worker_cost_total || 0).toLocaleString("en-IN")}</span>
+          <p className="text-sm font-medium text-slate-500">
+            Worker cost: <span className="font-bold text-slate-900">₹{Number(bill.worker_cost_total || 0).toLocaleString("en-IN")}</span>
           </p>
           <button
             type="button"
             onClick={() => setShowAssignModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#4F6BF5] px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-[#4F6BF5]/20 transition hover:bg-[#435CE6]"
           >
             <Plus className="h-3.5 w-3.5" />
             Assign to Worker
@@ -314,38 +316,38 @@ function ProductionSection({ bill, assignments, workers, rawItems, onChanged }: 
       {/* Production Table */}
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-100 bg-slate-50/70 text-xs font-medium uppercase tracking-wider text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Ordered</th>
-              <th className="px-4 py-3">Targeted</th>
-              <th className="px-4 py-3">Produced</th>
-              <th className="px-4 py-3">Shipped</th>
-              <th className="px-4 py-3">Ready to Ship</th>
-              <th className="px-4 py-3">Progress</th>
+          <thead>
+            <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <th className="px-4 py-3.5">Product</th>
+              <th className="px-4 py-3.5">Ordered</th>
+              <th className="px-4 py-3.5">Targeted</th>
+              <th className="px-4 py-3.5">Produced</th>
+              <th className="px-4 py-3.5">Shipped</th>
+              <th className="px-4 py-3.5">Ready to Ship</th>
+              <th className="px-4 py-3.5">Progress</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100/70">
             {lines.map((line, idx) => {
               const producedPct = line.ordered > 0 ? Math.min(100, Math.round((line.produced / line.ordered) * 100)) : 0;
               const shippedPct = line.ordered > 0 ? Math.min(100, Math.round((line.shipped / line.ordered) * 100)) : 0;
               return (
-                <tr key={idx} className="hover:bg-slate-50/50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{line.product_name}</td>
-                  <td className="px-4 py-3 text-slate-700">{line.ordered} {line.unit || "pcs"}</td>
-                  <td className="px-4 py-3 text-slate-700">{line.targeted} {line.unit || "pcs"}</td>
-                  <td className="px-4 py-3 font-semibold text-emerald-600">{line.produced} {line.unit || "pcs"}</td>
-                  <td className="px-4 py-3 text-slate-700">{line.shipped} {line.unit || "pcs"}</td>
-                  <td className="px-4 py-3 font-semibold text-blue-600">{line.ready_to_ship} {line.unit || "pcs"}</td>
-                  <td className="px-4 py-3">
+                <tr key={idx} className="transition-colors hover:bg-slate-50/70">
+                  <td className="px-4 py-3.5 font-semibold text-slate-900">{line.product_name}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{line.ordered} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{line.targeted} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3.5 font-bold text-emerald-600">{line.produced} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3.5 text-slate-700 font-medium">{line.shipped} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3.5 font-bold text-[#4F6BF5]">{line.ready_to_ship} {line.unit || "pcs"}</td>
+                  <td className="px-4 py-3.5">
                     <div className="w-36">
-                      <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                      <div className="flex justify-between text-[10px] font-semibold text-slate-400 mb-1">
                         <span>P: {producedPct}%</span>
                         <span>S: {shippedPct}%</span>
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                         <div
-                          className="h-full bg-emerald-500 transition-all duration-300"
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                           style={{ width: `${producedPct}%` }}
                         />
                       </div>
@@ -360,14 +362,14 @@ function ProductionSection({ bill, assignments, workers, rawItems, onChanged }: 
 
       {/* Assignments Subsection */}
       <div className="mt-8">
-        <h3 className="text-sm font-semibold text-slate-800">Worker Material Assignments</h3>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <h3 className="text-sm font-bold text-slate-800">Worker Material Assignments</h3>
+        <p className="mt-0.5 text-xs font-medium text-slate-400">
           Raw materials issued, returned products chunks, and job status.
         </p>
 
         <div className="mt-4 space-y-3">
           {assignments.length === 0 && (
-            <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-400">
+            <p className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm font-medium text-slate-400">
               No worker assignments yet for this order. Click "Assign to Worker" above to start production.
             </p>
           )}
@@ -430,26 +432,26 @@ function AssignmentRow({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-white p-4">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-slate-300">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-900">{assignment.worker_name || "Worker"}</span>
-            <span className="text-slate-400">·</span>
-            <span className="font-medium text-slate-700">{assignment.material_name}</span>
+            <span className="font-bold text-slate-900">{assignment.worker_name || "Worker"}</span>
+            <span className="text-slate-300">·</span>
+            <span className="font-semibold text-slate-700">{assignment.material_name}</span>
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                 isCompleted
-                  ? "bg-emerald-50 text-emerald-700"
+                  ? "border border-emerald-150 bg-emerald-50 text-emerald-700"
                   : isCancelled
-                  ? "bg-slate-100 text-slate-500"
-                  : "bg-blue-50 text-blue-600"
+                  ? "border border-slate-200 bg-slate-100 text-slate-500"
+                  : "border border-indigo-150 bg-indigo-50 text-[#4F6BF5]"
               }`}
             >
               {isCompleted ? "Completed" : isCancelled ? "Cancelled" : "Open"}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs font-medium text-slate-400">
             {assignment.raw_item_name ? `Raw: ${assignment.raw_item_name} · ` : ""}
             Raw Issued: {assignment.raw_issued_quantity ?? assignment.quantity} · Raw Returned: {assignment.raw_returned_quantity ?? 0}
             {assignment.wastage_quantity !== undefined && ` · Wastage: ${assignment.wastage_quantity}`}
@@ -458,17 +460,17 @@ function AssignmentRow({
 
         <div className="flex items-center gap-4 text-right">
           <div>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-bold text-slate-900">
               Produced {producedQty} / {assignment.quantity} {assignment.unit || "units"}
             </p>
             {assignment.wage_amount !== undefined && (
-              <p className="text-xs text-slate-500">Wage: ₹{Number(assignment.wage_amount || 0).toLocaleString("en-IN")}</p>
+              <p className="text-xs font-medium text-slate-400">Wage: ₹{Number(assignment.wage_amount || 0).toLocaleString("en-IN")}</p>
             )}
           </div>
           <button
             type="button"
             onClick={() => setExpanded((c) => !c)}
-            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50"
           >
             {expanded ? "Hide" : "Details"}
           </button>
@@ -479,11 +481,11 @@ function AssignmentRow({
         <div className="mt-4 space-y-3 border-t border-slate-100 pt-3">
           {batches.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-slate-600">Finished Output Chunks Handed In:</p>
+              <p className="text-xs font-bold text-slate-700">Finished Output Chunks Handed In:</p>
               {batches.map((b, i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-1.5 text-xs">
-                  <span className="font-medium text-slate-700">Chunk {i + 1}: {b.quantity} finished items</span>
-                  <span className="text-slate-400">
+                <div key={i} className="flex items-center justify-between rounded-xl bg-[#f4f7fb] px-3.5 py-2 text-xs">
+                  <span className="font-semibold text-slate-700">Chunk {i + 1}: {b.quantity} finished items</span>
+                  <span className="text-slate-400 font-medium">
                     {b.date ? String(b.date).slice(0, 10) : ""}
                     {b.notes ? ` · ${b.notes}` : ""}
                   </span>
@@ -500,7 +502,7 @@ function AssignmentRow({
                 <button
                   type="button"
                   onClick={() => setShowIssueRaw((c) => !c)}
-                  className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                  className="rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-xs font-semibold text-[#4F6BF5] transition hover:bg-indigo-100/60"
                 >
                   {showIssueRaw ? "Cancel Issue" : "+ Issue More Raw"}
                 </button>
@@ -509,7 +511,7 @@ function AssignmentRow({
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                    className="rounded-xl border border-rose-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
                     Cancel Assignment
                   </button>
@@ -531,22 +533,22 @@ function AssignmentRow({
                   <button
                     type="button"
                     onClick={() => setConfirmingComplete(true)}
-                    className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100/60"
                   >
                     Mark Job Complete
                   </button>
                 ) : (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs">
-                    <p className="text-emerald-900">
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs">
+                    <p className="font-medium text-emerald-950">
                       Produced {producedQty} of {assignment.quantity} target units. Enter any unused raw material returned to restore to stock:
                     </p>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-2.5 flex items-center gap-2">
                       <input
                         type="number"
                         value={returnedRawInput}
                         onChange={(e) => setReturnedRawInput(e.target.value)}
                         placeholder="Raw returned"
-                        className="w-28 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs"
+                        className="w-32 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
                       />
                       <button
                         type="button"
@@ -563,14 +565,14 @@ function AssignmentRow({
                             toast.error(detail ?? "Failed to complete assignment");
                           }
                         }}
-                        className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
+                        className="rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-500"
                       >
                         Confirm
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmingComplete(false)}
-                        className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                       >
                         Cancel
                       </button>
@@ -619,45 +621,45 @@ function AddBatchChunkForm({ assignmentId, onAdded }: { assignmentId: string; on
   }
 
   return (
-    <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-2 rounded-lg bg-emerald-50/50 p-2.5">
-      <div className="w-28">
-        <label className="text-[11px] font-medium text-slate-600">
+    <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3.5">
+      <div className="w-32">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Batch Output</span>
           <input
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="e.g. 10"
-            className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
           />
         </label>
       </div>
-      <div className="w-32">
-        <label className="text-[11px] font-medium text-slate-600">
+      <div className="w-36">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Date</span>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
           />
         </label>
       </div>
-      <div className="min-w-[120px] flex-1">
-        <label className="text-[11px] font-medium text-slate-600">
+      <div className="min-w-[140px] flex-1">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Notes</span>
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"
-            className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
           />
         </label>
       </div>
       <button
         type="submit"
         disabled={saving}
-        className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+        className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-500 disabled:opacity-50"
       >
         {saving ? "Saving…" : "Hand In Output"}
       </button>
@@ -698,45 +700,45 @@ function IssueMoreRawForm({ assignmentId, onIssued }: { assignmentId: string; on
   }
 
   return (
-    <form onSubmit={handleIssue} className="flex flex-wrap items-end gap-2 rounded-lg bg-blue-50/50 p-2.5">
-      <div className="w-28">
-        <label className="text-[11px] font-medium text-slate-600">
+    <form onSubmit={handleIssue} className="flex flex-wrap items-end gap-2.5 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3.5">
+      <div className="w-32">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Raw Qty</span>
           <input
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="e.g. 20"
-            className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-[#4F6BF5]"
           />
         </label>
       </div>
-      <div className="w-32">
-        <label className="text-[11px] font-medium text-slate-600">
+      <div className="w-36">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Date</span>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-[#4F6BF5]"
           />
         </label>
       </div>
-      <div className="min-w-[120px] flex-1">
-        <label className="text-[11px] font-medium text-slate-600">
+      <div className="min-w-[140px] flex-1">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Notes</span>
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"
-            className="mt-1 w-full rounded border border-slate-200 bg-white px-2 py-1 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-[#4F6BF5]"
           />
         </label>
       </div>
       <button
         type="submit"
         disabled={saving}
-        className="rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        className="rounded-xl bg-[#4F6BF5] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#435CE6] disabled:opacity-50"
       >
         {saving ? "Issuing…" : "Issue Raw"}
       </button>
@@ -816,23 +818,23 @@ function AssignWorkerModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-lg rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Assign Work to Worker</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <h3 className="text-base font-bold tracking-tight text-slate-900">Assign Work to Worker</h3>
+          <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <form onSubmit={handleAssign} className="space-y-3 text-sm">
+        <form onSubmit={handleAssign} className="space-y-3.5 text-sm">
           <div>
-            <label className="block text-xs font-medium text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Product to Make *
               <select
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
               >
                 {lines.map((l, i) => (
                   <option key={i} value={l.product_name}>
@@ -844,13 +846,13 @@ function AssignWorkerModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Worker *
               <select
                 value={workerId}
                 onChange={(e) => setWorkerId(e.target.value)}
                 disabled={activeWorkers.length === 0}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
               >
                 <option value="">{activeWorkers.length === 0 ? "No active workers" : "Select worker…"}</option>
                 {activeWorkers.map((w) => (
@@ -860,18 +862,18 @@ function AssignWorkerModal({
                 ))}
               </select>
               {activeWorkers.length === 0 && (
-                <p className="mt-1 text-xs text-rose-500">No active workers found. Please add or activate a worker first.</p>
+                <p className="mt-1 text-xs font-medium text-rose-500">No active workers found. Please add or activate a worker first.</p>
               )}
             </label>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Raw Material Item *
               <select
                 value={rawItemId}
                 onChange={(e) => setRawItemId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
               >
                 <option value="">Select raw item…</option>
                 {rawItems.map((r) => (
@@ -885,26 +887,26 @@ function AssignWorkerModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Target Output Qty *
                 <input
                   type="number"
                   value={targetQuantity}
                   onChange={(e) => setTargetQuantity(e.target.value)}
                   placeholder="e.g. 50"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                 />
               </label>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Raw per Unit
                 <input
                   type="number"
                   value={rawPerUnit}
                   onChange={(e) => setRawPerUnit(e.target.value)}
                   placeholder="1"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                 />
               </label>
             </div>
@@ -912,26 +914,26 @@ function AssignWorkerModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Raw to Issue (leave blank for whole)
                 <input
                   type="number"
                   value={issueQuantity}
                   onChange={(e) => setIssueQuantity(e.target.value)}
                   placeholder="Optional"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                 />
               </label>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Flat Wage (₹)
                 <input
                   type="number"
                   value={wageAmount}
                   onChange={(e) => setWageAmount(e.target.value)}
                   placeholder="0"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                 />
               </label>
             </div>
@@ -939,41 +941,41 @@ function AssignWorkerModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Assignment Date
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                 />
               </label>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Notes
                 <input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional notes"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
                 />
               </label>
             </div>
           </div>
 
-          <div className="mt-5 flex justify-end gap-2 pt-2">
+          <div className="mt-6 flex justify-end gap-2.5 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || activeWorkers.length === 0}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+              className="rounded-xl bg-[#4F6BF5] px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition hover:bg-[#435CE6] disabled:opacity-50"
             >
               {saving ? "Assigning…" : "Assign & Issue Raw"}
             </button>
@@ -991,47 +993,49 @@ function ShipmentSection({ bill, onChanged }: { bill: Bill; onChanged: () => voi
   return (
     <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Truck className="h-4 w-4 text-slate-400" />
-          <h2 className="text-base font-semibold text-slate-900">Shipments & Delivery</h2>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+            <Truck className="h-4 w-4" />
+          </div>
+          <h2 className="text-base font-bold tracking-tight text-slate-900">Shipments & Delivery</h2>
         </div>
         <button
           type="button"
           onClick={() => setShowShipModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-500"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-500"
         >
           <Truck className="h-3.5 w-3.5" />
           Record Shipment
         </button>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-2.5">
         {shipments.length === 0 && (
-          <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-400">
+          <p className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm font-medium text-slate-400">
             No shipments logged yet. As products are finished by workers, you can dispatch them here.
           </p>
         )}
 
         {shipments.map((s: ShipmentRecord, idx: number) => (
-          <div key={s.shipment_id || idx} className="rounded-xl border border-slate-100 bg-slate-50 p-3.5">
+          <div key={s.shipment_id || idx} className="rounded-2xl border border-slate-100 bg-[#f4f7fb] p-4">
             <div className="flex items-center justify-between">
               <div>
-                <span className="font-semibold text-slate-800">
+                <span className="font-bold text-slate-800">
                   Shipment #{idx + 1}
                 </span>
-                <span className="ml-2 text-xs text-slate-400">
+                <span className="ml-2 text-xs font-medium text-slate-400">
                   {s.date ? String(s.date).slice(0, 10) : ""}
                 </span>
-                {s.notes && <p className="text-xs text-slate-500 mt-0.5">{s.notes}</p>}
+                {s.notes && <p className="text-xs font-medium text-slate-500 mt-0.5">{s.notes}</p>}
               </div>
-              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              <span className="rounded-full border border-emerald-150 bg-emerald-50 px-3 py-0.5 text-xs font-semibold text-emerald-700">
                 Shipped
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2">
               {(s.items || []).map((it, i) => (
-                <span key={i} className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs text-slate-700">
-                  {it.product_name}: <strong>{it.quantity}</strong>
+                <span key={i} className="rounded-lg bg-white border border-slate-200/80 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs">
+                  {it.product_name}: <strong className="text-slate-900 font-bold">{it.quantity}</strong>
                 </span>
               ))}
             </div>
@@ -1109,39 +1113,39 @@ function RecordShipmentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">Record Dispatch / Shipment</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <h3 className="text-base font-bold tracking-tight text-slate-900">Record Dispatch / Shipment</h3>
+          <button type="button" onClick={onClose} className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <form onSubmit={handleShip} className="space-y-4 text-sm">
-          <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-3">
-            <label className="flex items-center gap-2 font-medium text-teal-900">
+          <div className="rounded-2xl border border-teal-100 bg-teal-50/60 p-4">
+            <label className="flex items-center gap-2 font-semibold text-teal-900 cursor-pointer">
               <input
                 type="checkbox"
                 checked={shipAll}
                 onChange={(e) => setShipAll(e.target.checked)}
-                className="h-4 w-4 rounded accent-teal-600"
+                className="h-4 w-4 rounded text-teal-600 accent-teal-600"
               />
               Ship All Ready Quantities
             </label>
-            <p className="mt-1 text-xs text-teal-700">
+            <p className="mt-1 text-xs font-medium text-teal-700">
               Dispatches everything produced and in stock for this order in one action.
             </p>
           </div>
 
           {!shipAll && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-600">Enter Quantities to Dispatch:</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Enter Quantities to Dispatch:</p>
               {lines.map((l, i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-slate-100 p-2.5">
+                <div key={i} className="flex items-center justify-between rounded-xl border border-slate-100 bg-[#f8fafc] p-3">
                   <div>
-                    <p className="font-medium text-slate-800">{l.product_name}</p>
-                    <p className="text-xs text-slate-400">Ready to ship: {l.ready_to_ship}</p>
+                    <p className="font-semibold text-slate-800">{l.product_name}</p>
+                    <p className="text-xs font-medium text-slate-400">Ready to ship: {l.ready_to_ship}</p>
                   </div>
                   <input
                     type="number"
@@ -1152,7 +1156,7 @@ function RecordShipmentModal({
                       setQuantities({ ...quantities, [l.product_name]: Number(e.target.value) || 0 })
                     }
                     placeholder="0"
-                    className="w-20 rounded border border-slate-200 px-2 py-1 text-right text-xs"
+                    className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-right text-xs font-semibold shadow-2xs outline-none focus:border-teal-500"
                   />
                 </div>
               ))}
@@ -1160,41 +1164,41 @@ function RecordShipmentModal({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Shipment Date
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-xs shadow-2xs outline-none focus:border-teal-500"
               />
             </label>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Notes
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g. Courier tracking # or driver details"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                className="mt-1 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-xs shadow-2xs outline-none focus:border-teal-500"
               />
             </label>
           </div>
 
-          <div className="mt-6 flex justify-end gap-2 pt-2">
+          <div className="mt-6 flex justify-end gap-2.5 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-teal-600 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-500 disabled:opacity-50"
+              className="rounded-xl bg-teal-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-teal-500 disabled:opacity-50"
             >
               {saving ? "Recording…" : "Confirm Shipment"}
             </button>
@@ -1217,14 +1221,16 @@ function ProfitSection({
   return (
     <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <BadgeCheck className="h-4 w-4 text-slate-400" />
-          <h2 className="text-base font-semibold text-slate-900">Profit Confirmation</h2>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <BadgeCheck className="h-4 w-4" />
+          </div>
+          <h2 className="text-base font-bold tracking-tight text-slate-900">Profit Confirmation</h2>
         </div>
 
         <div>
           {bill.profit_confirmed ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-150 bg-emerald-50 px-3.5 py-1 text-xs font-semibold text-emerald-700">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Profit Confirmed: ₹{Number(bill.profit_confirmed_amount || 0).toLocaleString("en-IN")}
             </span>
@@ -1232,22 +1238,22 @@ function ProfitSection({
             <button
               type="button"
               onClick={onConfirmProfit}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500"
             >
               <BadgeCheck className="h-3.5 w-3.5" />
               Confirm Profit
             </button>
           ) : (
-            <span className="text-xs text-slate-400 italic">
+            <span className="text-xs font-medium text-slate-400 italic">
               Profit can be confirmed once all items are shipped
             </span>
           )}
         </div>
       </div>
 
-      <div className="mt-4 text-xs text-slate-500">
+      <div className="mt-4 text-xs font-medium text-slate-500">
         {!bill.profit_confirmed && !isEligible && (
-          <p className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+          <p className="rounded-2xl border border-slate-100 bg-[#f4f7fb] p-4 leading-relaxed">
             In the order-first workflow, profit calculation incorporates actual raw material consumed, final worker wages, and logged transit expenses. This order is currently <strong>{bill.order_status}</strong> and can be locked once fully shipped.
           </p>
         )}
@@ -1259,9 +1265,11 @@ function ProfitSection({
 function CostsPanel({ bill, onChanged }: { bill: Bill; onChanged: () => void }) {
   return (
     <Card className="p-6">
-      <div className="flex items-center gap-2">
-        <IndianRupee className="h-4 w-4 text-slate-400" />
-        <h2 className="text-base font-semibold text-slate-900">Order Costs</h2>
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+          <IndianRupee className="h-4 w-4" />
+        </div>
+        <h2 className="text-base font-bold tracking-tight text-slate-900">Order Costs</h2>
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -1322,48 +1330,48 @@ function CostLog({ title, total, entries, onAdd }: CostLogProps) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-100 p-4">
+    <div className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4.5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-        <span className="text-sm font-semibold text-slate-900">₹{Number(total || 0).toLocaleString("en-IN")}</span>
+        <h3 className="text-sm font-bold text-slate-800">{title}</h3>
+        <span className="text-sm font-bold text-slate-900">₹{Number(total || 0).toLocaleString("en-IN")}</span>
       </div>
-      <form onSubmit={handleAdd} className="mt-3 flex flex-wrap items-end gap-2">
-        <div className="w-24">
+      <form onSubmit={handleAdd} className="mt-3.5 flex flex-wrap items-end gap-2">
+        <div className="w-28">
           <input
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="₹"
-            className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
+            className="w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs shadow-2xs outline-none transition focus:border-[#4F6BF5]"
           />
         </div>
-        <div className="min-w-[100px] flex-1">
+        <div className="min-w-[120px] flex-1">
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Notes (optional)"
-            className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
+            className="w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs shadow-2xs outline-none transition focus:border-[#4F6BF5]"
           />
         </div>
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+          className="rounded-xl bg-[#4F6BF5] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#435CE6] disabled:opacity-50"
         >
           Add
         </button>
       </form>
-      <div className="mt-3 space-y-1">
+      <div className="mt-3.5 space-y-1.5">
         {(entries || []).map((entry, index) => (
-          <div key={index} className="flex items-center justify-between text-xs text-slate-500">
-            <span>
+          <div key={index} className="flex items-center justify-between rounded-lg bg-white border border-slate-100 px-3 py-1.5 text-xs text-slate-600 shadow-2xs">
+            <span className="font-semibold text-slate-800">
               ₹{Number(entry.amount || 0).toLocaleString("en-IN")}
               {entry.notes ? ` · ${entry.notes}` : ""}
             </span>
-            <span>{entry.date ? String(entry.date).slice(0, 10) : ""}</span>
+            <span className="text-slate-400 font-medium">{entry.date ? String(entry.date).slice(0, 10) : ""}</span>
           </div>
         ))}
-        {(!entries || entries.length === 0) && <p className="text-xs text-slate-400">No entries yet.</p>}
+        {(!entries || entries.length === 0) && <p className="text-xs font-medium text-slate-400 py-1">No entries yet.</p>}
       </div>
     </div>
   );
@@ -1377,42 +1385,44 @@ function MovementHistorySection({
   workers?: WorkerRef[];
 }) {
   const typeLabels: Record<string, { label: string; tone: string }> = {
-    raw_issue: { label: "Raw Issue", tone: "bg-blue-50 text-blue-700 border-blue-200" },
-    raw_return: { label: "Raw Return", tone: "bg-amber-50 text-amber-700 border-amber-200" },
-    production_in: { label: "Production In", tone: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    shipment_out: { label: "Shipment Out", tone: "bg-purple-50 text-purple-700 border-purple-200" },
+    raw_issue: { label: "Raw Issue", tone: "bg-indigo-50 text-[#4F6BF5] border-indigo-150" },
+    raw_return: { label: "Raw Return", tone: "bg-amber-50 text-amber-700 border-amber-150" },
+    production_in: { label: "Production In", tone: "bg-emerald-50 text-emerald-700 border-emerald-150" },
+    shipment_out: { label: "Shipment Out", tone: "bg-purple-50 text-purple-700 border-purple-150" },
   };
 
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <History className="h-4 w-4 text-slate-400" />
-          <h2 className="text-base font-semibold text-slate-900">Movement History</h2>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+            <History className="h-4 w-4" />
+          </div>
+          <h2 className="text-base font-bold tracking-tight text-slate-900">Movement History</h2>
         </div>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs font-semibold text-slate-400">
           {movements.length} {movements.length === 1 ? "movement" : "movements"} recorded
         </span>
       </div>
 
       {movements.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-400">
+        <p className="mt-4 rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm font-medium text-slate-400">
           No stock movements recorded for this order yet.
         </p>
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-100 bg-slate-50/70 text-xs font-medium uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Item</th>
-                <th className="px-4 py-3">Quantity</th>
-                <th className="px-4 py-3">Worker / Details</th>
-                <th className="px-4 py-3">Notes</th>
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <th className="px-4 py-3.5">Date</th>
+                <th className="px-4 py-3.5">Type</th>
+                <th className="px-4 py-3.5">Item</th>
+                <th className="px-4 py-3.5">Quantity</th>
+                <th className="px-4 py-3.5">Worker / Details</th>
+                <th className="px-4 py-3.5">Notes</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100/70">
               {movements.map((m) => {
                 const typeInfo = typeLabels[m.type] || {
                   label: m.type,
@@ -1422,23 +1432,23 @@ function MovementHistorySection({
                   ? workers.find((w) => w.id === m.worker_id)?.name || m.worker_id
                   : null;
                 return (
-                  <tr key={m.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                  <tr key={m.id} className="transition-colors hover:bg-slate-50/70">
+                    <td className="px-4 py-3.5 text-xs font-medium text-slate-500 whitespace-nowrap">
                       {m.date ? new Date(m.date).toLocaleDateString() : "—"}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-4 py-3.5 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${typeInfo.tone}`}
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${typeInfo.tone}`}
                       >
                         {typeInfo.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{m.item_name}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-800">{m.quantity}</td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3.5 font-bold text-slate-900">{m.item_name}</td>
+                    <td className="px-4 py-3.5 font-bold text-slate-800">{m.quantity}</td>
+                    <td className="px-4 py-3.5 text-slate-600 font-medium">
                       {workerName ? `Worker: ${workerName}` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{m.notes || "—"}</td>
+                    <td className="px-4 py-3.5 text-xs text-slate-400 font-medium">{m.notes || "—"}</td>
                   </tr>
                 );
               })}

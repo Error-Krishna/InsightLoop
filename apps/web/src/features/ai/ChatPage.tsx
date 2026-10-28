@@ -62,39 +62,39 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
       {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600">
-          <Bot className="h-4 w-4 text-white" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-[#4F6BF5] shadow-xs">
+          <Bot className="h-4 w-4" />
         </div>
       )}
       <div
         className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           isUser
-            ? "bg-blue-600 text-white"
+            ? "bg-[#4F6BF5] text-white shadow-md shadow-[#4F6BF5]/15 rounded-br-xs"
             : isError
-            ? "border border-rose-200 bg-rose-50 text-rose-700"
-            : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-100"
+            ? "border border-rose-200 bg-rose-50 text-rose-700 rounded-bl-xs"
+            : "border border-slate-100 bg-white text-slate-800 shadow-2xs rounded-bl-xs"
         }`}
       >
         {message.action === "download" && (
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-emerald-600">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-emerald-600">
             <Download className="h-3.5 w-3.5" />
             Export ready – downloading…
           </div>
         )}
         {message.action === "navigate" && (
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-blue-600">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-indigo-200">
             <Navigation className="h-3.5 w-3.5" />
             Navigating…
           </div>
         )}
         {isError && (
-          <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold">
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-bold">
             <AlertCircle className="h-3.5 w-3.5" /> Error
           </div>
         )}
-        <p>{message.content}</p>
+        <p className="font-medium">{message.content}</p>
         {message.timestamp && (
-          <p className={`mt-1 text-right text-[10px] ${isUser ? "text-blue-200" : "text-slate-400"}`}>
+          <p className={`mt-1 text-right text-[10px] font-medium ${isUser ? "text-indigo-200" : "text-slate-400"}`}>
             {message.timestamp}
           </p>
         )}
@@ -133,13 +133,11 @@ export default function ChatPage() {
     socket.onclose = () => setConnected(false);
     socket.onerror = () => {
       toast.error("AI assistant connection failed");
-      setConnected(false);
     };
 
     socket.onmessage = (event) => {
       try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "session_status") return; // auth ack – ignore
+        const payload: AssistantPayload & { type?: string } = JSON.parse(event.data);
         const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
         setMessages((prev) => [
@@ -154,7 +152,7 @@ export default function ChatPage() {
         ]);
 
         if (payload.action === "navigate" && payload.url) {
-          setTimeout(() => { void navigate(payload.url); }, 800);
+          setTimeout(() => { void navigate(payload.url!); }, 800);
         }
         if (payload.action === "download" && payload.file_url) {
           window.open(payload.file_url, "_blank");
@@ -191,39 +189,41 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+    <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.03)]">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+      <div className="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
-            <Bot className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-[#4F6BF5]">
+            <Bot className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-base font-semibold text-white">AI Assistant</h1>
-            <p className="text-xs text-blue-100">Ask for exports, insights, or navigation help</p>
+            <h1 className="text-base font-bold tracking-tight text-slate-900">AI Assistant</h1>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Ask for exports, insights, or navigation help
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-red-400"}`} />
-          <span className="text-xs text-blue-100">{connected ? "Connected" : "Disconnected"}</span>
+        <div className="flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50/80 px-3 py-1 shadow-2xs">
+          <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-red-400"}`} />
+          <span className="text-xs font-semibold text-slate-600">{connected ? "Connected" : "Disconnected"}</span>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50 p-5">
+      <div className="flex-1 space-y-4 overflow-y-auto bg-[#f4f7fb]/70 p-6">
         {messages.map((msg, i) => (
           <MessageBubble key={i} message={msg} />
         ))}
         {sending && (
           <div className="flex gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600">
-              <Bot className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-[#4F6BF5]">
+              <Bot className="h-4 w-4" />
             </div>
-            <div className="flex items-center gap-1.5 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
+            <div className="flex items-center gap-1.5 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-2xs">
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400"
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#4F6BF5]"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}
@@ -234,16 +234,16 @@ export default function ChatPage() {
       </div>
 
       {/* Starter prompts */}
-      <div className="border-t border-slate-100 bg-white px-5 py-3">
+      <div className="border-t border-slate-100 bg-white px-6 py-3">
         <div className="flex flex-wrap gap-2">
           {STARTER_PROMPTS.map((prompt) => (
             <button
               key={prompt}
               type="button"
               onClick={() => send(prompt)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-[#4F6BF5] hover:bg-indigo-50/50 hover:text-[#4F6BF5]"
             >
-              <Sparkles className="h-3 w-3" />
+              <Sparkles className="h-3 w-3 text-[#4F6BF5]" />
               {prompt}
             </button>
           ))}
@@ -259,13 +259,13 @@ export default function ChatPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Try: Export business trends…"
-            className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+            className="flex-1 rounded-full border border-slate-200/80 bg-slate-50/70 px-5 py-3 text-sm text-slate-800 placeholder:text-slate-400 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:bg-white focus:ring-4 focus:ring-[#4F6BF5]/10"
           />
           <button
             type="button"
             onClick={() => send()}
             disabled={!input.trim() || !connected || sending}
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white transition hover:bg-blue-500 disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#4F6BF5] text-white shadow-md shadow-[#4F6BF5]/20 transition-all hover:bg-[#435CE6] disabled:opacity-40"
           >
             <Send className="h-4 w-4" />
           </button>

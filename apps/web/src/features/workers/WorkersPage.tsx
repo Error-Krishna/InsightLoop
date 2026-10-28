@@ -157,13 +157,17 @@ export default function WorkersPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-1 rounded-2xl border border-slate-200/60 bg-slate-100/80 p-1 shadow-2xs">
           {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === tab ? "bg-blue-600 text-white" : "border border-slate-200 bg-white text-slate-700"}`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === tab
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
             >
               {tab}
             </button>
@@ -173,7 +177,7 @@ export default function WorkersPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search workers"
-          className="w-full max-w-xs rounded-lg border border-slate-200 px-4 py-2.5 text-sm"
+          className="w-full max-w-xs rounded-full border border-slate-200/80 bg-white px-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
         />
       </div>
 
@@ -181,9 +185,13 @@ export default function WorkersPage() {
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <Card className="p-6">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold text-slate-900">{editingWorkerId ? "Edit Worker" : "Add Worker"}</h2>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">{editingWorkerId ? "Edit Worker" : "Add Worker"}</h2>
               {editingWorkerId && (
-                <button type="button" onClick={resetWorkerForm} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                <button
+                  type="button"
+                  onClick={resetWorkerForm}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50"
+                >
                   Cancel
                 </button>
               )}
@@ -213,16 +221,19 @@ export default function WorkersPage() {
               <Field label="Address" value={workerForm.address} onChange={(value) => setWorkerForm((current) => ({ ...current, address: value }))} />
               <Field label="Phone" value={workerForm.phone} onChange={(value) => setWorkerForm((current) => ({ ...current, phone: value }))} />
               <Field label="Joining Date" type="date" value={workerForm.joining_date} onChange={(value) => setWorkerForm((current) => ({ ...current, joining_date: value }))} />
-              <label className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
+              <label className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-700 shadow-2xs cursor-pointer">
                 Active worker
                 <input
                   type="checkbox"
                   checked={Boolean(workerForm.is_active)}
                   onChange={(event) => setWorkerForm((current) => ({ ...current, is_active: event.target.checked }))}
-                  className="h-4 w-4 accent-blue-600"
+                  className="h-4 w-4 rounded text-[#4F6BF5] accent-[#4F6BF5]"
                 />
               </label>
-              <button type="submit" className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
+              <button
+                type="submit"
+                className="rounded-xl bg-[#4F6BF5] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition hover:bg-[#435CE6] md:col-span-2"
+              >
                 {editingWorkerId ? "Update Worker" : "Save Worker"}
               </button>
             </form>
@@ -230,47 +241,51 @@ export default function WorkersPage() {
 
           <Card className="overflow-hidden">
             <div className="border-b border-slate-100 px-6 py-4">
-              <h2 className="text-lg font-semibold text-slate-900">Workers</h2>
-              <p className="mt-1 text-sm text-slate-500">Assigned material: {totalAssigned.toLocaleString("en-IN")} units</p>
+              <h2 className="text-base font-bold tracking-tight text-slate-900">Workers</h2>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">Assigned material: {totalAssigned.toLocaleString("en-IN")} units</p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold uppercase tracking-wider text-slate-400">
                     {["Worker", "Status", "Assigned", "Delivered", "Wastage", "Pending", ""].map((heading) => (
-                      <th key={heading} className="px-6 py-3 text-left font-medium">
+                      <th key={heading} className="px-6 py-3.5 text-left">
                         {heading}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100/70">
                   {filteredWorkers.map((worker) => (
-                    <tr key={worker.id} className="border-t border-slate-100 hover:bg-slate-50">
+                    <tr key={worker.id} className="transition-colors hover:bg-slate-50/70">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-slate-900">{worker.name}</p>
-                        <p className="text-xs text-slate-500">{worker.phone || "No phone"}</p>
+                        <p className="font-bold text-slate-900">{worker.name}</p>
+                        <p className="text-xs font-medium text-slate-400">{worker.phone || "No phone"}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${worker.is_active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-600"}`}>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${worker.is_active ? "border border-emerald-150 bg-emerald-50 text-emerald-700" : "border border-slate-200 bg-slate-100 text-slate-600"}`}>
                           {worker.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-6 py-4">{worker.material_assigned}</td>
-                      <td className="px-6 py-4">{worker.material_delivered}</td>
+                      <td className="px-6 py-4 font-semibold text-slate-800">{worker.material_assigned}</td>
+                      <td className="px-6 py-4 font-semibold text-emerald-600">{worker.material_delivered}</td>
                       <td className="px-6 py-4">
                         {Number(worker.total_wasted || 0) > 0 ? (
-                          <span className="font-medium text-amber-600">
-                            {worker.total_wasted} <span className="text-xs text-amber-500">({worker.wastage_rate}%)</span>
+                          <span className="font-bold text-amber-600">
+                            {worker.total_wasted} <span className="text-xs font-medium text-amber-500">({worker.wastage_rate}%)</span>
                           </span>
                         ) : (
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">₹{Number(worker.pending_amount || 0).toLocaleString("en-IN")}</td>
+                      <td className="px-6 py-4 font-bold text-slate-900">₹{Number(worker.pending_amount || 0).toLocaleString("en-IN")}</td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => startEditing(worker)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium">
+                          <button
+                            type="button"
+                            onClick={() => startEditing(worker)}
+                            className="rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50"
+                          >
                             Edit
                           </button>
                           <button
@@ -293,7 +308,7 @@ export default function WorkersPage() {
                                 toast.error(detail ?? "Failed to delete worker");
                               }
                             }}
-                            className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600"
+                            className="rounded-xl border border-rose-150 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-2xs transition hover:bg-rose-50"
                           >
                             Delete
                           </button>
@@ -303,7 +318,7 @@ export default function WorkersPage() {
                   ))}
                   {filteredWorkers.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                      <td colSpan={7} className="px-6 py-8 text-center text-sm font-medium text-slate-400">
                         No workers match your search.
                       </td>
                     </tr>
@@ -318,17 +333,23 @@ export default function WorkersPage() {
       {activeTab !== "Workers List" && (
         <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
           <Card className="p-4">
-            <h2 className="text-lg font-semibold text-slate-900">Select Worker</h2>
-            <div className="mt-4 space-y-2">
+            <h2 className="text-base font-bold tracking-tight text-slate-900">Select Worker</h2>
+            <div className="mt-4 space-y-2 max-h-[600px] overflow-y-auto">
               {filteredWorkers.map((worker) => (
                 <button
                   type="button"
                   key={worker.id}
                   onClick={() => setSelectedWorkerId(worker.id)}
-                  className={`w-full rounded-lg border px-4 py-3 text-left text-sm ${selectedWorkerId === worker.id ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700"}`}
+                  className={`w-full rounded-2xl border p-3.5 text-left text-sm transition-all cursor-pointer ${
+                    selectedWorkerId === worker.id
+                      ? "border-[#4F6BF5] bg-indigo-50/70 text-[#4F6BF5] shadow-xs ring-1 ring-[#4F6BF5]/30"
+                      : "border-slate-200/70 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                  }`}
                 >
-                  <p className="font-medium">{worker.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">Pending ₹{Number(worker.pending_amount || 0).toLocaleString("en-IN")}</p>
+                  <p className="font-bold text-slate-900">{worker.name}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-400">
+                    Pending ₹{Number(worker.pending_amount || 0).toLocaleString("en-IN")}
+                  </p>
                 </button>
               ))}
             </div>
@@ -344,7 +365,7 @@ export default function WorkersPage() {
             />
           ) : (
             <Card className="p-6">
-              <h2 className="text-xl font-semibold text-slate-900">Pay Records</h2>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">Pay Records</h2>
               <form
                 onSubmit={async (event) => {
                   event.preventDefault();
@@ -366,22 +387,26 @@ export default function WorkersPage() {
                 <Field label="Rate / Unit" type="number" value={paymentForm.rate_per_unit} onChange={(value) => setPaymentForm((current) => ({ ...current, rate_per_unit: value }))} />
                 <Field label="Amount Paid" type="number" value={paymentForm.amount_paid} onChange={(value) => setPaymentForm((current) => ({ ...current, amount_paid: value }))} />
                 <Field label="Date" type="date" value={paymentForm.date} onChange={(value) => setPaymentForm((current) => ({ ...current, date: value }))} />
-                <button type="submit" disabled={!selectedWorker} className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
+                <button
+                  type="submit"
+                  disabled={!selectedWorker}
+                  className="rounded-xl bg-[#4F6BF5] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition hover:bg-[#435CE6] disabled:opacity-50"
+                >
                   Save Payment
                 </button>
               </form>
               <div className="mt-8 overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-slate-50 text-slate-500">
-                    <tr>
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       {["Worker", "Product", "Units", "Rate", "Amount", "Paid So Far", "Balance", "Status", ""].map((heading) => (
-                        <th key={heading} className="px-4 py-3 text-left font-medium">
+                        <th key={heading} className="px-4 py-3.5 text-left">
                           {heading}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100/70">
                     {payments.map((payment) => (
                       <PayRecordRow
                         key={payment.id}
@@ -394,7 +419,7 @@ export default function WorkersPage() {
                     ))}
                     {payments.length === 0 && (
                       <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan={9} className="px-4 py-8 text-center text-sm font-medium text-slate-400">
                           No pay records yet.
                         </td>
                       </tr>
@@ -419,13 +444,13 @@ interface FieldProps {
 
 function Field({ label, value, onChange, type = "text" }: FieldProps) {
   return (
-    <label className="text-sm font-medium text-slate-700">
+    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
       {label}
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3"
+        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
       />
     </label>
   );
@@ -434,8 +459,8 @@ function Field({ label, value, onChange, type = "text" }: FieldProps) {
 function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card className="p-5">
-      <p className="text-sm text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">{value}</p>
     </Card>
   );
 }
@@ -545,14 +570,14 @@ function MaterialDistributionPanel({
 
   return (
     <Card className="p-6">
-      <h2 className="text-xl font-semibold text-slate-900">Material Assignment</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <h2 className="text-xl font-bold tracking-tight text-slate-900">Material Assignment</h2>
+      <p className="mt-1 text-xs font-medium text-slate-400">
         Assign production work for confirmed orders. Raw material is deducted from stock and tracked with the worker until products are returned.
       </p>
 
       <form onSubmit={handleAssign} className="mt-6 grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
             Select Order / Bill *
             <select
               value={selectedBillId}
@@ -560,7 +585,7 @@ function MaterialDistributionPanel({
                 setSelectedBillId(e.target.value);
                 setSelectedProduct("");
               }}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
             >
               <option value="">Select bill…</option>
               {bills.map((b) => (
@@ -573,13 +598,13 @@ function MaterialDistributionPanel({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
             Product Line *
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
               disabled={!selectedBillId}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50"
+              className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10 disabled:bg-slate-50 disabled:text-slate-400"
             >
               <option value="">Select product to produce…</option>
               {billProducts.map((p, idx) => (
@@ -592,12 +617,12 @@ function MaterialDistributionPanel({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
             Raw Material to Issue *
             <select
               value={selectedRawItemId}
               onChange={(e) => setSelectedRawItemId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
             >
               <option value="">Select raw item…</option>
               {rawItems.map((r) => (
@@ -644,7 +669,7 @@ function MaterialDistributionPanel({
           <button
             type="submit"
             disabled={!selectedWorker || saving}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+            className="w-full rounded-xl bg-[#4F6BF5] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition hover:bg-[#435CE6] disabled:opacity-50"
           >
             {saving ? "Assigning…" : "Assign Material & Issue Raw"}
           </button>
@@ -655,7 +680,7 @@ function MaterialDistributionPanel({
         {materials.map((item) => (
           <AssignmentCard key={item.id} item={item} onChanged={refresh} />
         ))}
-        {materials.length === 0 && <p className="text-sm text-slate-400">No material assignments yet.</p>}
+        {materials.length === 0 && <p className="text-sm font-medium text-slate-400 py-4 text-center">No material assignments yet.</p>}
       </div>
     </Card>
   );
@@ -686,45 +711,45 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
   }
 
   return (
-    <div className="rounded-xl border border-slate-100 p-4">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs transition-all hover:border-slate-300">
       <div className="flex items-center justify-between gap-4">
-        <button type="button" onClick={() => setExpanded((c) => !c)} className="flex-1 text-left">
+        <button type="button" onClick={() => setExpanded((c) => !c)} className="flex-1 text-left cursor-pointer">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-slate-900">{item.material_name}</p>
+            <p className="font-bold text-slate-900">{item.material_name}</p>
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                 isCompleted
-                  ? "bg-emerald-50 text-emerald-700"
+                  ? "border border-emerald-150 bg-emerald-50 text-emerald-700"
                   : isCancelled
-                  ? "bg-slate-100 text-slate-500"
-                  : "bg-blue-50 text-blue-600"
+                  ? "border border-slate-200 bg-slate-100 text-slate-500"
+                  : "border border-indigo-150 bg-indigo-50 text-[#4F6BF5]"
               }`}
             >
               {isCompleted ? "Completed" : isCancelled ? "Cancelled" : "Open"}
             </span>
           </div>
-          <p className="text-sm text-slate-500">
+          <p className="text-xs font-medium text-slate-400 mt-0.5">
             {item.raw_item_name ? `Raw: ${item.raw_item_name} · ` : ""}
             Assigned: {item.assignment_date?.slice(0, 10)}
           </p>
         </button>
         <div className="text-right text-sm">
-          <p className="font-medium text-slate-900">
+          <p className="font-bold text-slate-900">
             Produced: {producedQty} / {item.quantity} units
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs font-medium text-slate-400">
             Raw Issued: {item.raw_issued_quantity ?? item.quantity} · Returned: {item.raw_returned_quantity ?? 0}
           </p>
         </div>
       </div>
 
       {isCompleted && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 border border-amber-100">
           <span>
             Wastage: {item.wastage_quantity ?? 0} raw units
           </span>
           {item.over_returned && (
-            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-600">More returned than assigned</span>
+            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-600 font-semibold">More returned than assigned</span>
           )}
         </div>
       )}
@@ -733,11 +758,11 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
         <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
           {batches.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-slate-500">Output Batches Handed In:</p>
+              <p className="text-xs font-bold text-slate-700">Output Batches Handed In:</p>
               {batches.map((batch, index) => (
-                <div key={index} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-700">Chunk {index + 1}: {batch.quantity} finished units</span>
-                  <span className="text-xs text-slate-400">
+                <div key={index} className="flex items-center justify-between rounded-xl bg-[#f4f7fb] px-3.5 py-2 text-xs">
+                  <span className="font-semibold text-slate-700">Chunk {index + 1}: {batch.quantity} finished units</span>
+                  <span className="text-xs font-medium text-slate-400">
                     {batch.date ? String(batch.date).slice(0, 10) : ""}
                     {batch.notes ? ` · ${batch.notes}` : ""}
                   </span>
@@ -754,7 +779,7 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
                 <button
                   type="button"
                   onClick={() => setShowIssueRaw((c) => !c)}
-                  className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
+                  className="rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-xs font-semibold text-[#4F6BF5] transition hover:bg-indigo-100/60"
                 >
                   {showIssueRaw ? "Cancel Issue" : "+ Issue More Raw"}
                 </button>
@@ -763,7 +788,7 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                    className="rounded-xl border border-rose-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
                     Cancel Assignment
                   </button>
@@ -785,22 +810,22 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
                   <button
                     type="button"
                     onClick={() => setConfirmingComplete(true)}
-                    className="rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100/60"
                   >
                     Mark Job Complete
                   </button>
                 ) : (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm">
-                    <p className="text-emerald-800">
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs">
+                    <p className="font-medium text-emerald-950">
                       Produced {producedQty} of {item.quantity} target units. Enter any unused raw material returned by the worker to restore it to inventory:
                     </p>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-2.5 flex items-center gap-2">
                       <input
                         type="number"
                         value={returnedRawInput}
                         onChange={(e) => setReturnedRawInput(e.target.value)}
                         placeholder="Raw returned"
-                        className="w-28 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+                        className="w-28 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
                       />
                       <button
                         type="button"
@@ -817,14 +842,14 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
                             toast.error(detail ?? "Failed to mark complete");
                           }
                         }}
-                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                        className="rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-500"
                       >
                         Confirm Complete
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmingComplete(false)}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                       >
                         Cancel
                       </button>
@@ -837,6 +862,85 @@ function AssignmentCard({ item, onChanged }: { item: MaterialAssignmentItem; onC
         </div>
       )}
     </div>
+  );
+}
+
+function AddBatchForm({ assignmentId, onAdded }: { assignmentId: string; onAdded: () => Promise<void> }) {
+  const [quantity, setQuantity] = useState("");
+  const [date, setDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleAddBatch(event: React.FormEvent) {
+    event.preventDefault();
+    const qty = Number(quantity);
+    if (!qty || qty <= 0) {
+      toast.error("Enter valid quantity produced");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post(`/workers/materials/${assignmentId}/batches/`, {
+        quantity: qty,
+        date: date || undefined,
+        notes: notes.trim() || undefined,
+      });
+      toast.success(`Logged ${qty} produced`);
+      setQuantity("");
+      setNotes("");
+      await onAdded();
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail ?? "Failed to record produced chunk");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleAddBatch} className="flex flex-wrap items-end gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3.5">
+      <div className="w-32">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+          <span>Batch Output</span>
+          <input
+            type="number"
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+            placeholder="e.g. 10"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
+          />
+        </label>
+      </div>
+      <div className="w-36">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+          <span>Date</span>
+          <input
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
+          />
+        </label>
+      </div>
+      <div className="flex-1 min-w-[140px]">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+          <span>Notes (optional)</span>
+          <input
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="e.g. first batch"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-emerald-500"
+          />
+        </label>
+      </div>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-500 disabled:opacity-50"
+      >
+        {saving ? "Logging…" : "Log return"}
+      </button>
+    </form>
   );
 }
 
@@ -873,126 +977,47 @@ function IssueRawForm({ assignmentId, onIssued }: { assignmentId: string; onIssu
   }
 
   return (
-    <form onSubmit={handleIssue} className="flex flex-wrap items-end gap-2 rounded-lg bg-blue-50/70 p-3">
-      <div className="w-28">
-        <label className="text-xs font-medium text-slate-600">
+    <form onSubmit={handleIssue} className="flex flex-wrap items-end gap-2.5 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3.5">
+      <div className="w-32">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>More Raw Qty</span>
           <input
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="e.g. 50"
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-[#4F6BF5]"
           />
         </label>
       </div>
-      <div className="w-32">
-        <label className="text-xs font-medium text-slate-600">
+      <div className="w-36">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Date</span>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-[#4F6BF5]"
           />
         </label>
       </div>
       <div className="min-w-[140px] flex-1">
-        <label className="text-xs font-medium text-slate-600">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
           <span>Notes (optional)</span>
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. extra roll"
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs"
+            placeholder="e.g. extra thread"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-2xs outline-none focus:border-[#4F6BF5]"
           />
         </label>
       </div>
       <button
         type="submit"
         disabled={saving}
-        className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+        className="rounded-xl bg-[#4F6BF5] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#435CE6] disabled:opacity-50"
       >
         {saving ? "Issuing…" : "Issue Raw"}
-      </button>
-    </form>
-  );
-}
-
-function AddBatchForm({ assignmentId, onAdded }: { assignmentId: string; onAdded: () => Promise<void> }) {
-  const [quantity, setQuantity] = useState("");
-  const [date, setDate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  async function handleAdd(event: React.FormEvent) {
-    event.preventDefault();
-    const qty = Number(quantity);
-    if (!qty || qty <= 0) {
-      toast.error("Enter how many pieces were produced in this chunk");
-      return;
-    }
-    setSaving(true);
-    try {
-      await api.post(`/workers/materials/${assignmentId}/batches/`, {
-        quantity: qty,
-        date: date || undefined,
-        notes: notes.trim() || undefined,
-      });
-      toast.success(`Logged ${qty} produced`);
-      setQuantity("");
-      setNotes("");
-      await onAdded();
-    } catch (error: unknown) {
-      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      toast.error(detail ?? "Failed to log produced chunk");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-2 rounded-lg bg-blue-50/50 p-3">
-      <div className="w-28">
-        <label className="text-xs font-medium text-slate-600">
-          <span>Chunk qty</span>
-          <input
-            type="number"
-            value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
-            placeholder="e.g. 100"
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-        </label>
-      </div>
-      <div className="w-36">
-        <label className="text-xs font-medium text-slate-600">
-          <span>Date</span>
-          <input
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-        </label>
-      </div>
-      <div className="flex-1 min-w-[140px]">
-        <label className="text-xs font-medium text-slate-600">
-          <span>Notes (optional)</span>
-          <input
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="e.g. first batch"
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-        </label>
-      </div>
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
-      >
-        {saving ? "Logging…" : "Log return"}
       </button>
     </form>
   );
@@ -1040,24 +1065,28 @@ function PayRecordRow({ payment, onChanged }: { payment: PayRecordItem; onChange
   }
 
   return (
-    <tr className="border-t border-slate-100">
-      <td className="px-4 py-3">{payment.worker_name}</td>
-      <td className="px-4 py-3">{payment.product_name}</td>
-      <td className="px-4 py-3">{payment.units_produced}</td>
-      <td className="px-4 py-3">₹{payment.rate_per_unit}</td>
-      <td className="px-4 py-3">₹{totalOwed.toLocaleString("en-IN")}</td>
-      <td className="px-4 py-3">₹{paidSoFar.toLocaleString("en-IN")}</td>
-      <td className="px-4 py-3">₹{balance.toLocaleString("en-IN")}</td>
-      <td className="px-4 py-3">
+    <tr className="transition-colors hover:bg-slate-50/70">
+      <td className="px-4 py-3.5 font-bold text-slate-900">{payment.worker_name}</td>
+      <td className="px-4 py-3.5 font-medium text-slate-700">{payment.product_name}</td>
+      <td className="px-4 py-3.5 font-medium text-slate-700">{payment.units_produced}</td>
+      <td className="px-4 py-3.5 text-slate-600 font-medium">₹{payment.rate_per_unit}</td>
+      <td className="px-4 py-3.5 font-bold text-slate-900">₹{totalOwed.toLocaleString("en-IN")}</td>
+      <td className="px-4 py-3.5 font-bold text-emerald-600">₹{paidSoFar.toLocaleString("en-IN")}</td>
+      <td className="px-4 py-3.5 font-bold text-amber-600">₹{balance.toLocaleString("en-IN")}</td>
+      <td className="px-4 py-3.5">
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-            isFullyPaid ? "bg-emerald-50 text-emerald-600" : paidSoFar > 0 ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-500"
+          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+            isFullyPaid
+              ? "border border-emerald-150 bg-emerald-50 text-emerald-700"
+              : paidSoFar > 0
+              ? "border border-amber-150 bg-amber-50 text-amber-700"
+              : "border border-slate-200 bg-slate-100 text-slate-600"
           }`}
         >
           {isFullyPaid ? "Paid" : paidSoFar > 0 ? "Partial" : "Pending"}
         </span>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-3.5">
         {!isFullyPaid && (
           <form onSubmit={handleRecordPartial} className="flex items-center gap-1.5">
             <input
@@ -1065,19 +1094,19 @@ function PayRecordRow({ payment, onChanged }: { payment: PayRecordItem; onChange
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder={`≤ ${balance}`}
-              className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
+              className="w-20 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs shadow-2xs outline-none focus:border-[#4F6BF5]"
             />
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 disabled:opacity-50"
+              className="rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-50"
             >
               Pay
             </button>
             <button
               type="button"
               onClick={handleMarkPaid}
-              className="rounded-lg border border-emerald-200 px-2 py-1.5 text-xs font-medium text-emerald-700"
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-2xs transition hover:bg-emerald-100/60"
             >
               Mark Paid
             </button>

@@ -162,9 +162,9 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
       </div>
 
       {itemType === "finished" && (
-        <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4 text-sm text-blue-800">
-          <p className="font-semibold">Finished Goods Stock</p>
-          <p className="mt-1">
+        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-sm text-indigo-950">
+          <p className="font-bold text-indigo-900">Finished Goods Stock</p>
+          <p className="mt-1 font-medium text-indigo-800/90 leading-relaxed">
             Finished goods stock is created through worker production and decremented through shipments.
           </p>
         </div>
@@ -173,14 +173,16 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
       <Card className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-            <p className="mt-1 text-sm text-slate-500">Low stock items: {inventoryStats.lowStockCount}</p>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">{title}</h2>
+            <p className="mt-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Low stock items: {inventoryStats.lowStockCount}
+            </p>
           </div>
           {editingId && (
             <button
               type="button"
               onClick={cancelEditing}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 shadow-2xs transition hover:bg-slate-50"
             >
               Cancel Edit
             </button>
@@ -192,10 +194,10 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
             {formFields.map(([key, label, type]) => {
               const isQuantityDisabled = itemType === "finished" && key === "quantity";
               return (
-                <label key={key} className="block text-sm font-medium text-slate-700">
+                <label key={key} className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
                   {label}
                   {isQuantityDisabled && (
-                    <span className="ml-1 text-xs font-normal text-slate-400">(managed via production)</span>
+                    <span className="ml-1 text-[10px] font-normal normal-case text-slate-400">(managed via production)</span>
                   )}
                   <input
                     type={type}
@@ -207,17 +209,17 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
                         [key]: type === "number" ? parseFloat(event.target.value) || 0 : event.target.value,
                       }))
                     }
-                    className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3 disabled:bg-slate-50 disabled:text-slate-500"
+                    className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10 disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 </label>
               );
             })}
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
               Warehouse
               <select
                 value={form.warehouse_id}
                 onChange={(event) => setForm((current) => ({ ...current, warehouse_id: event.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3"
+                className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
               >
                 <option value="">Select warehouse</option>
                 {warehouses.map((warehouse) => (
@@ -228,7 +230,10 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
               </select>
             </label>
             <div className="flex items-end gap-3">
-              <button type="submit" className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
+              <button
+                type="submit"
+                className="rounded-xl bg-[#4F6BF5] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#4F6BF5]/20 transition hover:bg-[#435CE6]"
+              >
                 {editingId ? "Update" : "Create"} Item
               </button>
             </div>
@@ -241,14 +246,14 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by name, SKU, or warehouse"
-          className="w-full max-w-sm rounded-lg border border-slate-200 px-4 py-2.5 text-sm"
+          className="w-full max-w-sm rounded-full border border-slate-200/80 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-2xs outline-none transition focus:border-[#4F6BF5] focus:ring-4 focus:ring-[#4F6BF5]/10"
         />
-        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <label className="flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-2xs cursor-pointer hover:bg-slate-50">
           <input
             type="checkbox"
             checked={showLowStockOnly}
             onChange={(event) => setShowLowStockOnly(event.target.checked)}
-            className="h-4 w-4 accent-blue-600"
+            className="h-4 w-4 rounded text-[#4F6BF5] accent-[#4F6BF5]"
           />
           Show low stock only
         </label>
@@ -258,53 +263,57 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
         {filteredItems.map((item) => {
           const lowStock = Number(item.quantity || 0) <= Number(item.reorder_level || 0);
           return (
-            <Card key={item.id} className="overflow-hidden">
-              <div className="aspect-[4/3] bg-slate-100">
+            <Card key={item.id} className="overflow-hidden hover:shadow-[0_6px_20px_rgba(15,23,42,0.06)] transition-all">
+              <div className="aspect-[4/3] bg-[#f4f7fb] flex items-center justify-center border-b border-slate-100">
                 {item.image_url ? (
                   <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-slate-400">No Image</div>
+                  <div className="flex h-full items-center justify-center text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    No Image
+                  </div>
                 )}
               </div>
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-lg font-semibold text-slate-900">{item.name}</p>
-                    <p className="text-sm text-slate-500">{item.sku}</p>
+                    <p className="text-base font-bold text-slate-900">{item.name}</p>
+                    <p className="text-xs font-medium text-slate-400">{item.sku}</p>
                   </div>
                   <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      lowStock ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      lowStock
+                        ? "border border-amber-150 bg-amber-50 text-amber-700"
+                        : "border border-emerald-150 bg-emerald-50 text-emerald-700"
                     }`}
                   >
                     {lowStock ? "Low Stock" : item.status}
                   </span>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600">
-                  <div>
-                    <p className="text-slate-400">Quantity</p>
-                    <p className="font-medium text-slate-900">{item.quantity}</p>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-medium text-slate-600">
+                  <div className="rounded-xl bg-[#f8fafc] p-2.5">
+                    <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Quantity</p>
+                    <p className="mt-0.5 font-bold text-slate-900 text-sm">{item.quantity}</p>
                   </div>
-                  <div>
-                    <p className="text-slate-400">Reorder Level</p>
-                    <p className="font-medium text-slate-900">{item.reorder_level}</p>
+                  <div className="rounded-xl bg-[#f8fafc] p-2.5">
+                    <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Reorder Level</p>
+                    <p className="mt-0.5 font-bold text-slate-900 text-sm">{item.reorder_level}</p>
                   </div>
-                  <div>
-                    <p className="text-slate-400">Warehouse</p>
-                    <p className="font-medium text-slate-900">{item.warehouse_name || "-"}</p>
+                  <div className="rounded-xl bg-[#f8fafc] p-2.5">
+                    <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Warehouse</p>
+                    <p className="mt-0.5 font-bold text-slate-900 text-sm truncate">{item.warehouse_name || "-"}</p>
                   </div>
-                  <div>
-                    <p className="text-slate-400">Stock Value</p>
-                    <p className="font-medium text-slate-900">
+                  <div className="rounded-xl bg-[#f8fafc] p-2.5">
+                    <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Stock Value</p>
+                    <p className="mt-0.5 font-bold text-slate-900 text-sm">
                       ₹{(Number(item.quantity || 0) * Number(item.cost_price || 0)).toLocaleString("en-IN")}
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 flex gap-3">
+                <div className="mt-4 flex gap-2">
                   <button
                     type="button"
                     onClick={() => startEditing(item)}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700"
+                    className="flex-1 rounded-xl border border-slate-200/80 bg-white py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50"
                   >
                     Edit
                   </button>
@@ -321,7 +330,7 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
                           toast.error("Unable to delete inventory item");
                         }
                       }}
-                      className="rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-600"
+                      className="rounded-xl border border-rose-150 bg-white px-3.5 py-2 text-xs font-semibold text-rose-600 shadow-2xs transition hover:bg-rose-50"
                     >
                       Delete
                     </button>
@@ -332,7 +341,9 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
           );
         })}
         {filteredItems.length === 0 && (
-          <Card className="p-6 text-sm text-slate-400">No inventory items match the current filters.</Card>
+          <Card className="p-8 text-center text-sm font-medium text-slate-400 col-span-full">
+            No inventory items match the current filters.
+          </Card>
         )}
       </div>
     </div>
@@ -342,8 +353,8 @@ export default function InventoryItemsPage({ itemType, title }: InventoryItemsPa
 function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
     <Card className="p-5">
-      <p className="text-sm text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">{value}</p>
     </Card>
   );
 }
