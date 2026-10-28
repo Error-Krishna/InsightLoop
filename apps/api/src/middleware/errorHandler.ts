@@ -52,7 +52,7 @@ export function errorHandler(
     res.status(400).json({
       detail: 'Invalid request data.',
       code: 'VALIDATION_ERROR',
-      errors: zodErr.errors,
+      errors: zodErr.issues,
       requestId,
     });
     return;

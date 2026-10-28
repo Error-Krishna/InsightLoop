@@ -31,19 +31,19 @@ export function getEnvSchema(isProduction: boolean) {
     PORT: z.coerce.number().default(4000),
     HOST: z.string().default('0.0.0.0'),
     MONGODB_URI: isProduction
-      ? z.string({ required_error: 'MONGODB_URI is required in production.' }).min(1, 'MONGODB_URI is required in production.')
+      ? z.string({ message: 'MONGODB_URI is required in production.' }).min(1, 'MONGODB_URI is required in production.')
       : z.string().default('mongodb://localhost:27017/InsightLoop_test'),
     MONGODB_DB_NAME: isProduction
-      ? z.string({ required_error: 'MONGODB_DB_NAME is required in production.' }).min(1, 'MONGODB_DB_NAME is required in production.')
+      ? z.string({ message: 'MONGODB_DB_NAME is required in production.' }).min(1, 'MONGODB_DB_NAME is required in production.')
       : z.string().default('InsightLoop_test'),
     JWT_SECRET: isProduction
-      ? z.string({ required_error: 'JWT_SECRET is required in production.' }).min(1, 'JWT_SECRET is required in production.')
+      ? z.string({ message: 'JWT_SECRET is required in production.' }).min(1, 'JWT_SECRET is required in production.')
       : z.string().default('test-secret-key-must-be-long-enough-32-chars'),
     JWT_ACCESS_EXPIRES_IN: z.string().default('1h'),
     JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
     REDIS_URL: z.string().optional().default(''),
     CORS_ORIGIN: isProduction
-      ? z.string({ required_error: 'CORS_ORIGIN is required in production.' }).min(1, 'CORS_ORIGIN is required in production.')
+      ? z.string({ message: 'CORS_ORIGIN is required in production.' }).min(1, 'CORS_ORIGIN is required in production.')
       : z.string().default('http://localhost:5173,http://127.0.0.1:5173'),
     UPLOAD_DIR: z.string().default('./uploads'),
     MAX_FILE_SIZE_MB: z.coerce.number().default(10),
@@ -51,7 +51,7 @@ export function getEnvSchema(isProduction: boolean) {
     WHATSAPP_PROVIDER: z.enum(['meta', 'openwa']).default('meta'),
     REHASH_PASSWORDS_ON_LOGIN: envBoolSchema(false),
     GOOGLE_CLIENT_ID: isProduction
-      ? z.string({ required_error: 'GOOGLE_CLIENT_ID is required in production.' }).min(1, 'GOOGLE_CLIENT_ID is required in production.')
+      ? z.string({ message: 'GOOGLE_CLIENT_ID is required in production.' }).min(1, 'GOOGLE_CLIENT_ID is required in production.')
       : z.string().default('mock-google-client-id'),
     APP_TIME_ZONE: z.string().default('UTC'),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
