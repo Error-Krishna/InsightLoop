@@ -82,8 +82,9 @@ export class BillsController {
   static async confirmProfit(req: Request, res: Response): Promise<void> {
     const scope: TenantScope = { companyId: req.companyId! };
     const id = req.params.id as string;
-    const override = (req.body as { confirmed_amount?: number | string }).confirmed_amount !== undefined
-      ? parseFloat(String((req.body as { confirmed_amount?: number | string }).confirmed_amount))
+    const body = req.body as { confirmed_amount?: number | string } | undefined;
+    const override = body?.confirmed_amount !== undefined
+      ? parseFloat(String(body.confirmed_amount))
       : undefined;
     const bill = await BillsService.confirmProfit(scope, id, override);
     res.status(200).json(bill);

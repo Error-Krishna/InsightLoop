@@ -19,7 +19,7 @@ export function validateRequest(schema: ValidationSchema) {
         req.query = (await schema.query.parseAsync(req.query)) as typeof req.query;
       }
       if (schema.body) {
-        req.body = (await schema.body.parseAsync(req.body)) as unknown;
+        req.body = await schema.body.parseAsync(req.body);
       }
       next();
     } catch (err: unknown) {
@@ -30,7 +30,7 @@ export function validateRequest(schema: ValidationSchema) {
         }
 
         const missing = err.issues
-          .filter((i) => i.code === 'invalid_type' && (i as unknown as { received?: string }).received === 'undefined')
+          .filter((i) => i.code === 'invalid_type' && ((i as unknown as { received?: string }).received === 'undefined' || i.message.includes('received undefined')))
           .map((i) => i.path.join('.'));
 
         const detail = missing.length > 0
